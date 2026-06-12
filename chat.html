@@ -189,7 +189,14 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js"></script>
+<script>
+const JURIA_CONFIG = {
+  SUPABASE_URL:      'https://dnrudcpaqcqyybpbbrum.supabase.co',
+  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRucnVkY3BhcWNxeXlicGJicnVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyODQwMjMsImV4cCI6MjA5Njg2MDAyM30.f6_byMzZBE2SQH2XjNmRQFQpRkRIfXE2OC0mNxQt5z4',
+  EDGE_FUNCTION_URL: 'https://dnrudcpaqcqyybpbbrum.supabase.co/functions/v1/smart-endpoint',
+};
+</script>
+
 <script>
 // ================================================
 // JURIA CHAT — script unique, zéro duplicate
@@ -284,10 +291,9 @@ async function sendMessage() {
     if (!articles.length) {
       appendNoResult();
     } else {
-      // TEMP : affichage direct des articles (sans OpenAI)
-      const answer = "Voici les articles pertinents trouvés dans le Code de Commerce :";
-      appendMsg('assistant', answer, articles);
-      await saveConversation(question, answer, articles);
+      var result = await askAI(question, articles);
+      appendMsg('assistant', result.answer, result.citations || articles);
+      await saveConversation(question, result.answer, articles);
     }
   } catch(e) {
     console.error('sendMessage error:', e);
@@ -331,9 +337,15 @@ async function searchArticles(question) {
 
 // ---- AI ----
 async function askAI(question, articles) {
-  const res = await fetch(JURIA_CONFIG.EDGE_FUNCTION_URL, {
+  var sessionData = await _sb.auth.getSession();
+  if (!sessionData.data.session) throw new Error('Session expirée');
+  var token = sessionData.data.session.access_token;
+  var res = await fetch(JURIA_CONFIG.EDGE_FUNCTION_URL, {
     method: 'POST',
-    headers: { 'Content-Type':'application/json', 'Authorization':'Bearer ' + JURIA_CONFIG.SUPABASE_ANON_KEY },
+    headers: { 
+      'Content-Type': 'application/json', 
+      'Authorization': 'Bearer ' + token
+    },
     body: JSON.stringify({ question: question, articles: articles }),
   });
   if (!res.ok) throw new Error('Edge Function: ' + res.status);
