@@ -17,105 +17,40 @@
       --font: 'Inter', sans-serif; --serif: 'DM Serif Display', Georgia, serif;
     }
     html { font-size: 15px; }
-    body {
-      font-family: var(--font); color: var(--slate-900);
-      background: #f8f9fb; min-height: 100vh;
-      display: flex; align-items: center; justify-content: center;
-      padding: 24px;
-    }
-    .auth-wrap {
-      width: 100%; max-width: 420px;
-    }
-    .auth-logo {
-      display: flex; align-items: center; gap: 10px;
-      justify-content: center; margin-bottom: 32px;
-      text-decoration: none;
-    }
-    .logo-mark {
-      width: 36px; height: 36px; background: var(--indigo);
-      color: #fff; border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      font-family: var(--serif); font-size: 20px;
-    }
+    body { font-family: var(--font); color: var(--slate-900); background: #f8f9fb; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .auth-wrap { width: 100%; max-width: 420px; }
+    .auth-logo { display: flex; align-items: center; gap: 10px; justify-content: center; margin-bottom: 32px; text-decoration: none; }
+    .logo-mark { width: 36px; height: 36px; background: var(--indigo); color: #fff; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-family: var(--serif); font-size: 20px; }
     .logo-name { font-family: var(--serif); font-size: 24px; color: var(--slate-900); }
-    .auth-card {
-      background: var(--white); border: 1px solid var(--border);
-      border-radius: 16px; padding: 36px 32px;
-      box-shadow: 0 2px 16px rgba(0,0,0,0.06);
-    }
+    .auth-card { background: var(--white); border: 1px solid var(--border); border-radius: 16px; padding: 36px 32px; box-shadow: 0 2px 16px rgba(0,0,0,0.06); }
     .auth-title { font-family: var(--serif); font-size: 24px; color: var(--slate-900); margin-bottom: 6px; }
     .auth-sub { font-size: 14px; color: var(--slate-500); margin-bottom: 28px; line-height: 1.6; }
-    .auth-tabs {
-      display: flex; gap: 0; margin-bottom: 28px;
-      border: 1px solid var(--border); border-radius: 10px; padding: 4px;
-      background: var(--slate-100);
-    }
-    .auth-tab {
-      flex: 1; padding: 8px; border-radius: 7px;
-      border: none; background: none; cursor: pointer;
-      font-family: var(--font); font-size: 14px; font-weight: 500;
-      color: var(--slate-500); transition: all 0.15s;
-    }
+    .auth-tabs { display: flex; gap: 0; margin-bottom: 28px; border: 1px solid var(--border); border-radius: 10px; padding: 4px; background: var(--slate-100); }
+    .auth-tab { flex: 1; padding: 8px; border-radius: 7px; border: none; background: none; cursor: pointer; font-family: var(--font); font-size: 14px; font-weight: 500; color: var(--slate-500); transition: all 0.15s; }
     .auth-tab.active { background: var(--white); color: var(--slate-900); box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
     .form-group { margin-bottom: 16px; }
     label { display: block; font-size: 13px; font-weight: 500; color: var(--slate-700); margin-bottom: 6px; }
-    input {
-      width: 100%; padding: 10px 14px;
-      border: 1.5px solid var(--border); border-radius: 9px;
-      font-family: var(--font); font-size: 14px; color: var(--slate-900);
-      background: var(--white); outline: none;
-      transition: border-color 0.15s, box-shadow 0.15s;
-    }
+    input { width: 100%; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 9px; font-family: var(--font); font-size: 14px; color: var(--slate-900); background: var(--white); outline: none; transition: border-color 0.15s, box-shadow 0.15s; }
     input:focus { border-color: var(--indigo); box-shadow: 0 0 0 3px var(--indigo-bg); }
     input.error { border-color: var(--red); }
     .form-error { font-size: 12px; color: var(--red); margin-top: 5px; display: none; }
     .form-error.show { display: block; }
-    .alert {
-      padding: 12px 14px; border-radius: 9px;
-      font-size: 13.5px; margin-bottom: 16px; display: none; line-height: 1.5;
-    }
+    .alert { padding: 12px 14px; border-radius: 9px; font-size: 13.5px; margin-bottom: 16px; display: none; line-height: 1.5; }
     .alert.show { display: flex; align-items: flex-start; gap: 8px; }
     .alert.error { background: var(--red-bg); color: #991b1b; border: 1px solid #fecaca; }
     .alert.success { background: var(--green-bg); color: var(--green-text); border: 1px solid #a7f3d0; }
-    .btn-submit {
-      width: 100%; padding: 12px; border-radius: 10px;
-      background: var(--indigo); color: #fff; border: none;
-      font-family: var(--font); font-size: 15px; font-weight: 500;
-      cursor: pointer; transition: background 0.15s, transform 0.1s;
-      margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 8px;
-    }
+    .btn-submit { width: 100%; padding: 12px; border-radius: 10px; background: var(--indigo); color: #fff; border: none; font-family: var(--font); font-size: 15px; font-weight: 500; cursor: pointer; transition: background 0.15s, transform 0.1s; margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 8px; }
     .btn-submit:hover { background: var(--indigo-light); }
     .btn-submit:active { transform: scale(0.98); }
     .btn-submit:disabled { background: var(--slate-300); cursor: not-allowed; }
-    .spinner {
-      width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3);
-      border-top-color: #fff; border-radius: 50%;
-      animation: spin 0.7s linear infinite; display: none;
-    }
+    .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; display: none; }
     .btn-submit.loading .spinner { display: block; }
     .btn-submit.loading .btn-text { display: none; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .auth-footer { text-align: center; margin-top: 20px; font-size: 13px; color: var(--slate-500); }
-    .auth-footer a { color: var(--indigo); text-decoration: none; font-weight: 500; }
-    .divider { text-align: center; margin: 20px 0; position: relative; }
-    .divider::before {
-      content: ''; position: absolute; top: 50%; left: 0; right: 0;
-      height: 1px; background: var(--border);
-    }
-    .divider span { background: var(--white); padding: 0 12px; font-size: 12px; color: var(--slate-400); position: relative; }
-    .trial-badge {
-      background: var(--indigo-bg); border: 1px solid #c7d2fe;
-      border-radius: 10px; padding: 12px 16px; margin-bottom: 24px;
-      display: flex; align-items: center; gap: 10px;
-    }
-    .trial-badge-icon { font-size: 20px; }
+    .trial-badge { background: var(--indigo-bg); border: 1px solid #c7d2fe; border-radius: 10px; padding: 12px 16px; margin-bottom: 24px; display: flex; align-items: center; gap: 10px; }
     .trial-badge-text { font-size: 13px; color: var(--indigo-text); line-height: 1.5; }
     .trial-badge-text strong { font-weight: 600; }
-    .back-link {
-      display: inline-flex; align-items: center; gap: 6px;
-      font-size: 13px; color: var(--slate-500); text-decoration: none;
-      margin-bottom: 24px; transition: color 0.15s;
-    }
+    .back-link { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--slate-500); text-decoration: none; margin-bottom: 24px; transition: color 0.15s; }
     .back-link:hover { color: var(--slate-900); }
   </style>
 </head>
@@ -133,13 +68,11 @@
   </a>
 
   <div class="auth-card">
-
     <div class="auth-tabs">
-      <button class="auth-tab" id="tab-login" onclick="switchTab('login')">Connexion</button>
-      <button class="auth-tab" id="tab-signup" onclick="switchTab('signup')">Créer un compte</button>
+      <button class="auth-tab" id="tab-login">Connexion</button>
+      <button class="auth-tab" id="tab-signup">Créer un compte</button>
     </div>
 
-    <!-- ALERT -->
     <div class="alert error" id="alertError">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
       <span id="alertErrorText"></span>
@@ -149,7 +82,7 @@
       <span id="alertSuccessText"></span>
     </div>
 
-    <!-- LOGIN FORM -->
+    <!-- LOGIN -->
     <div id="formLogin">
       <h1 class="auth-title">Bon retour</h1>
       <p class="auth-sub">Connectez-vous à votre espace Juria.</p>
@@ -161,16 +94,16 @@
         <label for="loginPassword">Mot de passe</label>
         <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password"/>
       </div>
-      <button class="btn-submit" id="btnLogin" onclick="handleLogin()">
+      <button class="btn-submit" id="btnLogin">
         <span class="btn-text">Se connecter</span>
         <div class="spinner"></div>
       </button>
     </div>
 
-    <!-- SIGNUP FORM -->
+    <!-- SIGNUP -->
     <div id="formSignup" style="display:none">
       <div class="trial-badge">
-        <div class="trial-badge-icon">🎁</div>
+        <div style="font-size:20px">🎁</div>
         <div class="trial-badge-text"><strong>7 jours gratuits</strong> — Sans carte bancaire. Sans engagement.</div>
       </div>
       <h1 class="auth-title">Créer un compte</h1>
@@ -188,7 +121,7 @@
         <input type="password" id="signupPassword" placeholder="8 caractères minimum" autocomplete="new-password"/>
         <div class="form-error" id="errPassword">Le mot de passe doit contenir au moins 8 caractères.</div>
       </div>
-      <button class="btn-submit" id="btnSignup" onclick="handleSignup()">
+      <button class="btn-submit" id="btnSignup">
         <span class="btn-text">Commencer l'essai gratuit</span>
         <div class="spinner"></div>
       </button>
@@ -196,19 +129,14 @@
         En créant un compte, vous acceptez nos <a href="#" style="color:var(--slate-500)">CGU</a> et notre <a href="#" style="color:var(--slate-500)">politique de confidentialité</a>.
       </p>
     </div>
-
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 <script>
-const supabase = window.supabase.createClient(JURIA_CONFIG.SUPABASE_URL, JURIA_CONFIG.SUPABASE_ANON_KEY);
-
-// Détecter mode depuis URL
-const params = new URLSearchParams(window.location.search);
-const mode = params.get('mode') || 'login';
-switchTab(mode);
+// Toutes les fonctions définies AVANT utilisation
+const _supabase = window.supabase.createClient(JURIA_CONFIG.SUPABASE_URL, JURIA_CONFIG.SUPABASE_ANON_KEY);
 
 function switchTab(tab) {
   document.getElementById('formLogin').style.display  = tab === 'login'  ? 'block' : 'none';
@@ -245,18 +173,10 @@ async function handleLogin() {
   const email    = document.getElementById('loginEmail').value.trim();
   const password = document.getElementById('loginPassword').value;
   if (!email || !password) { showError('Veuillez remplir tous les champs.'); return; }
-
   setLoading('btnLogin', true);
   hideAlerts();
-
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-
-  if (error) {
-    setLoading('btnLogin', false);
-    showError('Email ou mot de passe incorrect.');
-    return;
-  }
-
+  const { error } = await _supabase.auth.signInWithPassword({ email, password });
+  if (error) { setLoading('btnLogin', false); showError('Email ou mot de passe incorrect.'); return; }
   window.location.href = 'dashboard.html';
 }
 
@@ -264,9 +184,7 @@ async function handleSignup() {
   const name     = document.getElementById('signupName').value.trim();
   const email    = document.getElementById('signupEmail').value.trim();
   const password = document.getElementById('signupPassword').value;
-
   if (!name || !email || !password) { showError('Veuillez remplir tous les champs.'); return; }
-
   if (password.length < 8) {
     document.getElementById('errPassword').classList.add('show');
     document.getElementById('signupPassword').classList.add('error');
@@ -274,34 +192,35 @@ async function handleSignup() {
   }
   document.getElementById('errPassword').classList.remove('show');
   document.getElementById('signupPassword').classList.remove('error');
-
   setLoading('btnSignup', true);
   hideAlerts();
-
-  const { error } = await supabase.auth.signUp({
-    email, password,
-    options: { data: { full_name: name } }
-  });
-
+  const { error } = await _supabase.auth.signUp({ email, password, options: { data: { full_name: name } } });
   setLoading('btnSignup', false);
-
   if (error) { showError(error.message); return; }
-
   showSuccess('Compte créé ! Redirection vers votre espace…');
   setTimeout(() => { window.location.href = 'dashboard.html'; }, 1500);
 }
 
-// Si déjà connecté → rediriger
-supabase.auth.getSession().then(({ data }) => {
-  if (data.session) window.location.href = 'dashboard.html';
-});
+// Event listeners
+document.getElementById('tab-login').addEventListener('click', () => switchTab('login'));
+document.getElementById('tab-signup').addEventListener('click', () => switchTab('signup'));
+document.getElementById('btnLogin').addEventListener('click', handleLogin);
+document.getElementById('btnSignup').addEventListener('click', handleSignup);
 
-// Entrée clavier
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Enter') return;
   if (document.getElementById('formLogin').style.display !== 'none') handleLogin();
   else handleSignup();
 });
+
+// Vérifier si déjà connecté
+_supabase.auth.getSession().then(({ data }) => {
+  if (data.session) window.location.href = 'dashboard.html';
+});
+
+// Init : détecter mode depuis URL
+const params = new URLSearchParams(window.location.search);
+switchTab(params.get('mode') || 'login');
 </script>
 </body>
 </html>
