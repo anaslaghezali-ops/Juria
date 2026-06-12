@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Juria — Mon espace</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --indigo: #4f46e5; --indigo-light: #6366f1; --indigo-bg: #eef2ff; --indigo-text: #3730a3;
+      --slate-900: #0f1117; --slate-700: #374151; --slate-500: #6b7280; --slate-400: #9ca3af;
+      --slate-300: #d1d5db; --slate-100: #f3f4f6; --border: #e5e7eb; --white: #ffffff;
+      --green: #10b981; --green-bg: #ecfdf5; --green-text: #065f46;
+      --amber: #f59e0b; --amber-bg: #fffbeb; --amber-text: #92400e;
+      --font: 'Inter', sans-serif; --serif: 'DM Serif Display', Georgia, serif;
+    }
+    html { font-size: 15px; }
+    body { font-family: var(--font); color: var(--slate-900); background: #f8f9fb; min-height: 100vh; }
+
+    /* ---- TOP NAV ---- */
+    .topnav {
+      background: var(--white); border-bottom: 1px solid var(--border);
+      padding: 0 32px; height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-mark { width: 30px; height: 30px; background: var(--indigo); color: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-family: var(--serif); font-size: 17px; }
+    .logo-name { font-family: var(--serif); font-size: 20px; color: var(--slate-900); }
+    .nav-right { display: flex; align-items: center; gap: 12px; }
+    .nav-user { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--slate-700); }
+    .user-avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--indigo-bg); color: var(--indigo-text);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 600;
+    }
+    .btn-logout {
+      padding: 7px 14px; border-radius: 8px;
+      border: 1px solid var(--border); background: none;
+      font-family: var(--font); font-size: 13px; color: var(--slate-500);
+      cursor: pointer; transition: all 0.15s;
+    }
+    .btn-logout:hover { background: var(--slate-100); color: var(--slate-900); }
+
+    /* ---- MAIN ---- */
+    .main { max-width: 900px; margin: 0 auto; padding: 40px 24px; }
+    .page-title { font-family: var(--serif); font-size: 28px; color: var(--slate-900); margin-bottom: 6px; }
+    .page-sub { font-size: 14px; color: var(--slate-500); margin-bottom: 32px; }
+
+    /* ---- PLAN CARD ---- */
+    .plan-card {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: 16px; padding: 24px 28px; margin-bottom: 28px;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;
+    }
+    .plan-info { display: flex; align-items: center; gap: 16px; }
+    .plan-icon {
+      width: 48px; height: 48px; background: var(--indigo-bg); border-radius: 12px;
+      display: flex; align-items: center; justify-content: center; color: var(--indigo);
+    }
+    .plan-name { font-size: 16px; font-weight: 600; color: var(--slate-900); margin-bottom: 3px; }
+    .plan-detail { font-size: 13px; color: var(--slate-500); }
+    .plan-badge {
+      padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 600;
+    }
+    .plan-badge.trial { background: var(--amber-bg); color: var(--amber-text); border: 1px solid #fcd34d; }
+    .plan-badge.active { background: var(--green-bg); color: var(--green-text); border: 1px solid #a7f3d0; }
+    .btn-upgrade {
+      padding: 9px 20px; border-radius: 9px;
+      background: var(--indigo); color: #fff; border: none;
+      font-family: var(--font); font-size: 13.5px; font-weight: 500;
+      cursor: pointer; transition: background 0.15s; text-decoration: none;
+      display: inline-block;
+    }
+    .btn-upgrade:hover { background: var(--indigo-light); }
+
+    /* ---- QUOTA ---- */
+    .quota-section { margin-bottom: 28px; }
+    .quota-label { font-size: 13px; font-weight: 500; color: var(--slate-700); margin-bottom: 8px; display: flex; justify-content: space-between; }
+    .quota-bar { height: 8px; background: var(--slate-100); border-radius: 10px; overflow: hidden; }
+    .quota-fill { height: 100%; border-radius: 10px; background: var(--indigo); transition: width 0.5s ease; }
+    .quota-fill.warn { background: var(--amber); }
+    .quota-fill.danger { background: #ef4444; }
+
+    /* ---- STATS GRID ---- */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 32px; }
+    .stat-card {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px;
+    }
+    .stat-label { font-size: 12px; font-weight: 500; color: var(--slate-400); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+    .stat-value { font-family: var(--serif); font-size: 28px; color: var(--slate-900); }
+    .stat-sub { font-size: 12px; color: var(--slate-400); margin-top: 3px; }
+
+    /* ---- CTA CHAT ---- */
+    .cta-chat {
+      background: var(--slate-900); border-radius: 16px;
+      padding: 36px 32px; margin-bottom: 32px;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px;
+    }
+    .cta-chat-text { }
+    .cta-chat-title { font-family: var(--serif); font-size: 22px; color: #fff; margin-bottom: 8px; }
+    .cta-chat-sub { font-size: 14px; color: #9ca3af; line-height: 1.6; }
+    .btn-chat {
+      padding: 13px 28px; border-radius: 10px;
+      background: var(--indigo); color: #fff; border: none;
+      font-family: var(--font); font-size: 15px; font-weight: 500;
+      cursor: pointer; transition: background 0.15s; text-decoration: none;
+      display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;
+    }
+    .btn-chat:hover { background: var(--indigo-light); }
+
+    /* ---- HISTORY ---- */
+    .section-title { font-size: 16px; font-weight: 600; color: var(--slate-900); margin-bottom: 14px; }
+    .history-list { display: flex; flex-direction: column; gap: 10px; }
+    .history-item {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: 12px; padding: 16px 20px;
+      display: flex; align-items: flex-start; gap: 14px;
+      transition: border-color 0.15s; cursor: pointer; text-decoration: none;
+    }
+    .history-item:hover { border-color: var(--indigo); }
+    .history-icon { color: var(--slate-400); flex-shrink: 0; margin-top: 2px; }
+    .history-q { font-size: 14px; font-weight: 500; color: var(--slate-900); margin-bottom: 4px; }
+    .history-meta { font-size: 12px; color: var(--slate-400); }
+    .history-empty {
+      background: var(--white); border: 1px dashed var(--border);
+      border-radius: 12px; padding: 40px;
+      text-align: center; color: var(--slate-400); font-size: 14px; line-height: 1.7;
+    }
+
+    @media (max-width: 640px) {
+      .topnav { padding: 0 16px; }
+      .main { padding: 24px 16px; }
+      .cta-chat { padding: 24px 20px; }
+      .plan-card { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="topnav">
+  <a href="index.html" class="nav-logo">
+    <div class="logo-mark">J</div>
+    <span class="logo-name">Juria</span>
+  </a>
+  <div class="nav-right">
+    <div class="nav-user">
+      <div class="user-avatar" id="userAvatar">?</div>
+      <span id="userName">Chargement…</span>
+    </div>
+    <button class="btn-logout" onclick="handleLogout()">Déconnexion</button>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+
+  <h1 class="page-title">Bonjour, <span id="greetName">…</span> 👋</h1>
+  <p class="page-sub">Votre espace juridique personnel</p>
+
+  <!-- PLAN -->
+  <div class="plan-card">
+    <div class="plan-info">
+      <div class="plan-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <div>
+        <div class="plan-name" id="planName">Essai gratuit</div>
+        <div class="plan-detail" id="planDetail">Chargement…</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <span class="plan-badge trial" id="planBadge">Essai</span>
+      <a href="#" class="btn-upgrade">Passer au Pro</a>
+    </div>
+  </div>
+
+  <!-- QUOTA -->
+  <div class="quota-section">
+    <div class="quota-label">
+      <span>Questions utilisées ce mois</span>
+      <span id="quotaText">0 / 20</span>
+    </div>
+    <div class="quota-bar">
+      <div class="quota-fill" id="quotaFill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Questions posées</div>
+      <div class="stat-value" id="statQuestions">0</div>
+      <div class="stat-sub">ce mois-ci</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Articles consultés</div>
+      <div class="stat-value">805</div>
+      <div class="stat-sub">Code de Commerce</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Jours restants</div>
+      <div class="stat-value" id="statDays">7</div>
+      <div class="stat-sub">de votre essai</div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="cta-chat">
+    <div class="cta-chat-text">
+      <div class="cta-chat-title">Posez votre question juridique</div>
+      <div class="cta-chat-sub">Réponses citées depuis les articles officiels du Code de Commerce marocain.</div>
+    </div>
+    <a href="chat.html" class="btn-chat">
+      Ouvrir l'assistant
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+    </a>
+  </div>
+
+  <!-- HISTORY -->
+  <div>
+    <div class="section-title">Dernières conversations</div>
+    <div class="history-list" id="historyList">
+      <div class="history-empty">
+        Vous n'avez pas encore posé de questions.<br>
+        <a href="chat.html" style="color:var(--indigo);font-weight:500;">Commencer maintenant →</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script>
+const supabase = window.supabase.createClient(JURIA_CONFIG.SUPABASE_URL, JURIA_CONFIG.SUPABASE_ANON_KEY);
+
+async function init() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) { window.location.href = 'auth.html'; return; }
+
+  const user = session.user;
+  const name = user.user_metadata?.full_name || user.email.split('@')[0];
+  const initials = name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
+
+  document.getElementById('userAvatar').textContent = initials;
+  document.getElementById('userName').textContent = name;
+  document.getElementById('greetName').textContent = name.split(' ')[0];
+
+  // Charger profil
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single();
+
+  if (profile) {
+    const used  = profile.questions_used || 0;
+    const limit = profile.questions_limit || 20;
+    const pct   = Math.min(Math.round((used / limit) * 100), 100);
+
+    document.getElementById('quotaText').textContent    = `${used} / ${limit}`;
+    document.getElementById('statQuestions').textContent = used;
+
+    const fill = document.getElementById('quotaFill');
+    fill.style.width = pct + '%';
+    if (pct >= 90) fill.classList.add('danger');
+    else if (pct >= 70) fill.classList.add('warn');
+
+    // Jours restants essai
+    if (profile.trial_ends_at) {
+      const days = Math.max(0, Math.ceil((new Date(profile.trial_ends_at) - new Date()) / 86400000));
+      document.getElementById('statDays').textContent = days;
+      document.getElementById('planDetail').textContent = `Essai — expire dans ${days} jour${days !== 1 ? 's' : ''}`;
+    }
+
+    const planMap = { trial: 'Essai gratuit', essential: 'Essentiel', pro: 'Pro', cabinet: 'Cabinet' };
+    document.getElementById('planName').textContent = planMap[profile.plan] || 'Essai gratuit';
+  }
+
+  // Historique
+  const { data: convs } = await supabase
+    .from('conversations')
+    .select('id, question, created_at')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(5);
+
+  if (convs && convs.length > 0) {
+    const list = document.getElementById('historyList');
+    list.innerHTML = '';
+    convs.forEach(c => {
+      const item = document.createElement('a');
+      item.href = 'chat.html';
+      item.className = 'history-item';
+      const date = new Date(c.created_at).toLocaleDateString('fr-FR', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
+      item.innerHTML = `
+        <div class="history-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <div>
+          <div class="history-q">${escHtml(c.question.slice(0, 80))}${c.question.length > 80 ? '…' : ''}</div>
+          <div class="history-meta">${date}</div>
+        </div>`;
+      list.appendChild(item);
+    });
+  }
+}
+
+async function handleLogout() {
+  await supabase.auth.signOut();
+  window.location.href = 'auth.html';
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+init();
+</script>
+</body>
+</html>

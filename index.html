@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Juria — L'assistant juridique marocain</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --indigo:      #4f46e5;
+      --indigo-light:#6366f1;
+      --indigo-bg:   #eef2ff;
+      --indigo-text: #3730a3;
+      --slate-900:   #0f1117;
+      --slate-700:   #374151;
+      --slate-500:   #6b7280;
+      --slate-400:   #9ca3af;
+      --slate-300:   #d1d5db;
+      --slate-100:   #f3f4f6;
+      --border:      #e5e7eb;
+      --white:       #ffffff;
+      --font:        'Inter', sans-serif;
+      --serif:       'DM Serif Display', Georgia, serif;
+    }
+    html { font-size: 16px; scroll-behavior: smooth; }
+    body { font-family: var(--font); color: var(--slate-900); background: var(--white); }
+
+    /* ---- NAV ---- */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .nav-logo-mark {
+      width: 30px; height: 30px; background: var(--indigo);
+      color: #fff; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--serif); font-size: 17px;
+    }
+    .nav-logo-name { font-family: var(--serif); font-size: 20px; color: var(--slate-900); }
+    .nav-links { display: flex; align-items: center; gap: 8px; }
+    .nav-link {
+      padding: 8px 16px; border-radius: 8px;
+      font-size: 14px; font-weight: 500;
+      text-decoration: none; color: var(--slate-500);
+      transition: color 0.15s, background 0.15s;
+    }
+    .nav-link:hover { color: var(--slate-900); background: var(--slate-100); }
+    .nav-cta {
+      padding: 8px 20px; border-radius: 8px;
+      background: var(--indigo); color: #fff;
+      font-size: 14px; font-weight: 500;
+      text-decoration: none;
+      transition: background 0.15s;
+    }
+    .nav-cta:hover { background: var(--indigo-light); }
+    .lang-switcher { display: flex; gap: 4px; }
+    .lang-btn {
+      padding: 4px 8px; border: 1px solid var(--border); border-radius: 6px;
+      font-size: 12px; font-weight: 500; color: var(--slate-500);
+      background: none; cursor: pointer; transition: all 0.15s;
+    }
+    .lang-btn.active { background: var(--indigo-bg); color: var(--indigo-text); border-color: var(--indigo); }
+
+    /* ---- HERO ---- */
+    .hero {
+      max-width: 1100px; margin: 0 auto;
+      padding: 96px 32px 80px;
+      text-align: center;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--indigo-bg); color: var(--indigo-text);
+      border: 1px solid #c7d2fe;
+      padding: 6px 16px; border-radius: 20px;
+      font-size: 13px; font-weight: 500; margin-bottom: 28px;
+    }
+    .hero-badge-dot { width: 6px; height: 6px; background: var(--indigo); border-radius: 50%; }
+    .hero-title {
+      font-family: var(--serif);
+      font-size: clamp(36px, 5.5vw, 64px);
+      color: var(--slate-900);
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      margin-bottom: 24px;
+    }
+    .hero-title span { color: var(--indigo); }
+    .hero-sub {
+      font-size: clamp(16px, 2vw, 19px);
+      color: var(--slate-500);
+      max-width: 560px; margin: 0 auto 40px;
+      line-height: 1.7; font-weight: 300;
+    }
+    .hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn-primary {
+      padding: 14px 32px; border-radius: 10px;
+      background: var(--indigo); color: #fff;
+      font-size: 15px; font-weight: 500;
+      text-decoration: none; border: none; cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-primary:hover { background: var(--indigo-light); }
+    .btn-primary:active { transform: scale(0.98); }
+    .btn-secondary {
+      padding: 14px 32px; border-radius: 10px;
+      background: var(--white); color: var(--slate-700);
+      font-size: 15px; font-weight: 500;
+      text-decoration: none; border: 1px solid var(--border); cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .btn-secondary:hover { border-color: var(--slate-300); background: var(--slate-100); }
+    .hero-note { margin-top: 16px; font-size: 13px; color: var(--slate-400); }
+
+    /* ---- DEMO PREVIEW ---- */
+    .demo-wrap {
+      max-width: 800px; margin: 0 auto 96px;
+      padding: 0 32px;
+    }
+    .demo-window {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 4px 40px rgba(0,0,0,0.08);
+    }
+    .demo-bar {
+      background: var(--slate-900); padding: 12px 20px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .demo-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .demo-body { background: #f8f9fb; padding: 28px; display: flex; flex-direction: column; gap: 16px; }
+    .demo-msg-user {
+      align-self: flex-end; max-width: 70%;
+      background: var(--slate-900); color: #e5e7eb;
+      padding: 12px 16px; border-radius: 14px 14px 4px 14px;
+      font-size: 14px; line-height: 1.6;
+    }
+    .demo-msg-ai {
+      align-self: flex-start; max-width: 85%;
+      background: var(--white); border: 1px solid var(--border);
+      padding: 14px 18px; border-radius: 4px 14px 14px 14px;
+      font-size: 14px; line-height: 1.7; color: var(--slate-700);
+    }
+    .demo-citation {
+      margin-top: 10px; padding-top: 10px;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+    }
+    .demo-citation-tag {
+      display: inline-block;
+      background: var(--indigo-bg); color: var(--indigo-text);
+      padding: 3px 10px; border-radius: 6px;
+      font-size: 11.5px; font-weight: 500; margin-bottom: 6px;
+    }
+    .demo-citation-text { color: var(--slate-500); font-size: 12.5px; line-height: 1.6; }
+
+    /* ---- FEATURES ---- */
+    .section { max-width: 1100px; margin: 0 auto; padding: 0 32px 96px; }
+    .section-eyebrow {
+      font-size: 12px; font-weight: 600; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--indigo);
+      margin-bottom: 14px;
+    }
+    .section-title {
+      font-family: var(--serif);
+      font-size: clamp(28px, 3.5vw, 42px);
+      color: var(--slate-900); line-height: 1.2;
+      letter-spacing: -0.02em; margin-bottom: 14px;
+    }
+    .section-sub {
+      font-size: 16px; color: var(--slate-500);
+      max-width: 480px; line-height: 1.7; font-weight: 300;
+      margin-bottom: 48px;
+    }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .feature-card {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: 14px; padding: 28px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .feature-card:hover {
+      border-color: #c7d2fe;
+      box-shadow: 0 4px 20px rgba(79,70,229,0.07);
+    }
+    .feature-icon {
+      width: 44px; height: 44px;
+      background: var(--indigo-bg); border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 16px; color: var(--indigo);
+    }
+    .feature-title { font-size: 16px; font-weight: 600; color: var(--slate-900); margin-bottom: 8px; }
+    .feature-desc { font-size: 14px; color: var(--slate-500); line-height: 1.7; }
+
+    /* ---- PRICING ---- */
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px; max-width: 900px;
+    }
+    .pricing-card {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: 16px; padding: 32px 28px;
+      display: flex; flex-direction: column;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .pricing-card.featured {
+      border: 2px solid var(--indigo);
+      box-shadow: 0 4px 24px rgba(79,70,229,0.12);
+      position: relative;
+    }
+    .pricing-badge {
+      position: absolute; top: -13px; left: 50%; transform: translateX(-50%);
+      background: var(--indigo); color: #fff;
+      padding: 4px 16px; border-radius: 20px;
+      font-size: 12px; font-weight: 600; white-space: nowrap;
+    }
+    .pricing-plan { font-size: 13px; font-weight: 600; color: var(--slate-500); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px; }
+    .pricing-price { font-family: var(--serif); font-size: 40px; color: var(--slate-900); line-height: 1; margin-bottom: 4px; }
+    .pricing-price span { font-family: var(--font); font-size: 16px; color: var(--slate-500); }
+    .pricing-desc { font-size: 13.5px; color: var(--slate-500); margin-bottom: 24px; line-height: 1.5; }
+    .pricing-features { list-style: none; margin-bottom: 28px; flex: 1; display: flex; flex-direction: column; gap: 10px; }
+    .pricing-features li {
+      display: flex; align-items: flex-start; gap: 9px;
+      font-size: 14px; color: var(--slate-700); line-height: 1.5;
+    }
+    .pricing-features li svg { flex-shrink: 0; margin-top: 2px; color: var(--indigo); }
+    .pricing-cta {
+      display: block; text-align: center;
+      padding: 12px; border-radius: 10px;
+      font-size: 14px; font-weight: 500;
+      text-decoration: none; transition: all 0.15s;
+    }
+    .pricing-cta.primary { background: var(--indigo); color: #fff; }
+    .pricing-cta.primary:hover { background: var(--indigo-light); }
+    .pricing-cta.secondary { background: var(--slate-100); color: var(--slate-700); }
+    .pricing-cta.secondary:hover { background: var(--border); }
+
+    /* ---- TRUST ---- */
+    .trust-bar {
+      background: var(--slate-900);
+      padding: 48px 32px;
+      text-align: center;
+    }
+    .trust-title { font-family: var(--serif); font-size: 28px; color: #fff; margin-bottom: 12px; }
+    .trust-sub { font-size: 15px; color: #9ca3af; margin-bottom: 32px; }
+    .trust-stats {
+      display: flex; justify-content: center; gap: 48px; flex-wrap: wrap;
+    }
+    .trust-stat-num { font-family: var(--serif); font-size: 36px; color: #fff; }
+    .trust-stat-label { font-size: 13px; color: #9ca3af; margin-top: 4px; }
+
+    /* ---- FAQ ---- */
+    .faq-list { max-width: 660px; display: flex; flex-direction: column; gap: 12px; }
+    .faq-item { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .faq-q {
+      width: 100%; padding: 18px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      background: none; border: none; cursor: pointer;
+      font-family: var(--font); font-size: 15px; font-weight: 500;
+      color: var(--slate-900); text-align: left;
+      transition: background 0.15s;
+    }
+    .faq-q:hover { background: var(--slate-100); }
+    .faq-q svg { flex-shrink: 0; color: var(--slate-400); transition: transform 0.2s; }
+    .faq-q.open svg { transform: rotate(180deg); }
+    .faq-a {
+      max-height: 0; overflow: hidden;
+      transition: max-height 0.3s ease, padding 0.3s ease;
+      font-size: 14.5px; color: var(--slate-500); line-height: 1.7;
+      padding: 0 20px;
+    }
+    .faq-a.open { max-height: 200px; padding: 0 20px 18px; }
+
+    /* ---- FOOTER ---- */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 16px;
+      font-size: 13px; color: var(--slate-400);
+    }
+    .footer-logo { display: flex; align-items: center; gap: 8px; }
+    .footer-links { display: flex; gap: 20px; }
+    .footer-links a { color: var(--slate-400); text-decoration: none; }
+    .footer-links a:hover { color: var(--slate-700); }
+
+    @media (max-width: 640px) {
+      nav { padding: 0 16px; }
+      .nav-links .nav-link { display: none; }
+      .hero { padding: 64px 20px 56px; }
+      .demo-wrap { padding: 0 20px; }
+      .section { padding: 0 20px 64px; }
+      .trust-stats { gap: 32px; }
+      footer { flex-direction: column; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="index.html" class="nav-logo">
+    <div class="nav-logo-mark">J</div>
+    <span class="nav-logo-name">Juria</span>
+  </a>
+  <div class="nav-links">
+    <div class="lang-switcher">
+      <button class="lang-btn active" onclick="setLang('fr')">FR</button>
+      <button class="lang-btn" onclick="setLang('ar')">AR</button>
+      <button class="lang-btn" onclick="setLang('en')">EN</button>
+    </div>
+    <a href="#pricing" class="nav-link" data-i18n="nav_pricing">Tarifs</a>
+    <a href="#faq" class="nav-link" data-i18n="nav_faq">FAQ</a>
+    <a href="auth.html" class="nav-link" data-i18n="nav_login">Connexion</a>
+    <a href="auth.html?mode=signup" class="nav-cta" data-i18n="nav_start">Essai gratuit</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">
+    <div class="hero-badge-dot"></div>
+    <span data-i18n="hero_badge">805 articles du Code de Commerce indexés</span>
+  </div>
+  <h1 class="hero-title" data-i18n="hero_title">
+    Le droit marocain,<br><span>expliqué en secondes.</span>
+  </h1>
+  <p class="hero-sub" data-i18n="hero_sub">
+    Juria analyse vos questions juridiques et répond en citant les articles officiels. Aucune invention. Aucune approximation.
+  </p>
+  <div class="hero-actions">
+    <a href="auth.html?mode=signup" class="btn-primary" data-i18n="hero_cta">
+      Commencer gratuitement
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+    </a>
+    <a href="#demo" class="btn-secondary" data-i18n="hero_demo">Voir une démo</a>
+  </div>
+  <p class="hero-note" data-i18n="hero_note">7 jours gratuits · Sans carte bancaire</p>
+</section>
+
+<!-- DEMO -->
+<div class="demo-wrap" id="demo">
+  <div class="demo-window">
+    <div class="demo-bar">
+      <div class="demo-dot" style="background:#ef4444"></div>
+      <div class="demo-dot" style="background:#f59e0b"></div>
+      <div class="demo-dot" style="background:#10b981"></div>
+    </div>
+    <div class="demo-body">
+      <div class="demo-msg-user">Quelles sont les obligations d'un commerçant au Maroc ?</div>
+      <div class="demo-msg-ai">
+        Selon le Code de Commerce marocain, tout commerçant est tenu de s'immatriculer au Registre du Commerce, de tenir une comptabilité régulière, et d'ouvrir un compte bancaire professionnel.
+        <div class="demo-citation">
+          <div class="demo-citation-tag">📄 Article 37 — Code de Commerce</div>
+          <div class="demo-citation-text">Tout commerçant, personne physique ou morale, doit requérir son immatriculation au registre du commerce dans le délai de trois mois à compter du début de son activité commerciale…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section class="section" id="features">
+  <p class="section-eyebrow" data-i18n="feat_eyebrow">Pourquoi Juria</p>
+  <h2 class="section-title" data-i18n="feat_title">Conçu pour le droit marocain</h2>
+  <p class="section-sub" data-i18n="feat_sub">Pas un chatbot généraliste. Un outil spécialisé, entraîné sur les textes officiels marocains.</p>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <div class="feature-title" data-i18n="f1_title">Sources officielles uniquement</div>
+      <div class="feature-desc" data-i18n="f1_desc">Chaque réponse cite les articles exacts du Code de Commerce. Zéro hallucination, zéro invention.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </div>
+      <div class="feature-title" data-i18n="f2_title">Recherche instantanée</div>
+      <div class="feature-desc" data-i18n="f2_desc">Notre moteur analyse 805 articles en moins d'une seconde pour trouver ce qui est pertinent à votre question.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      </div>
+      <div class="feature-title" data-i18n="f3_title">Langage clair</div>
+      <div class="feature-desc" data-i18n="f3_desc">Le jargon juridique traduit en français clair. Accessible aux entrepreneurs, étudiants et avocats.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <div class="feature-title" data-i18n="f4_title">100% sécurisé</div>
+      <div class="feature-desc" data-i18n="f4_desc">Vos questions sont privées. Authentification sécurisée, données chiffrées, conformité CNDP.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      </div>
+      <div class="feature-title" data-i18n="f5_title">Historique complet</div>
+      <div class="feature-desc" data-i18n="f5_desc">Retrouvez toutes vos conversations juridiques. Organisez, exportez, partagez avec votre équipe.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      </div>
+      <div class="feature-title" data-i18n="f6_title">Codes en expansion</div>
+      <div class="feature-desc" data-i18n="f6_desc">Code du Travail et Code Civil arrivent bientôt. Un seul outil pour tout le droit marocain.</div>
+    </div>
+  </div>
+</section>
+
+<!-- TRUST BAR -->
+<div class="trust-bar">
+  <h2 class="trust-title" data-i18n="trust_title">Le droit marocain à portée de main</h2>
+  <p class="trust-sub" data-i18n="trust_sub">Basé sur les textes officiels consolidés</p>
+  <div class="trust-stats">
+    <div>
+      <div class="trust-stat-num">805</div>
+      <div class="trust-stat-label" data-i18n="t1">Articles indexés</div>
+    </div>
+    <div>
+      <div class="trust-stat-num">&lt;1s</div>
+      <div class="trust-stat-label" data-i18n="t2">Temps de réponse</div>
+    </div>
+    <div>
+      <div class="trust-stat-num">3</div>
+      <div class="trust-stat-label" data-i18n="t3">Codes disponibles bientôt</div>
+    </div>
+    <div>
+      <div class="trust-stat-num">0</div>
+      <div class="trust-stat-label" data-i18n="t4">Invention — sources uniquement</div>
+    </div>
+  </div>
+</div>
+
+<!-- PRICING -->
+<section class="section" id="pricing" style="padding-top: 80px;">
+  <p class="section-eyebrow" data-i18n="price_eyebrow">Tarifs</p>
+  <h2 class="section-title" data-i18n="price_title">Simple et transparent</h2>
+  <p class="section-sub" data-i18n="price_sub">7 jours gratuits sur tous les plans. Sans carte bancaire.</p>
+  <div class="pricing-grid">
+
+    <div class="pricing-card">
+      <div class="pricing-plan" data-i18n="p1_plan">Essentiel</div>
+      <div class="pricing-price">99 <span>MAD/mois</span></div>
+      <div class="pricing-desc" data-i18n="p1_desc">Pour les entrepreneurs et étudiants</div>
+      <ul class="pricing-features">
+        <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="p1_f1">100 questions / mois</span></li>
+        <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="p1_f2">Code de Commerce</span></li>
+        <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="p1_f3">Historique 30 jours</span></li>
+        <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="p1_f4">Citations des sources</span></li>
+      </ul>
+      <a href="auth.html?mode=signup&plan=essential" class="pricing-cta secondary" data-i18n="cta_trial">Essayer 7 jours gratuit</a>
+    </div>
+
+    <div class="pricing-card featured">
+      <div class="pricing-badge" data-i18n="popular">Le plus populaire</div>
+      <div class="pricing-plan" data-i18n="p2_plan">Pro</div>
+      <div class="pricing-price">249 <span>MAD/mois</span></div>
+      <div class="pricing-desc" data-i18n="p2_desc">Pour les PME et professionnels</div>
+      <ul class="pricing-features">
+        <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="p2_f1">Questions illimitées</span></li>
+        <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="p2_f2">Tous les codes disponibles</span></li>
+        <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="p2_f3">Historique illimité</span></li>
+        <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="p2_f4">Export PDF</span></li>
+        <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="p2_f5">Support prioritaire</span></li>
+      </ul>
+      <a href="auth.html?mode=signup&plan=pro" class="pricing-cta primary" data-i18n="cta_trial">Essayer 7 jours gratuit</a>
+    </div>
+
+    <div class="pricing-card">
+      <div class="pricing-plan" data-i18n="p3_plan">Cabinet</div>
+      <div class="pricing-price">799 <span>MAD/mois</span></div>
+      <div class="pricing-desc" data-i18n="p3_desc">Pour les cabinets d'avocats</div>
+      <ul class="pricing-features">
+        <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="p3_f1">5 utilisateurs inclus</span></li>
+        <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="p3_f2">Questions illimitées</span></li>
+        <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="p3_f3">Tous les codes</span></li>
+        <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="p3_f4">Accès API</span></li>
+        <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="p3_f5">Account manager dédié</span></li>
+      </ul>
+      <a href="auth.html?mode=signup&plan=cabinet" class="pricing-cta secondary" data-i18n="cta_trial">Essayer 7 jours gratuit</a>
+    </div>
+
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="section" id="faq">
+  <p class="section-eyebrow">FAQ</p>
+  <h2 class="section-title" data-i18n="faq_title">Questions fréquentes</h2>
+  <div class="faq-list">
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        <span data-i18n="faq_q1">Juria remplace-t-il un avocat ?</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="faq-a" data-i18n="faq_a1">Non. Juria est un outil d'information juridique. Il vous aide à comprendre les textes de loi et à préparer vos questions pour votre avocat. Pour tout acte juridique, consultez un professionnel du droit.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        <span data-i18n="faq_q2">D'où viennent les réponses ?</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="faq-a" data-i18n="faq_a2">Uniquement des textes officiels marocains. Chaque réponse cite l'article exact utilisé. Juria ne répond pas si aucun article ne correspond à votre question.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        <span data-i18n="faq_q3">Mes données sont-elles sécurisées ?</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="faq-a" data-i18n="faq_a3">Oui. Vos conversations sont privées et chiffrées. Nous ne partageons vos données avec aucun tiers. Juria est conforme à la loi 09-08 sur la protection des données personnelles au Maroc (CNDP).</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        <span data-i18n="faq_q4">Comment fonctionne l'essai gratuit ?</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="faq-a" data-i18n="faq_a4">7 jours d'accès complet, sans carte bancaire. À la fin de l'essai, vous choisissez un plan ou vous arrêtez — sans engagement.</div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">
+    <div class="nav-logo-mark" style="width:24px;height:24px;font-size:14px;">J</div>
+    <span style="font-family:'DM Serif Display',serif; font-size:16px; color:#374151;">Juria</span>
+  </div>
+  <div style="font-size:12px; color:#9ca3af;" data-i18n="footer_copy">© 2025 Juria · Casablanca, Maroc · À titre informatif uniquement</div>
+  <div class="footer-links">
+    <a href="#" data-i18n="footer_privacy">Confidentialité</a>
+    <a href="#" data-i18n="footer_terms">CGU</a>
+    <a href="mailto:contact@juria.ma" data-i18n="footer_contact">Contact</a>
+  </div>
+</footer>
+
+<script>
+// ---- i18n ----
+const translations = {
+  fr: {
+    nav_pricing:'Tarifs', nav_faq:'FAQ', nav_login:'Connexion', nav_start:'Essai gratuit',
+    hero_badge:'805 articles du Code de Commerce indexés',
+    hero_title:'Le droit marocain,<br><span>expliqué en secondes.</span>',
+    hero_sub:'Juria analyse vos questions juridiques et répond en citant les articles officiels. Aucune invention. Aucune approximation.',
+    hero_cta:'Commencer gratuitement', hero_demo:'Voir une démo', hero_note:'7 jours gratuits · Sans carte bancaire',
+    feat_eyebrow:'Pourquoi Juria', feat_title:'Conçu pour le droit marocain',
+    feat_sub:'Pas un chatbot généraliste. Un outil spécialisé, entraîné sur les textes officiels marocains.',
+    f1_title:'Sources officielles uniquement', f1_desc:'Chaque réponse cite les articles exacts du Code de Commerce. Zéro hallucination, zéro invention.',
+    f2_title:'Recherche instantanée', f2_desc:'Notre moteur analyse 805 articles en moins d\'une seconde pour trouver ce qui est pertinent.',
+    f3_title:'Langage clair', f3_desc:'Le jargon juridique traduit en français clair. Accessible aux entrepreneurs, étudiants et avocats.',
+    f4_title:'100% sécurisé', f4_desc:'Vos questions sont privées. Authentification sécurisée, données chiffrées, conformité CNDP.',
+    f5_title:'Historique complet', f5_desc:'Retrouvez toutes vos conversations juridiques. Organisez, exportez, partagez avec votre équipe.',
+    f6_title:'Codes en expansion', f6_desc:'Code du Travail et Code Civil arrivent bientôt. Un seul outil pour tout le droit marocain.',
+    trust_title:'Le droit marocain à portée de main', trust_sub:'Basé sur les textes officiels consolidés',
+    t1:'Articles indexés', t2:'Temps de réponse', t3:'Codes disponibles bientôt', t4:'Invention — sources uniquement',
+    price_eyebrow:'Tarifs', price_title:'Simple et transparent', price_sub:'7 jours gratuits sur tous les plans. Sans carte bancaire.',
+    p1_plan:'Essentiel', p1_desc:'Pour les entrepreneurs et étudiants', p1_f1:'100 questions / mois', p1_f2:'Code de Commerce', p1_f3:'Historique 30 jours', p1_f4:'Citations des sources',
+    p2_plan:'Pro', p2_desc:'Pour les PME et professionnels', p2_f1:'Questions illimitées', p2_f2:'Tous les codes disponibles', p2_f3:'Historique illimité', p2_f4:'Export PDF', p2_f5:'Support prioritaire',
+    p3_plan:'Cabinet', p3_desc:'Pour les cabinets d\'avocats', p3_f1:'5 utilisateurs inclus', p3_f2:'Questions illimitées', p3_f3:'Tous les codes', p3_f4:'Accès API', p3_f5:'Account manager dédié',
+    popular:'Le plus populaire', cta_trial:'Essayer 7 jours gratuit',
+    faq_title:'Questions fréquentes',
+    faq_q1:'Juria remplace-t-il un avocat ?', faq_a1:'Non. Juria est un outil d\'information juridique. Il vous aide à comprendre les textes de loi et à préparer vos questions pour votre avocat. Pour tout acte juridique, consultez un professionnel du droit.',
+    faq_q2:'D\'où viennent les réponses ?', faq_a2:'Uniquement des textes officiels marocains. Chaque réponse cite l\'article exact utilisé.',
+    faq_q3:'Mes données sont-elles sécurisées ?', faq_a3:'Oui. Vos conversations sont privées et chiffrées. Conformité CNDP.',
+    faq_q4:'Comment fonctionne l\'essai gratuit ?', faq_a4:'7 jours d\'accès complet, sans carte bancaire. Sans engagement.',
+    footer_copy:'© 2025 Juria · Casablanca, Maroc · À titre informatif uniquement',
+    footer_privacy:'Confidentialité', footer_terms:'CGU', footer_contact:'Contact',
+  },
+  en: {
+    nav_pricing:'Pricing', nav_faq:'FAQ', nav_login:'Sign in', nav_start:'Free trial',
+    hero_badge:'805 articles from the Commercial Code indexed',
+    hero_title:'Moroccan law,<br><span>explained in seconds.</span>',
+    hero_sub:'Juria answers your legal questions by citing official articles. No invention. No approximation.',
+    hero_cta:'Start for free', hero_demo:'See a demo', hero_note:'7 days free · No credit card',
+    feat_eyebrow:'Why Juria', feat_title:'Built for Moroccan law',
+    feat_sub:'Not a generic chatbot. A specialized tool trained on official Moroccan legal texts.',
+    f1_title:'Official sources only', f1_desc:'Every answer cites exact articles from the Commercial Code. Zero hallucination.',
+    f2_title:'Instant search', f2_desc:'Our engine scans 805 articles in under a second to find what matters.',
+    f3_title:'Plain language', f3_desc:'Legal jargon translated into clear French or Arabic. Accessible to all.',
+    f4_title:'100% secure', f4_desc:'Your questions are private. Encrypted data, CNDP compliant.',
+    f5_title:'Full history', f5_desc:'Find all your legal conversations. Organize, export, share.',
+    f6_title:'Growing library', f6_desc:'Labor Code and Civil Code coming soon.',
+    trust_title:'Moroccan law at your fingertips', trust_sub:'Based on official consolidated texts',
+    t1:'Articles indexed', t2:'Response time', t3:'Codes coming soon', t4:'Invention — sources only',
+    price_eyebrow:'Pricing', price_title:'Simple and transparent', price_sub:'7-day free trial on all plans. No credit card.',
+    p1_plan:'Essential', p1_desc:'For entrepreneurs and students', p1_f1:'100 questions / month', p1_f2:'Commercial Code', p1_f3:'30-day history', p1_f4:'Source citations',
+    p2_plan:'Pro', p2_desc:'For SMEs and professionals', p2_f1:'Unlimited questions', p2_f2:'All available codes', p2_f3:'Unlimited history', p2_f4:'PDF export', p2_f5:'Priority support',
+    p3_plan:'Firm', p3_desc:'For law firms', p3_f1:'5 users included', p3_f2:'Unlimited questions', p3_f3:'All codes', p3_f4:'API access', p3_f5:'Dedicated account manager',
+    popular:'Most popular', cta_trial:'Try 7 days free',
+    faq_title:'Frequently asked questions',
+    faq_q1:'Does Juria replace a lawyer?', faq_a1:'No. Juria is a legal information tool. It helps you understand the law and prepare questions for your lawyer.',
+    faq_q2:'Where do answers come from?', faq_a2:'Only from official Moroccan texts. Each answer cites the exact article used.',
+    faq_q3:'Is my data secure?', faq_a3:'Yes. Your conversations are private and encrypted. CNDP compliant.',
+    faq_q4:'How does the free trial work?', faq_a4:'7 days full access, no credit card. No commitment.',
+    footer_copy:'© 2025 Juria · Casablanca, Morocco · For informational purposes only',
+    footer_privacy:'Privacy', footer_terms:'Terms', footer_contact:'Contact',
+  },
+  ar: {
+    nav_pricing:'الأسعار', nav_faq:'الأسئلة', nav_login:'تسجيل الدخول', nav_start:'تجربة مجانية',
+    hero_badge:'805 مادة من مدونة التجارة مفهرسة',
+    hero_title:'القانون المغربي،<br><span>موضَّح في ثوانٍ.</span>',
+    hero_sub:'جوريا يجيب على أسئلتك القانونية مستشهداً بالمواد الرسمية. لا اختراع. لا تقريب.',
+    hero_cta:'ابدأ مجاناً', hero_demo:'مشاهدة عرض', hero_note:'7 أيام مجاناً · بدون بطاقة بنكية',
+    feat_eyebrow:'لماذا جوريا', feat_title:'مصمم للقانون المغربي',
+    feat_sub:'ليس روبوت دردشة عام. أداة متخصصة مبنية على النصوص الرسمية المغربية.',
+    f1_title:'مصادر رسمية فقط', f1_desc:'كل إجابة تستشهد بمواد دقيقة من مدونة التجارة. صفر هلوسة.',
+    f2_title:'بحث فوري', f2_desc:'محركنا يحلل 805 مادة في أقل من ثانية.',
+    f3_title:'لغة واضحة', f3_desc:'المصطلحات القانونية مترجمة بوضوح.',
+    f4_title:'آمن 100%', f4_desc:'أسئلتك خاصة. بيانات مشفرة، ممتثل لـ CNDP.',
+    f5_title:'سجل كامل', f5_desc:'استعد جميع محادثاتك القانونية.',
+    f6_title:'مكتبة متنامية', f6_desc:'مدونة الشغل والقانون المدني قريباً.',
+    trust_title:'القانون المغربي في متناول يدك', trust_sub:'مبني على النصوص الرسمية الموحدة',
+    t1:'مادة مفهرسة', t2:'وقت الاستجابة', t3:'مدونات قريباً', t4:'اختراع — مصادر فقط',
+    price_eyebrow:'الأسعار', price_title:'بسيط وشفاف', price_sub:'7 أيام مجانية على جميع الخطط.',
+    p1_plan:'أساسي', p1_desc:'للمقاولين والطلاب', p1_f1:'100 سؤال / شهر', p1_f2:'مدونة التجارة', p1_f3:'سجل 30 يوماً', p1_f4:'استشهادات المصادر',
+    p2_plan:'احترافي', p2_desc:'للمقاولات الصغيرة والمهنيين', p2_f1:'أسئلة غير محدودة', p2_f2:'جميع المدونات', p2_f3:'سجل غير محدود', p2_f4:'تصدير PDF', p2_f5:'دعم أولوي',
+    p3_plan:'مكتب المحاماة', p3_desc:'لمكاتب المحامين', p3_f1:'5 مستخدمين', p3_f2:'أسئلة غير محدودة', p3_f3:'جميع المدونات', p3_f4:'وصول API', p3_f5:'مدير حساب مخصص',
+    popular:'الأكثر شعبية', cta_trial:'تجربة 7 أيام مجاناً',
+    faq_title:'الأسئلة الشائعة',
+    faq_q1:'هل يحل جوريا محل المحامي؟', faq_a1:'لا. جوريا أداة للمعلومات القانونية فقط. استشر دائماً محامياً للأعمال القانونية.',
+    faq_q2:'من أين تأتي الإجابات؟', faq_a2:'من النصوص الرسمية المغربية فقط. كل إجابة تستشهد بالمادة الدقيقة.',
+    faq_q3:'هل بياناتي آمنة؟', faq_a3:'نعم. محادثاتك خاصة ومشفرة. ممتثل لقانون 09-08.',
+    faq_q4:'كيف تعمل التجربة المجانية؟', faq_a4:'7 أيام وصول كامل، بدون بطاقة بنكية. بدون التزام.',
+    footer_copy:'© 2025 جوريا · الدار البيضاء، المغرب · للأغراض الإعلامية فقط',
+    footer_privacy:'الخصوصية', footer_terms:'شروط الاستخدام', footer_contact:'اتصل بنا',
+  }
+};
+
+let currentLang = 'fr';
+
+function setLang(lang) {
+  currentLang = lang;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.lang-btn[onclick="setLang('${lang}')"]`).classList.add('active');
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  const t = translations[lang];
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (t[key] !== undefined) el.innerHTML = t[key];
+  });
+}
+
+function toggleFaq(btn) {
+  const answer = btn.nextElementSibling;
+  const isOpen = btn.classList.contains('open');
+  document.querySelectorAll('.faq-q').forEach(q => { q.classList.remove('open'); q.nextElementSibling.classList.remove('open'); });
+  if (!isOpen) { btn.classList.add('open'); answer.classList.add('open'); }
+}
+</script>
+</body>
+</html>
