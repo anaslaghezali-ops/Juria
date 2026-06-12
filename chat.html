@@ -303,7 +303,7 @@ async function sendMessage() {
 
   // Détecter mode
   var isContractAnalysis = uploadedContractText !== null;
-  var contractKeywords = ['rédige', 'rédiger', 'contrat', 'modèle', 'template', 'génère', 'créer un contrat', 'faire un contrat'];
+  var contractKeywords = ['rédige moi', 'rédiger un contrat', 'génère un contrat', 'créer un contrat', 'faire un contrat', 'écris un contrat', 'modèle de contrat', 'template de contrat'];
   var isContractRequest = !isContractAnalysis && contractKeywords.some(function(kw) { return question.toLowerCase().includes(kw); });
 
   try {
