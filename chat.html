@@ -179,25 +179,25 @@
   </div>
 
   <div class="input-zone">
+    <input type="file" id="contractFile" accept=".docx,.pdf" style="display:none"/>
+    <div id="filePreview" style="display:none;max-width:760px;margin:0 auto 8px;padding:8px 14px;background:var(--indigo-bg);border:1px solid #c7d2fe;border-radius:8px;font-size:13px;color:var(--indigo-text);align-items:center;gap:8px;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <span id="fileName">Aucun fichier</span>
+      <button onclick="clearFile()" style="background:none;border:none;cursor:pointer;color:var(--indigo-text);font-size:16px;margin-left:auto;">×</button>
+    </div>
     <div class="input-wrapper">
-      <textarea id="userInput" class="input-field" placeholder="Posez votre question juridique ou uploadez un contrat à analyser…" rows="1" maxlength="600"></textarea>
+      <textarea id="userInput" class="input-field" placeholder="Posez votre question juridique…" rows="1" maxlength="600"></textarea>
       <div class="input-actions">
         <span class="char-count" id="charCount">0 / 600</span>
-        <label class="upload-btn" title="Analyser un contrat (.docx ou .pdf)">
+        <button class="upload-btn" id="uploadBtn" title="Analyser un contrat (.docx ou .pdf)">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          <input type="file" id="contractFile" accept=".docx,.pdf" style="display:none"/>
-        </label>
+        </button>
         <button class="send-btn" id="sendBtn">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
         </button>
       </div>
     </div>
-    <div id="filePreview" style="display:none;max-width:760px;margin:6px auto 0;padding:8px 14px;background:var(--indigo-bg);border:1px solid #c7d2fe;border-radius:8px;font-size:13px;color:var(--indigo-text);display:flex;align-items:center;gap:8px;">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-      <span id="fileName">Aucun fichier</span>
-      <button onclick="clearFile()" style="background:none;border:none;cursor:pointer;color:var(--indigo-text);font-size:16px;margin-left:auto;">×</button>
-    </div>
-    <p class="input-hint">Entrée pour envoyer · Shift+Entrée pour un saut de ligne</p>
+    <p class="input-hint">Entrée pour envoyer · Shift+Entrée pour saut de ligne · 📎 pour analyser un contrat</p>
   </div>
 </main>
 
@@ -876,6 +876,10 @@ function truncate(s, n) {
 // ---- FILE UPLOAD ----
 var uploadedContractText = null;
 var uploadedFileName = null;
+
+document.getElementById('uploadBtn').addEventListener('click', function() {
+  document.getElementById('contractFile').click();
+});
 
 document.getElementById('contractFile').addEventListener('change', async function(e) {
   var file = e.target.files[0];
