@@ -296,9 +296,9 @@ async function sendMessage() {
     var articles = await searchArticles(question);
     
     if (isContractRequest) {
-      // Pour les contrats, on envoie même si peu d'articles trouvés
+      // Pour les contrats : afficher message court + boutons téléchargement
       var result = await askAI(question, articles);
-      appendMsg('assistant', result.answer, [], true);
+      appendContractReady(result.answer);
       await saveConversation(question, result.answer, articles);
     } else if (!articles.length) {
       appendNoResult();
@@ -582,6 +582,54 @@ function downloadDOCX(text) {
   };
   script.onerror = function() { downloadPDF(text); };
   document.head.appendChild(script);
+}
+
+function appendContractReady(contractText) {
+  var wrap = document.createElement('div');
+  wrap.className = 'message assistant';
+
+  var av = document.createElement('div');
+  av.className = 'msg-avatar';
+  av.textContent = 'J';
+
+  var body = document.createElement('div');
+  body.className = 'msg-body';
+
+  var roleEl = document.createElement('div');
+  roleEl.className = 'msg-role';
+  roleEl.textContent = 'Juria';
+
+  var bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+  bubble.innerHTML = '<p>✅ Votre contrat est prêt. Choisissez le format de téléchargement :</p>';
+
+  var btnRow = document.createElement('div');
+  btnRow.style.display = 'flex';
+  btnRow.style.gap = '10px';
+  btnRow.style.marginTop = '14px';
+  btnRow.style.flexWrap = 'wrap';
+
+  var pdfBtn = document.createElement('button');
+  pdfBtn.className = 'pdf-btn';
+  pdfBtn.innerHTML = '⬇️ PDF';
+  pdfBtn.addEventListener('click', function() { downloadPDF(contractText); });
+
+  var docxBtn = document.createElement('button');
+  docxBtn.className = 'pdf-btn';
+  docxBtn.style.background = '#065f46';
+  docxBtn.innerHTML = '⬇️ Word (.docx)';
+  docxBtn.addEventListener('click', function() { downloadDOCX(contractText); });
+
+  btnRow.appendChild(pdfBtn);
+  btnRow.appendChild(docxBtn);
+  bubble.appendChild(btnRow);
+
+  body.appendChild(roleEl);
+  body.appendChild(bubble);
+  wrap.appendChild(av);
+  wrap.appendChild(body);
+  chatMessages.appendChild(wrap);
+  scrollBottom();
 }
 
 function appendNoResult() {
