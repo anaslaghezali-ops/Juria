@@ -90,6 +90,8 @@
     .input-hint { text-align: center; font-size: 11px; color: var(--slate-400); margin-top: 5px; }
 .pdf-btn { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; padding: 10px 18px; background: var(--indigo); color: #fff; border: none; border-radius: 8px; font-family: var(--font); font-size: 13px; font-weight: 500; cursor: pointer; transition: background 0.15s; }
 .pdf-btn:hover { background: var(--indigo-light); }
+.upload-btn { width: 32px; height: 32px; background: var(--slate-100); border: 1px solid var(--border); border-radius: 8px; color: var(--slate-500); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; }
+.upload-btn:hover { background: var(--indigo-bg); color: var(--indigo); border-color: var(--indigo); }
     @media (max-width: 680px) {
       .sidebar { position: fixed; left: 0; top: 0; transform: translateX(-100%); z-index: 100; }
       .sidebar.open { transform: translateX(0); box-shadow: 4px 0 20px rgba(0,0,0,0.1); }
@@ -178,13 +180,22 @@
 
   <div class="input-zone">
     <div class="input-wrapper">
-      <textarea id="userInput" class="input-field" placeholder="Posez votre question juridique…" rows="1" maxlength="600"></textarea>
+      <textarea id="userInput" class="input-field" placeholder="Posez votre question juridique ou uploadez un contrat à analyser…" rows="1" maxlength="600"></textarea>
       <div class="input-actions">
         <span class="char-count" id="charCount">0 / 600</span>
+        <label class="upload-btn" title="Analyser un contrat (.docx ou .pdf)">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <input type="file" id="contractFile" accept=".docx,.pdf" style="display:none"/>
+        </label>
         <button class="send-btn" id="sendBtn">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
         </button>
       </div>
+    </div>
+    <div id="filePreview" style="display:none;max-width:760px;margin:6px auto 0;padding:8px 14px;background:var(--indigo-bg);border:1px solid #c7d2fe;border-radius:8px;font-size:13px;color:var(--indigo-text);display:flex;align-items:center;gap:8px;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <span id="fileName">Aucun fichier</span>
+      <button onclick="clearFile()" style="background:none;border:none;cursor:pointer;color:var(--indigo-text);font-size:16px;margin-left:auto;">×</button>
     </div>
     <p class="input-hint">Entrée pour envoyer · Shift+Entrée pour un saut de ligne</p>
   </div>
@@ -288,15 +299,24 @@ async function sendMessage() {
   charCount.textContent = '0 / 600';
   setLoading(true);
 
-  // Détecter si c'est une demande de contrat
-  var contractKeywords = ['rédige', 'rédiger', 'contrat', 'modèle', 'template', 'génère', 'créer un contrat', 'faire un contrat', 'accord', 'convention'];
-  var isContractRequest = contractKeywords.some(function(kw) { return question.toLowerCase().includes(kw); });
+  // Détecter mode
+  var isContractAnalysis = uploadedContractText !== null;
+  var contractKeywords = ['rédige', 'rédiger', 'contrat', 'modèle', 'template', 'génère', 'créer un contrat', 'faire un contrat'];
+  var isContractRequest = !isContractAnalysis && contractKeywords.some(function(kw) { return question.toLowerCase().includes(kw); });
 
   try {
     var articles = await searchArticles(question);
-    
-    if (isContractRequest) {
-      // Pour les contrats : afficher message court + boutons téléchargement
+
+    if (isContractAnalysis) {
+      // ANALYSE DE CONTRAT UPLOADÉ
+      var contractText = uploadedContractText;
+      var fileName = uploadedFileName;
+      clearFile();
+      var result = await analyzeContract(contractText, question, articles);
+      appendContractAnalysis(result);
+      await saveConversation(question, result.summary || 'Analyse de contrat', articles);
+    } else if (isContractRequest) {
+      // GÉNÉRATION DE CONTRAT
       var result = await askAI(question, articles);
       appendContractReady(result.answer);
       await saveConversation(question, result.answer, articles);
@@ -584,6 +604,124 @@ function downloadDOCX(text) {
   document.head.appendChild(script);
 }
 
+async function analyzeContract(contractText, userQuestion, articles) {
+  var sessionData = await _sb.auth.getSession();
+  if (!sessionData.data.session) throw new Error('Session expirée');
+  var token = sessionData.data.session.access_token;
+  
+  var res = await fetch(JURIA_CONFIG.EDGE_FUNCTION_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+    body: JSON.stringify({ 
+      question: userQuestion, 
+      articles: articles,
+      contract_to_analyze: contractText,
+      mode: 'analyze'
+    }),
+  });
+  if (!res.ok) throw new Error('Edge Function: ' + res.status);
+  return await res.json();
+}
+
+function appendContractAnalysis(result) {
+  var wrap = document.createElement('div');
+  wrap.className = 'message assistant';
+
+  var av = document.createElement('div');
+  av.className = 'msg-avatar';
+  av.textContent = 'J';
+
+  var body = document.createElement('div');
+  body.className = 'msg-body';
+
+  var roleEl = document.createElement('div');
+  roleEl.className = 'msg-role';
+  roleEl.textContent = 'Juria — Analyse de contrat';
+
+  var bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+
+  // Score global
+  var scoreColor = result.score >= 7 ? '#10b981' : result.score >= 4 ? '#f59e0b' : '#ef4444';
+  var scoreHtml = '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding:12px;background:#f8f9fb;border-radius:8px;">';
+  scoreHtml += '<div style="font-size:28px;font-weight:700;color:' + scoreColor + '">' + result.score + '/10</div>';
+  scoreHtml += '<div><div style="font-size:13px;font-weight:600;color:#374151">Score de conformité</div>';
+  scoreHtml += '<div style="font-size:12px;color:#6b7280">' + result.summary + '</div></div></div>';
+  
+  // Problèmes
+  var issuesHtml = '';
+  if (result.issues && result.issues.length > 0) {
+    issuesHtml = '<div style="font-size:12px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:#9ca3af;margin-bottom:8px;">⚠️ Points à corriger (' + result.issues.length + ')</div>';
+    result.issues.forEach(function(issue) {
+      var color = issue.severity === 'high' ? '#fef2f2' : issue.severity === 'medium' ? '#fffbeb' : '#f0fdf4';
+      var border = issue.severity === 'high' ? '#ef4444' : issue.severity === 'medium' ? '#f59e0b' : '#10b981';
+      var label = issue.severity === 'high' ? '🔴 Critique' : issue.severity === 'medium' ? '🟡 Important' : '🟢 Mineur';
+      issuesHtml += '<div style="background:' + color + ';border-left:3px solid ' + border + ';border-radius:6px;padding:10px 12px;margin-bottom:8px;">';
+      issuesHtml += '<div style="font-size:11px;font-weight:600;color:' + border + ';margin-bottom:3px;">' + label + (issue.clause ? ' · ' + issue.clause : '') + '</div>';
+      issuesHtml += '<div style="font-size:13px;color:#374151;margin-bottom:4px;">' + escHtml(issue.problem) + '</div>';
+      issuesHtml += '<div style="font-size:12px;color:#6b7280">💡 ' + escHtml(issue.suggestion) + '</div>';
+      issuesHtml += '</div>';
+    });
+  }
+
+  // Clauses manquantes
+  var missingHtml = '';
+  if (result.missing_clauses && result.missing_clauses.length > 0) {
+    missingHtml = '<div style="font-size:12px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:#9ca3af;margin:12px 0 8px;">📋 Clauses manquantes</div>';
+    result.missing_clauses.forEach(function(clause) {
+      missingHtml += '<div style="background:#eef2ff;border-left:3px solid #4f46e5;border-radius:6px;padding:8px 12px;margin-bottom:6px;font-size:13px;color:#3730a3;">+ ' + escHtml(clause) + '</div>';
+    });
+  }
+
+  bubble.innerHTML = scoreHtml + issuesHtml + missingHtml + '<div style="font-size:11.5px;color:#9ca3af;margin-top:12px;padding-top:10px;border-top:1px solid #e5e7eb;">⚠️ Cette analyse est fournie à titre indicatif. Faites valider ce contrat par un avocat.</div>';
+
+  // Bouton télécharger rapport
+  var pdfBtn = document.createElement('button');
+  pdfBtn.className = 'pdf-btn';
+  pdfBtn.style.marginTop = '12px';
+  pdfBtn.innerHTML = '⬇️ Télécharger le rapport d'analyse';
+  pdfBtn.addEventListener('click', function() { downloadAnalysisReport(result); });
+  
+  body.appendChild(roleEl);
+  body.appendChild(bubble);
+  body.appendChild(pdfBtn);
+  wrap.appendChild(av);
+  wrap.appendChild(body);
+  chatMessages.appendChild(wrap);
+  scrollBottom();
+}
+
+function downloadAnalysisReport(result) {
+  var win = window.open('', '_blank');
+  var issuesHtml = '';
+  if (result.issues) {
+    result.issues.forEach(function(issue) {
+      var label = issue.severity === 'high' ? '🔴 CRITIQUE' : issue.severity === 'medium' ? '🟡 IMPORTANT' : '🟢 MINEUR';
+      issuesHtml += '<div style="border-left:4px solid ' + (issue.severity === 'high' ? '#ef4444' : issue.severity === 'medium' ? '#f59e0b' : '#10b981') + ';padding:12px 16px;margin-bottom:12px;background:#fafafa;">';
+      issuesHtml += '<strong>' + label + (issue.clause ? ' — ' + issue.clause : '') + '</strong><br>';
+      issuesHtml += '<p>' + issue.problem + '</p>';
+      issuesHtml += '<p style="color:#4f46e5">💡 Recommandation : ' + issue.suggestion + '</p></div>';
+    });
+  }
+  var missingHtml = '';
+  if (result.missing_clauses) {
+    result.missing_clauses.forEach(function(c) {
+      missingHtml += '<li>' + c + '</li>';
+    });
+  }
+  win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Rapport Juria</title><style>body{font-family:Georgia,serif;max-width:820px;margin:0 auto;padding:40px;color:#1a1a1a;font-size:13px;line-height:1.7}h1{color:#4f46e5;border-bottom:2px solid #4f46e5;padding-bottom:10px}h2{color:#374151;margin-top:28px}p{margin:6px 0}.score{font-size:48px;font-weight:700;color:' + (result.score >= 7 ? '#10b981' : result.score >= 4 ? '#f59e0b' : '#ef4444') + '}.footer{margin-top:48px;padding-top:12px;border-top:1px solid #ccc;font-size:11px;color:#888;text-align:center}@media print{button{display:none}}</style></head><body>');
+  win.document.write('<h1>⚖ Rapport d'analyse de contrat — Juria</h1>');
+  win.document.write('<div style="display:flex;align-items:center;gap:20px;padding:20px;background:#f8f9fb;border-radius:8px;margin-bottom:24px;">');
+  win.document.write('<div class="score">' + result.score + '/10</div>');
+  win.document.write('<div><strong>Score de conformité</strong><br>' + result.summary + '</div></div>');
+  if (issuesHtml) { win.document.write('<h2>⚠️ Points à corriger</h2>' + issuesHtml); }
+  if (missingHtml) { win.document.write('<h2>📋 Clauses manquantes</h2><ul>' + missingHtml + '</ul>'); }
+  win.document.write('<div class="footer">Rapport généré par Juria · À titre indicatif uniquement · Faites valider ce contrat par un avocat avant signature</div>');
+  win.document.write('<div style="text-align:center;margin-top:20px"><button onclick="window.print()" style="padding:12px 28px;background:#4f46e5;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">Imprimer / Sauvegarder en PDF</button></div>');
+  win.document.write('</body></html>');
+  win.document.close();
+}
+
 function appendContractReady(contractText) {
   var wrap = document.createElement('div');
   wrap.className = 'message assistant';
@@ -718,6 +856,85 @@ function escHtml(s) {
 function truncate(s, n) {
   if (!s) return '';
   return s.length > n ? s.slice(0, n) + '…' : s;
+}
+
+// ---- FILE UPLOAD ----
+var uploadedContractText = null;
+var uploadedFileName = null;
+
+document.getElementById('contractFile').addEventListener('change', async function(e) {
+  var file = e.target.files[0];
+  if (!file) return;
+  uploadedFileName = file.name;
+  document.getElementById('fileName').textContent = file.name;
+  document.getElementById('filePreview').style.display = 'flex';
+  
+  try {
+    if (file.name.endsWith('.pdf')) {
+      uploadedContractText = await extractPDFText(file);
+    } else if (file.name.endsWith('.docx')) {
+      uploadedContractText = await extractDOCXText(file);
+    }
+    userInput.value = 'Analyse ce contrat et identifie les problèmes.';
+    userInput.dispatchEvent(new Event('input'));
+  } catch(e) {
+    console.error('File error:', e);
+    alert('Erreur lors de la lecture du fichier. Réessayez.');
+    clearFile();
+  }
+});
+
+function clearFile() {
+  uploadedContractText = null;
+  uploadedFileName = null;
+  document.getElementById('contractFile').value = '';
+  document.getElementById('filePreview').style.display = 'none';
+  document.getElementById('fileName').textContent = 'Aucun fichier';
+  userInput.value = '';
+  userInput.dispatchEvent(new Event('input'));
+}
+
+async function extractDOCXText(file) {
+  return new Promise(function(resolve, reject) {
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js';
+    script.onload = function() {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        mammoth.extractRawText({ arrayBuffer: e.target.result })
+          .then(function(result) { resolve(result.value); })
+          .catch(reject);
+      };
+      reader.readAsArrayBuffer(file);
+    };
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+}
+
+async function extractPDFText(file) {
+  return new Promise(function(resolve, reject) {
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js';
+    script.onload = async function() {
+      try {
+        var pdfjsLib = window['pdfjs-dist/build/pdf'];
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+        var arrayBuffer = await file.arrayBuffer();
+        var pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        var text = '';
+        for (var i = 1; i <= pdf.numPages; i++) {
+          var page = await pdf.getPage(i);
+          var content = await page.getTextContent();
+          text += content.items.map(function(s){ return s.str; }).join(' ') + '
+';
+        }
+        resolve(text);
+      } catch(e) { reject(e); }
+    };
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
 }
 
 init();
