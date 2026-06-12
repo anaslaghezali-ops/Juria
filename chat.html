@@ -88,6 +88,8 @@
     .send-btn:active { transform: scale(0.94); }
     .send-btn:disabled { background: var(--slate-300); cursor: not-allowed; }
     .input-hint { text-align: center; font-size: 11px; color: var(--slate-400); margin-top: 5px; }
+.pdf-btn { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; padding: 10px 18px; background: var(--indigo); color: #fff; border: none; border-radius: 8px; font-family: var(--font); font-size: 13px; font-weight: 500; cursor: pointer; transition: background 0.15s; }
+.pdf-btn:hover { background: var(--indigo-light); }
     @media (max-width: 680px) {
       .sidebar { position: fixed; left: 0; top: 0; transform: translateX(-100%); z-index: 100; }
       .sidebar.open { transform: translateX(0); box-shadow: 4px 0 20px rgba(0,0,0,0.1); }
@@ -286,19 +288,23 @@ async function sendMessage() {
   charCount.textContent = '0 / 600';
   setLoading(true);
 
+  // Détecter si c'est une demande de contrat
+  var contractKeywords = ['rédige', 'rédiger', 'contrat', 'modèle', 'template', 'génère', 'créer un contrat', 'faire un contrat', 'accord', 'convention'];
+  var isContractRequest = contractKeywords.some(function(kw) { return question.toLowerCase().includes(kw); });
+
   try {
-    const articles = await searchArticles(question);
-    if (!articles.length) {
+    var articles = await searchArticles(question);
+    
+    if (isContractRequest) {
+      // Pour les contrats, on envoie même si peu d'articles trouvés
+      var result = await askAI(question, articles);
+      appendMsg('assistant', result.answer, [], true);
+      await saveConversation(question, result.answer, articles);
+    } else if (!articles.length) {
       appendNoResult();
     } else {
       var result = await askAI(question, articles);
-      // Si l'IA dit qu'elle n'a pas de réponse, ne pas afficher les citations
-      var noAnswer = result.answer && (
-        result.answer.includes("n'est pas couvert") ||
-        result.answer.includes("pas d'informations suffisantes") ||
-        result.answer.includes("Consultez un avocat") && result.answer.length < 150
-      );
-      appendMsg('assistant', result.answer, noAnswer ? [] : (result.citations || articles));
+      appendMsg('assistant', result.answer, result.citations || [], false);
       await saveConversation(question, result.answer, articles);
     }
   } catch(e) {
@@ -402,8 +408,9 @@ async function saveConversation(question, answer, articles) {
 }
 
 // ---- DISPLAY ----
-function appendMsg(role, text, citations) {
+function appendMsg(role, text, citations, isContract) {
   citations = citations || [];
+  isContract = isContract || false;
   var wrap = document.createElement('div');
   wrap.className = 'message ' + role;
 
@@ -464,12 +471,34 @@ function appendMsg(role, text, citations) {
     bubble.appendChild(cb);
   }
 
+  // Bouton PDF si c'est un contrat
+  if (role === 'assistant' && isContract) {
+    var pdfBtn = document.createElement('button');
+    pdfBtn.className = 'pdf-btn';
+    pdfBtn.innerHTML = '⬇️ Télécharger le contrat en PDF';
+    pdfBtn.addEventListener('click', function() { downloadPDF(text); });
+    body.appendChild(pdfBtn);
+  }
+
   body.appendChild(roleEl);
   body.appendChild(bubble);
   wrap.appendChild(av);
   wrap.appendChild(body);
   chatMessages.appendChild(wrap);
   scrollBottom();
+}
+
+function downloadPDF(text) {
+  var content = text.replace(/
+/g, '<br>');
+  var win = window.open('', '_blank');
+  win.document.write('<html><head><title>Contrat Juria</title><style>body{font-family:Georgia,serif;max-width:800px;margin:40px auto;padding:0 20px;line-height:1.8;color:#1a1a1a}h1{text-align:center;color:#1a1a1a;border-bottom:2px solid #4f46e5;padding-bottom:10px}p{margin:10px 0}.footer{margin-top:40px;padding-top:10px;border-top:1px solid #ccc;font-size:12px;color:#666;text-align:center}</style></head><body>');
+  win.document.write('<h1>Contrat — Juria</h1>');
+  win.document.write('<div>' + content + '</div>');
+  win.document.write('<div class="footer">Généré par Juria · juria.ma · Ce contrat est fourni à titre indicatif. Faites-le valider par un avocat avant signature.</div>');
+  win.document.write('</body></html>');
+  win.document.close();
+  win.print();
 }
 
 function appendNoResult() {
