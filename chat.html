@@ -306,33 +306,41 @@ async function sendMessage() {
 // ---- SEARCH ----
 async function searchArticles(question) {
   // Mots juridiques à ignorer
-  const stopWords = ['quelles','quels','quelle','quel','sont','dans','pour','avec','les','des','une','que','qui','est','pas','plus','par','sur','comment','quoi','mais','donc'];
-  
-  const words = question
+  var stopWords = ['quelles','quels','quelle','quel','sont','dans','pour','avec','les','des','une','que','qui','est','pas','plus','par','sur','comment','quoi','mais','donc','avoir','faire','veux','veut','peut','faut','doit','doivent'];
+
+  var words = question
     .toLowerCase()
     .replace(/[?!.,;:'"()]/g, ' ')
     .split(/\s+/)
     .filter(function(w) { return w.length > 3 && stopWords.indexOf(w) === -1; });
 
   if (!words.length) {
-    // Fallback : prendre tous les mots > 2 lettres
-    const fallback = question.toLowerCase().replace(/[?!.,;:'"()]/g, ' ').split(/\s+/).filter(function(w){ return w.length > 2; });
+    var fallback = question.toLowerCase().split(/\s+/).filter(function(w){ return w.length > 2; });
     if (!fallback.length) return [];
-    words.push(fallback[0]);
+    words = [fallback[0]];
   }
 
-  // Essayer chaque mot jusqu'à trouver des résultats
+  // Chercher avec chaque mot et combiner les résultats
+  var allResults = [];
+  var seenIds = {};
+
   for (var i = 0; i < words.length; i++) {
     var word = words[i];
     var result = await _sb.from('articles_juridiques')
       .select('id, numero_article, contenu, mots_cles')
       .ilike('contenu', '%' + word + '%')
-      .limit(5);
-    if (!result.error && result.data && result.data.length > 0) {
-      return result.data;
+      .limit(8);
+    if (!result.error && result.data) {
+      result.data.forEach(function(art) {
+        if (!seenIds[art.id]) {
+          seenIds[art.id] = true;
+          allResults.push(art);
+        }
+      });
     }
   }
-  return [];
+
+  return allResults.slice(0, 8);
 }
 
 // ---- AI ----
@@ -405,19 +413,35 @@ function appendMsg(role, text, citations) {
     cb.className = 'citations';
     var cl = document.createElement('div');
     cl.className = 'citations-label';
-    cl.textContent = citations.length + ' source' + (citations.length > 1 ? 's' : '') + ' citée' + (citations.length > 1 ? 's' : '');
+    cl.textContent = citations.length + ' source' + (citations.length > 1 ? 's' : '') + ' citée' + (citations.length > 1 ? 's' : '') + ' — cliquez pour lire';
     cb.appendChild(cl);
     citations.forEach(function(c) {
       var card = document.createElement('div');
       card.className = 'citation-card';
-      var art = document.createElement('div');
-      art.className = 'citation-article';
-      art.textContent = c.numero_article + ' — Code de Commerce';
-      var exc = document.createElement('div');
-      exc.className = 'citation-excerpt';
-      exc.textContent = truncate(c.contenu, 180);
-      card.appendChild(art);
-      card.appendChild(exc);
+      card.style.cursor = 'pointer';
+
+      var header = document.createElement('div');
+      header.className = 'citation-article';
+      header.style.display = 'flex';
+      header.style.justifyContent = 'space-between';
+      header.style.alignItems = 'center';
+      header.innerHTML = c.numero_article + ' — Code de Commerce <span class="citation-chevron">▼</span>';
+
+      var body = document.createElement('div');
+      body.className = 'citation-excerpt';
+      body.style.display = 'none';
+      body.style.marginTop = '8px';
+      body.style.whiteSpace = 'pre-wrap';
+      body.textContent = c.contenu || '';
+
+      card.addEventListener('click', function() {
+        var isOpen = body.style.display !== 'none';
+        body.style.display = isOpen ? 'none' : 'block';
+        header.querySelector('.citation-chevron').textContent = isOpen ? '▼' : '▲';
+      });
+
+      card.appendChild(header);
+      card.appendChild(body);
       cb.appendChild(card);
     });
     bubble.appendChild(cb);
