@@ -202,6 +202,8 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
 <script>
 const JURIA_CONFIG = {
   SUPABASE_URL:      'https://dnrudcpaqcqyybpbbrum.supabase.co',
@@ -554,54 +556,67 @@ function downloadPDF(text) {
 }
 
 function downloadDOCX(text) {
-  // Générer un fichier .docx via la librairie docx
-  var script = document.createElement('script');
-  script.src = 'https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.min.js';
-  script.onload = function() {
-    try {
-      var lines = text.split('\n').filter(function(l){ return l.trim(); });
-      var paragraphs = lines.map(function(line) {
-        var trimmed = line.trim();
-        var isTitle = trimmed.match(/^(CONTRAT|ACCORD|CONVENTION)/i);
-        var isHeading = trimmed.match(/^(Article|Clause|ARTICLE|CLAUSE|PRÉAMBULE|OBJET|DURÉE|LOYER|OBLIGATIONS|RÉSILIATION|SIGNATURES?)\s*/i);
-        return new docx.Paragraph({
-          text: trimmed,
-          heading: isTitle ? docx.HeadingLevel.HEADING_1 : isHeading ? docx.HeadingLevel.HEADING_2 : undefined,
-          spacing: { after: 120 },
-        });
-      });
-
-      // Ajouter footer
-      paragraphs.push(new docx.Paragraph({
-        text: '---',
-        spacing: { before: 400 },
-      }));
-      paragraphs.push(new docx.Paragraph({
-        text: 'Généré par Juria · À titre indicatif uniquement · Faites valider ce contrat par un avocat avant signature.',
-        style: 'footnote',
-      }));
-
-      var doc = new docx.Document({
-        sections: [{ children: paragraphs }],
-        creator: 'Juria',
-        title: 'Contrat juridique',
-      });
-
-      docx.Packer.toBlob(doc).then(function(blob) {
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement('a');
-        a.href = url;
-        a.download = 'contrat-juria.docx';
-        a.click();
-        URL.revokeObjectURL(url);
-      });
-    } catch(e) {
-      console.error('DOCX error:', e);
+  try {
+    if (typeof docx === 'undefined') {
+      alert('Librairie Word non chargée. Utilisez le PDF.');
       downloadPDF(text);
+      return;
     }
-  };
-  script.onerror = function() { downloadPDF(text); };
-  document.head.appendChild(script);
+    var lines = text.split('\n').filter(function(l){ return l.trim(); });
+    var paragraphs = lines.map(function(line) {
+      var trimmed = line.trim();
+      var isTitle = /^(CONTRAT|ACCORD|CONVENTION)/i.test(trimmed);
+      var isHeading = /^(Article|Clause|ARTICLE|CLAUSE|PRÉAMBULE|OBJET|DURÉE|LOYER|OBLIGATIONS|RÉSILIATION|SIGNATURE)/i.test(trimmed);
+      if (isTitle) {
+        return new docx.Paragraph({
+          children: [new docx.TextRun({ text: trimmed, bold: true, size: 32 })],
+          alignment: docx.AlignmentType.CENTER,
+          spacing: { after: 200 },
+        });
+      } else if (isHeading) {
+        return new docx.Paragraph({
+          children: [new docx.TextRun({ text: trimmed, bold: true, size: 24 })],
+          spacing: { before: 200, after: 100 },
+        });
+      } else {
+        return new docx.Paragraph({
+          children: [new docx.TextRun({ text: trimmed, size: 22 })],
+          spacing: { after: 80 },
+        });
+      }
+    });
+
+    paragraphs.push(new docx.Paragraph({ children: [], spacing: { before: 400 } }));
+    paragraphs.push(new docx.Paragraph({
+      children: [new docx.TextRun({
+        text: 'Généré par Juria · À titre indicatif uniquement · Faites valider ce contrat par un avocat avant signature.',
+        color: '888888', size: 18, italics: true,
+      })],
+    }));
+
+    var doc = new docx.Document({
+      creator: 'Juria',
+      title: 'Contrat juridique',
+      sections: [{ properties: {}, children: paragraphs }],
+    });
+
+    docx.Packer.toBlob(doc).then(function(blob) {
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'contrat-juria.docx';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+    }).catch(function(e) {
+      console.error('DOCX pack error:', e);
+      downloadPDF(text);
+    });
+  } catch(e) {
+    console.error('DOCX error:', e);
+    downloadPDF(text);
+  }
 }
 
 async function analyzeContract(contractText, userQuestion, articles) {
@@ -896,19 +911,18 @@ function clearFile() {
 
 async function extractDOCXText(file) {
   return new Promise(function(resolve, reject) {
-    var script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js';
-    script.onload = function() {
-      var reader = new FileReader();
-      reader.onload = function(e) {
-        mammoth.extractRawText({ arrayBuffer: e.target.result })
-          .then(function(result) { resolve(result.value); })
-          .catch(reject);
-      };
-      reader.readAsArrayBuffer(file);
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      if (typeof mammoth === 'undefined') {
+        reject(new Error('Mammoth non chargé'));
+        return;
+      }
+      mammoth.extractRawText({ arrayBuffer: e.target.result })
+        .then(function(result) { resolve(result.value); })
+        .catch(reject);
     };
-    script.onerror = reject;
-    document.head.appendChild(script);
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
   });
 }
 
