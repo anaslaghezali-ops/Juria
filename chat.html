@@ -331,7 +331,7 @@ async function sendMessage() {
     }
   } catch(e) {
     console.error('sendMessage error:', e);
-    appendSpecialMsg('Erreur : ' + (e.message || 'Vérifiez votre connexion.'));
+    appendSpecialMsg("Erreur : " + (e.message || "Vérifiez votre connexion."));
   } finally {
     setLoading(false);
   }
@@ -944,8 +944,7 @@ async function extractPDFText(file) {
         for (var i = 1; i <= pdf.numPages; i++) {
           var page = await pdf.getPage(i);
           var content = await page.getTextContent();
-          text += content.items.map(function(s){ return s.str; }).join(' ') + '
-';
+          text += content.items.map(function(s){ return s.str; }).join(' ') + '\n';
         }
         resolve(text);
       } catch(e) { reject(e); }
