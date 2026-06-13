@@ -322,9 +322,8 @@ async function sendMessage() {
       var result = await askAI(question, articles);
       appendContractReady(result.answer);
       await saveConversation(question, result.answer, articles);
-    } else if (!articles.length) {
-      appendNoResult();
     } else {
+      // QUESTION JURIDIQUE OU CONVERSATION — toujours appeler l'IA
       var result = await askAI(question, articles);
       appendMsg('assistant', result.answer, result.citations || [], false);
       await saveConversation(question, result.answer, articles);
@@ -798,7 +797,7 @@ function appendNoResult() {
   roleEl.textContent = 'Juria';
   var bubble = document.createElement('div');
   bubble.className = 'msg-bubble';
-  bubble.innerHTML = '<p>Je n\'ai trouvé aucun article correspondant dans le Code de Commerce.</p><div class="no-result">Essayez : <em>commerçant, fonds de commerce, chèque, lettre de change, bail commercial, registre du commerce, faillite…</em></div>';
+  bubble.innerHTML = '<p>Je n\'ai trouvé aucun article correspondant à votre question dans la base juridique.</p><div class="no-result">Essayez des termes juridiques précis : <em>contrat, société anonyme, commerçant, bail, consommateur, crédit, concurrence, licenciement, fonds de commerce…</em></div>';
   body.appendChild(roleEl);
   body.appendChild(bubble);
   wrap.appendChild(av);
