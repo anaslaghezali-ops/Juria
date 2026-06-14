@@ -224,6 +224,28 @@ let userProfile = null;
 let isLoading   = false;
 var conversationHistory = []; // Mémoire des 3 derniers échanges
 
+// Vérifier si un document vient de la page analyse-contrat
+(function() {
+  var docText = sessionStorage.getItem('juriaDocText');
+  var docName = sessionStorage.getItem('juriaDocName');
+  if (docText && docName) {
+    uploadedContractText = docText;
+    uploadedFileName = docName;
+    sessionStorage.removeItem('juriaDocText');
+    sessionStorage.removeItem('juriaDocName');
+    // Afficher le fichier dans la zone d'input
+    setTimeout(function() {
+      document.getElementById('fileName').textContent = docName + ' — posez vos questions sur ce document';
+      document.getElementById('filePreview').style.display = 'flex';
+      document.getElementById('userInput').placeholder = 'Posez une question sur ce document ou demandez une analyse...';
+      // Message de bienvenue
+      var welcome = document.getElementById('welcomeState');
+      if (welcome) welcome.remove();
+      appendMsg('assistant', '📄 Document chargé : **' + docName + '**\n\nJe suis prêt à répondre à toutes vos questions sur ce contrat. Demandez-moi par exemple :\n- "Comment reformuler la clause de rupture ?"\n- "Quelle formulation ajouter pour les congés payés ?"\n- "Quels sont mes droits selon ce contrat ?"', [], false);
+    }, 500);
+  }
+})();
+
 const chatMessages = document.getElementById('chatMessages');
 const userInput    = document.getElementById('userInput');
 const sendBtn      = document.getElementById('sendBtn');
