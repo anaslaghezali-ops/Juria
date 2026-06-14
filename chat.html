@@ -307,26 +307,42 @@ async function sendMessage() {
   if (conversationHistory.length > 6) conversationHistory = conversationHistory.slice(-6);
 
   // Détecter mode
-  var isContractAnalysis = uploadedContractText !== null;
   var contractKeywords = ['rédige moi', 'rédiger un contrat', 'génère un contrat', 'créer un contrat', 'faire un contrat', 'écris un contrat', 'modèle de contrat', 'template de contrat'];
-  var isContractRequest = !isContractAnalysis && contractKeywords.some(function(kw) { return question.toLowerCase().includes(kw); });
+  var analyseKeywords = ['analyse', 'analyser', 'score', 'risque', 'problème', 'clause manquante', 'vérif'];
+  var isContractRequest = !uploadedContractText && contractKeywords.some(function(kw) { return question.toLowerCase().includes(kw); });
+  
+  // Si un document est uploadé : deux modes
+  // 1. L'utilisateur demande une analyse formelle → score + rapport
+  // 2. L'utilisateur pose une question sur le document → réponse contextuelle
+  var isDocumentAnalysis = uploadedContractText !== null && analyseKeywords.some(function(kw) { return question.toLowerCase().includes(kw); });
+  var isDocumentQuestion = uploadedContractText !== null && !isDocumentAnalysis;
 
   try {
-    var articles = await searchArticles(question);
 
-    if (isContractAnalysis) {
-      // ANALYSE DE CONTRAT UPLOADÉ
+    if (isDocumentAnalysis) {
+      // ANALYSE FORMELLE DU DOCUMENT — score + rapport
       var contractText = uploadedContractText;
-      var fileName = uploadedFileName;
       clearFile();
-      var result = await analyzeContract(contractText, question, articles);
+      var result = await analyzeContract(contractText, question, []);
       appendContractAnalysis(result);
-      await saveConversation(question, result.summary || 'Analyse de contrat', articles);
+      await saveConversation(question, result.summary || 'Analyse de contrat', []);
+
+    } else if (isDocumentQuestion) {
+      // QUESTION SUR LE DOCUMENT UPLOADÉ
+      var contractText = uploadedContractText;
+      var result = await askAI(question, contractText);
+      var citations = (result.needs_clarification) ? [] : (result.citations || []);
+      appendMsg('assistant', result.answer, citations, false);
+      conversationHistory.push({ role: 'assistant', content: result.answer });
+      if (conversationHistory.length > 6) conversationHistory = conversationHistory.slice(-6);
+      await saveConversation(question, result.answer, []);
+
     } else if (isContractRequest) {
       // GÉNÉRATION DE CONTRAT
-      var result = await askAI(question, articles);
+      var result = await askAI(question);
       appendContractReady(result.answer);
-      await saveConversation(question, result.answer, articles);
+      await saveConversation(question, result.answer, []);
+
     } else {
       // QUESTION JURIDIQUE OU CONVERSATION — l'Edge Function gère la recherche
       var result = await askAI(question);
@@ -376,13 +392,18 @@ async function searchArticles(question) {
 }
 
 // ---- AI ----
-async function askAI(question) {
+async function askAI(question, documentContext) {
   var sessionData = await _sb.auth.getSession();
   if (!sessionData.data.session) throw new Error('Session expirée');
   var token = sessionData.data.session.access_token;
   
-  // L'Edge Function gère maintenant la recherche vectorielle
   var history = conversationHistory.slice(0, -1);
+  
+  var body = { question: question, history: history };
+  if (documentContext) {
+    body.document_context = documentContext.slice(0, 12000);
+    body.mode = 'document_question';
+  }
   
   var res = await fetch(JURIA_CONFIG.EDGE_FUNCTION_URL, {
     method: 'POST',
@@ -390,7 +411,7 @@ async function askAI(question) {
       'Content-Type': 'application/json', 
       'Authorization': 'Bearer ' + token
     },
-    body: JSON.stringify({ question: question, history: history }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error('Edge Function: ' + res.status);
   return await res.json();
@@ -876,8 +897,9 @@ document.getElementById('contractFile').addEventListener('change', async functio
   var file = e.target.files[0];
   if (!file) return;
   uploadedFileName = file.name;
-  document.getElementById('fileName').textContent = file.name;
+  document.getElementById('fileName').textContent = file.name + ' — posez vos questions sur ce document';
   document.getElementById('filePreview').style.display = 'flex';
+  document.getElementById('userInput').placeholder = 'Posez une question sur ce document ou demandez une analyse...';
   
   try {
     if (file.name.endsWith('.pdf')) {
@@ -898,6 +920,7 @@ function clearFile() {
   uploadedContractText = null;
   uploadedFileName = null;
   document.getElementById('contractFile').value = '';
+  document.getElementById('userInput').placeholder = 'Posez votre question juridique…';
   document.getElementById('filePreview').style.display = 'none';
   document.getElementById('fileName').textContent = 'Aucun fichier';
   userInput.value = '';
