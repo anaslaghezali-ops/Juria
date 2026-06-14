@@ -411,18 +411,16 @@ async function generateAnnotatedDoc() {
 }
 
 async function generateDocxWithComments(issues, missing) {
-  if (typeof docx === 'undefined') {
-    // Essayer de charger dynamiquement
-    await new Promise(function(resolve, reject) {
-      var s = document.createElement('script');
-      s.src = 'https://unpkg.com/docx@8.5.0/build/index.min.js';
-      s.onload = resolve;
-      s.onerror = reject;
-      document.head.appendChild(s);
-    }).catch(function() {});
-    
-    if (typeof docx === 'undefined') {
-      alert('Librairie Word non chargée. Vérifiez votre connexion et réessayez.');
+  var docx;
+  try {
+    var module = await import('https://cdn.jsdelivr.net/npm/docx@8.5.0/+esm');
+    docx = module;
+  } catch(e1) {
+    try {
+      var module2 = await import('https://unpkg.com/docx@8.5.0/build/index.esm.js');
+      docx = module2;
+    } catch(e2) {
+      alert('Impossible de charger la librairie Word. Utilisez le bouton PDF à la place.');
       return;
     }
   }
