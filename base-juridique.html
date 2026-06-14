@@ -213,7 +213,7 @@ async function doSearch() {
 
   var query = _sb.from('articles_juridiques')
     .select('id, code, numero_article, contenu, book, title')
-    .or('contenu.ilike.%' + q + '%,numero_article.ilike.%' + q + '%,keywords_enriched.ilike.%' + q + '%')
+    .or('contenu.ilike.%' + q + '%,numero_article.ilike.%' + q + '%')
     .limit(30);
 
   if (activeCode !== 'all') {
@@ -249,4 +249,3 @@ function toggleArticle(idx, btn) {
 </script>
 </body>
 </html>
-
