@@ -330,7 +330,9 @@ async function sendMessage() {
     } else {
       // QUESTION JURIDIQUE OU CONVERSATION — l'Edge Function gère la recherche
       var result = await askAI(question);
-      appendMsg('assistant', result.answer, result.citations || [], false);
+      // Si Juria demande une clarification, ne pas afficher de citations
+      var citations = (result.needs_clarification) ? [] : (result.citations || []);
+      appendMsg('assistant', result.answer, citations, false);
       // Ajouter la réponse à l'historique
       conversationHistory.push({ role: 'assistant', content: result.answer });
       if (conversationHistory.length > 6) conversationHistory = conversationHistory.slice(-6);
