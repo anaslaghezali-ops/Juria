@@ -336,55 +336,33 @@ async function sendMessage() {
   }
 }
 
-// ---- SEARCH ----
+// ---- SEARCH VECTORIELLE ----
 async function searchArticles(question) {
-  var stopWords = ['quelles','quels','quelle','quel','sont','dans','pour','avec','les','des','une','que','qui','est','pas','plus','par','sur','comment','quoi','mais','donc','avoir','faire','veux','veut','peut','faut','doit','doivent'];
-
-  var words = question
-    .toLowerCase()
-    .replace(/[?!.,;:\'"()]/g, ' ')
-    .split(/\s+/)
-    .filter(function(w) { return w.length > 3 && stopWords.indexOf(w) === -1; });
-
-  if (!words.length) {
-    var fallback = question.toLowerCase().split(/\s+/).filter(function(w){ return w.length > 2; });
-    if (!fallback.length) return [];
-    words = [fallback[0]];
-  }
-
-  // STRATÉGIE 1 : chercher les articles qui contiennent TOUS les mots clés
-  if (words.length > 1) {
-    var query = _sb.from('articles_juridiques')
-      .select('id, numero_article, contenu, mots_cles');
-    
-    words.forEach(function(w) {
-      query = query.ilike('contenu', '%' + w + '%');
+  try {
+    // Recherche vectorielle via Edge Function
+    var res = await fetch('https://dnrudcpaqcqyybpbbrum.supabase.co/functions/v1/vector-search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: question })
     });
-    
-    var result1 = await query.limit(5);
-    if (!result1.error && result1.data && result1.data.length > 0) {
-      return result1.data;
+
+    if (res.ok) {
+      var data = await res.json();
+      if (data.articles && data.articles.length > 0) {
+        return data.articles;
+      }
     }
+  } catch(e) {
+    console.warn('Vector search failed, falling back to ilike:', e);
   }
 
-  // STRATÉGIE 2 : si rien trouvé, chercher avec le mot le plus long
+  // Fallback ilike si vectorielle échoue
+  var stopWords = ['quelles','quels','quelle','quel','sont','dans','pour','avec','les','des','une','que','qui','est','pas','plus','par','sur','comment','quoi','mais','donc'];
+  var words = question.toLowerCase().replace(/[?!.,;:\'"()]/g, ' ').split(/\s+/).filter(function(w) { return w.length > 3 && stopWords.indexOf(w) === -1; });
+  if (!words.length) return [];
   var mainWord = words.sort(function(a,b){ return b.length - a.length; })[0];
-  var result2 = await _sb.from('articles_juridiques')
-    .select('id, numero_article, contenu, mots_cles')
-    .ilike('contenu', '%' + mainWord + '%')
-    .limit(5);
-  
-  if (!result2.error && result2.data && result2.data.length > 0) {
-    return result2.data;
-  }
-
-  // STRATÉGIE 3 : fallback sur le premier mot
-  var result3 = await _sb.from('articles_juridiques')
-    .select('id, numero_article, contenu, mots_cles')
-    .ilike('contenu', '%' + words[0] + '%')
-    .limit(5);
-
-  return (result3.data) || [];
+  var result = await _sb.from('articles_juridiques').select('id, numero_article, contenu, mots_cles, code').ilike('contenu', '%' + mainWord + '%').limit(8);
+  return result.data || [];
 }
 
 // ---- AI ----
