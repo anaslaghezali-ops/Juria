@@ -241,7 +241,7 @@ var conversationHistory = []; // Mémoire des 3 derniers échanges
       // Message de bienvenue
       var welcome = document.getElementById('welcomeState');
       if (welcome) welcome.remove();
-      appendMsg('assistant', '📄 Document chargé : **' + docName + '**\n\nJe suis prêt à répondre à toutes vos questions sur ce contrat. Demandez-moi par exemple :\n- "Comment reformuler la clause de rupture ?"\n- "Quelle formulation ajouter pour les congés payés ?"\n- "Quels sont mes droits selon ce contrat ?"', [], false);
+      appendMsg('assistant', '📄 Document chargé : ' + docName + '\n\nJe suis prêt à répondre à toutes vos questions sur ce document. Par exemple :\n- "Quelles sont les obligations du locataire dans ce contrat ?"\n- "Quelles clauses me semblent risquées ?"\n- "Comment reformuler telle clause ?"', [], false);
     }, 500);
   }
 })();
