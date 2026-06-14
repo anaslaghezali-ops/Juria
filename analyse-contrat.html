@@ -200,7 +200,7 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://unpkg.com/docx@8.5.0/build/index.min.js"></script>
+  <script src="/Juria/assets/libs/docx.min.js"></script>
 
 <script>
 const _sb = supabase.createClient(
@@ -363,7 +363,8 @@ async function generateAnnotatedDoc() {
     if (cb.dataset.type === 'issue') {
       selectedIssues.push(analysisResult.issues[idx]);
     } else {
-      selectedMissing.push(analysisResult.missing_clauses[idx]);
+      var clause = analysisResult.missing_clauses[idx];
+      selectedMissing.push(typeof clause === 'string' ? clause : (clause.name || JSON.stringify(clause)));
     }
   });
 
@@ -377,30 +378,34 @@ async function generateAnnotatedDoc() {
   btn.disabled = true;
 
   try {
-    // Appeler l'IA pour générer le contrat annoté
     var session = await _sb.auth.getSession();
     var token = session.data.session.access_token;
 
-    var pointsList = selectedIssues.map(function(i) {
-      return '- ' + i.clause + ': ' + i.problem + ' -> ' + i.suggestion;
+    // Construire la liste des points à annoter
+    var pointsList = selectedIssues.map(function(issue) {
+      return 'PROBLEME sur "' + issue.clause + '": ' + issue.problem + ' | SUGGESTION: ' + issue.suggestion;
     }).concat(selectedMissing.map(function(m) {
-      return '- Clause manquante: ' + m;
-    })).join('\n');
+      return 'CLAUSE MANQUANTE: ' + m;
+    })).join(' || ');
 
+    // Demander à GPT de retourner le contrat original avec annotations insérées
     var res = await fetch('https://dnrudcpaqcqyybpbbrum.supabase.co/functions/v1/smart-endpoint', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
       body: JSON.stringify({
-        question: 'Génère le contrat annoté avec commentaires pour avocat',
-        document_context: extractedText,
+        question: 'Retourne le contrat original complet avec des annotations [JURIA: ...] insérées directement après chaque clause concernée. Pour les clauses manquantes, ajoute [JURIA AJOUT: ...] à la fin du contrat. Points à annoter: ' + pointsList,
+        document_context: extractedText.slice(0, 10000),
         mode: 'document_question',
-        history: [],
-        annotate_points: pointsList
+        history: []
       }),
     });
 
-    // Générer le .docx avec les annotations
-    await generateDocxWithComments(selectedIssues, selectedMissing);
+    if (!res.ok) throw new Error('Erreur serveur: ' + res.status);
+    var data = await res.json();
+    var annotatedText = data.answer || '';
+
+    // Générer le .docx avec le contrat annoté
+    await generateDocxWithComments(annotatedText, selectedIssues, selectedMissing);
 
   } catch(e) {
     alert('Erreur: ' + e.message);
@@ -410,107 +415,86 @@ async function generateAnnotatedDoc() {
   }
 }
 
-async function generateDocxWithComments(issues, missing) {
-  var docx;
-  try {
-    var module = await import('https://cdn.jsdelivr.net/npm/docx@8.5.0/+esm');
-    docx = module;
-  } catch(e1) {
-    try {
-      var module2 = await import('https://unpkg.com/docx@8.5.0/build/index.esm.js');
-      docx = module2;
-    } catch(e2) {
-      alert('Impossible de charger la librairie Word. Utilisez le bouton PDF à la place.');
-      return;
-    }
+async function generateDocxWithComments(annotatedText, issues, missing) {
+  // Charger docx depuis le repo local
+  if (typeof window.docx === 'undefined') {
+    await new Promise(function(resolve, reject) {
+      var s = document.createElement('script');
+      s.src = '/Juria/assets/libs/docx.min.js';
+      s.onload = resolve;
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+
+  var D = window.docx;
+  if (!D) {
+    alert('Librairie Word non disponible. Utilisez le bouton PDF a la place.');
+    return;
   }
 
   var paragraphs = [];
 
-  // Titre du rapport
-  paragraphs.push(new docx.Paragraph({
-    children: [new docx.TextRun({ text: 'CONTRAT ANNOTÉ — JURIA', bold: true, size: 32, color: '4f46e5' })],
-    alignment: docx.AlignmentType.CENTER,
-    spacing: { after: 200 },
+  // En-tete
+  paragraphs.push(new D.Paragraph({
+    children: [new D.TextRun({ text: 'CONTRAT AVEC ANNOTATIONS - JURIA', bold: true, size: 28, color: '4f46e5' })],
+    alignment: D.AlignmentType.CENTER,
+    spacing: { after: 120 },
   }));
 
-  paragraphs.push(new docx.Paragraph({
-    children: [new docx.TextRun({ text: 'Document généré le ' + new Date().toLocaleDateString('fr-MA') + ' · À réviser par un avocat avant signature', size: 18, color: '888888', italics: true })],
-    alignment: docx.AlignmentType.CENTER,
+  paragraphs.push(new D.Paragraph({
+    children: [new D.TextRun({ text: 'Genere le ' + new Date().toLocaleDateString("fr-MA") + ' - Annotations en bleu - A reviser par un avocat', size: 16, color: '888888', italics: true })],
+    alignment: D.AlignmentType.CENTER,
     spacing: { after: 400 },
   }));
 
-  // Section points à corriger
-  if (issues.length > 0) {
-    paragraphs.push(new docx.Paragraph({
-      children: [new docx.TextRun({ text: '⚠️ POINTS À CORRIGER', bold: true, size: 26, color: 'ef4444' })],
-      spacing: { before: 200, after: 200 },
-    }));
+  // Contrat original avec annotations inserees par GPT
+  var lines = annotatedText.split('
+');
+  lines.forEach(function(line) {
+    var trimmed = line.trim();
+    if (!trimmed) {
+      paragraphs.push(new D.Paragraph({ children: [], spacing: { after: 80 } }));
+      return;
+    }
 
-    issues.forEach(function(issue, i) {
-      var sev = issue.severity === 'high' ? '[CRITIQUE]' : issue.severity === 'medium' ? '[IMPORTANT]' : '[MINEUR]';
-      var sevColor = issue.severity === 'high' ? 'ef4444' : issue.severity === 'medium' ? 'f59e0b' : '10b981';
+    var isAnnotation = trimmed.startsWith('[JURIA') || trimmed.startsWith('[SUGGESTION') || trimmed.startsWith('[COMMENTAIRE');
+    var isAddition = trimmed.indexOf('AJOUT') !== -1 || trimmed.indexOf('MANQUANTE') !== -1;
 
-      paragraphs.push(new docx.Paragraph({
-        children: [new docx.TextRun({ text: sev + ' ' + (issue.clause || ''), bold: true, size: 22, color: sevColor })],
-        spacing: { before: 240, after: 80 },
-      }));
-
-      paragraphs.push(new docx.Paragraph({
-        children: [new docx.TextRun({ text: '🔍 Problème: ', bold: true, size: 20 }), new docx.TextRun({ text: issue.problem || '', size: 20 })],
-        spacing: { after: 80 },
+    if (isAnnotation) {
+      var color = isAddition ? 'f59e0b' : '4f46e5';
+      paragraphs.push(new D.Paragraph({
+        children: [new D.TextRun({ text: trimmed, color: color, italics: true, size: 19 })],
+        spacing: { before: 60, after: 120 },
         indent: { left: 360 },
       }));
-
-      if (issue.suggestion) {
-        paragraphs.push(new docx.Paragraph({
-          children: [new docx.TextRun({ text: '✏️ Suggestion: ', bold: true, size: 20, color: '4f46e5' }), new docx.TextRun({ text: issue.suggestion, size: 20, color: '3730a3' })],
-          spacing: { after: 160 },
-          indent: { left: 360 },
-        }));
-      }
-
-      // Ligne de séparation visuelle
-      paragraphs.push(new docx.Paragraph({
-        children: [new docx.TextRun({ text: '--------------------------------------------------', size: 16, color: 'e5e7eb' })],
-        spacing: { after: 80 },
+    } else {
+      var isTitre = trimmed.length < 100 && (
+        trimmed.toLowerCase().startsWith('article') ||
+        trimmed.toLowerCase().startsWith('chapitre') ||
+        trimmed.match(/^\d+[\.\):]/)
+      );
+      paragraphs.push(new D.Paragraph({
+        children: [new D.TextRun({ text: trimmed, bold: !!isTitre, size: isTitre ? 22 : 20 })],
+        spacing: { after: isTitre ? 100 : 60 },
       }));
-    });
-  }
-
-  // Section clauses manquantes
-  if (missing.length > 0) {
-    paragraphs.push(new docx.Paragraph({
-      children: [new docx.TextRun({ text: '📋 CLAUSES À AJOUTER', bold: true, size: 26, color: 'f59e0b' })],
-      spacing: { before: 400, after: 200 },
-    }));
-
-    missing.forEach(function(clause) {
-      paragraphs.push(new docx.Paragraph({
-        children: [
-          new docx.TextRun({ text: '➕ ', size: 20 }),
-          new docx.TextRun({ text: clause, size: 20 }),
-        ],
-        spacing: { after: 120 },
-        indent: { left: 360 },
-      }));
-    }); 
-  }
+    }
+  });
 
   // Footer
-  paragraphs.push(new docx.Paragraph({ children: [], spacing: { before: 600 } }));
-  paragraphs.push(new docx.Paragraph({
-    children: [new docx.TextRun({ text: 'Généré par Juria · À titre indicatif uniquement · Faites valider par un avocat avant toute modification contractuelle.', color: '888888', size: 16, italics: true })],
-    alignment: docx.AlignmentType.CENTER,
+  paragraphs.push(new D.Paragraph({ children: [], spacing: { before: 600 } }));
+  paragraphs.push(new D.Paragraph({
+    children: [new D.TextRun({ text: 'Rapport Juria - A titre indicatif - Faire valider par un avocat avant toute modification.', color: '888888', size: 16, italics: true })],
+    alignment: D.AlignmentType.CENTER,
   }));
 
-  var doc = new docx.Document({
+  var doc = new D.Document({
     creator: 'Juria',
-    title: 'Contrat Annoté',
+    title: 'Contrat Annote',
     sections: [{ properties: {}, children: paragraphs }],
   });
 
-  docx.Packer.toBlob(doc).then(function(blob) {
+  D.Packer.toBlob(doc).then(function(blob) {
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
     a.href = url;
