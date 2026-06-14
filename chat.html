@@ -328,13 +328,13 @@ async function sendMessage() {
       appendContractReady(result.answer);
       await saveConversation(question, result.answer, articles);
     } else {
-      // QUESTION JURIDIQUE OU CONVERSATION — toujours appeler l'IA
-      var result = await askAI(question, articles);
+      // QUESTION JURIDIQUE OU CONVERSATION — l'Edge Function gère la recherche
+      var result = await askAI(question);
       appendMsg('assistant', result.answer, result.citations || [], false);
       // Ajouter la réponse à l'historique
       conversationHistory.push({ role: 'assistant', content: result.answer });
       if (conversationHistory.length > 6) conversationHistory = conversationHistory.slice(-6);
-      await saveConversation(question, result.answer, articles);
+      await saveConversation(question, result.answer, []);
     }
   } catch(e) {
     console.error('sendMessage error:', e);
@@ -374,12 +374,12 @@ async function searchArticles(question) {
 }
 
 // ---- AI ----
-async function askAI(question, articles) {
+async function askAI(question) {
   var sessionData = await _sb.auth.getSession();
   if (!sessionData.data.session) throw new Error('Session expirée');
   var token = sessionData.data.session.access_token;
   
-  // Envoyer l'historique sans le dernier message (déjà dans question)
+  // L'Edge Function gère maintenant la recherche vectorielle
   var history = conversationHistory.slice(0, -1);
   
   var res = await fetch(JURIA_CONFIG.EDGE_FUNCTION_URL, {
@@ -388,7 +388,7 @@ async function askAI(question, articles) {
       'Content-Type': 'application/json', 
       'Authorization': 'Bearer ' + token
     },
-    body: JSON.stringify({ question: question, articles: articles, history: history }),
+    body: JSON.stringify({ question: question, history: history }),
   });
   if (!res.ok) throw new Error('Edge Function: ' + res.status);
   return await res.json();
