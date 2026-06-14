@@ -342,7 +342,9 @@ function showResults(result) {
   if (result.missing_clauses && result.missing_clauses.length > 0) {
     document.getElementById('missingCard').style.display = 'block';
     document.getElementById('missingList').innerHTML = result.missing_clauses.map(function(c, i) {
-      return '<div class="missing-item"><input type="checkbox" class="issue-checkbox" data-index="' + i + '" data-type="missing" style="width:16px;height:16px;cursor:pointer;accent-color:#4f46e5;flex-shrink:0"/>' + c + '</div>';
+      // Handle both string and object formats
+      var text = typeof c === 'string' ? c : (c.clause || c.name || c.description || JSON.stringify(c));
+      return '<div class="missing-item"><input type="checkbox" class="issue-checkbox" data-index="' + i + '" data-type="missing" style="width:16px;height:16px;cursor:pointer;accent-color:#4f46e5;flex-shrink:0"/>' + text + '</div>';
     }).join('');
   }
 
