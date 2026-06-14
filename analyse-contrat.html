@@ -192,7 +192,7 @@
     </div>
 
     <button id="generateDocBtn" onclick="generateAnnotatedDoc()" style="display:none;width:100%;padding:14px;background:#4f46e5;color:#fff;border:none;border-radius:12px;font-family:var(--font);font-size:15px;font-weight:600;cursor:pointer;margin-bottom:12px;transition:background 0.15s">
-      📝 Générer le document annoté (.docx) avec les points cochés
+      📄 Générer le rapport PDF avec les points sélectionnés
     </button>
     <button class="btn-new" onclick="resetForm()">+ Analyser un autre contrat</button>
   </div>
@@ -385,56 +385,53 @@ async function generateAnnotatedDoc() {
     return;
   }
 
-  var btn = document.getElementById('generateDocBtn');
-  btn.textContent = 'Génération en cours...';
-  btn.disabled = true;
+  // Générer rapport PDF avec uniquement les points sélectionnés
+  var win = window.open('', '_blank');
+  var score = analysisResult.score || 0;
+  var scoreColor = score >= 7 ? '#065f46' : score >= 5 ? '#92400e' : '#991b1b';
+  var scoreBg = score >= 7 ? '#ecfdf5' : score >= 5 ? '#fffbeb' : '#fef2f2';
 
-  try {
-    // ANNOTATION LOCALE — zéro appel GPT supplémentaire
-    // On utilise les paragraph_ids retournés par l'analyse
-    // ou on fait du fuzzy matching sur les clauses
+  var issuesHtml = selectedIssues.map(function(issue) {
+    var sev = issue.severity === 'high' ? '🔴 Critique' : issue.severity === 'medium' ? '🟡 Important' : '🟢 Mineur';
+    var sevBg = issue.severity === 'high' ? '#fef2f2' : issue.severity === 'medium' ? '#fffbeb' : '#ecfdf5';
+    return '<div style="padding:16px;border:1px solid #e5e7eb;border-radius:10px;margin-bottom:12px;background:' + sevBg + '">' +
+      '<div style="font-weight:600;margin-bottom:8px">' + sev + ' — ' + (issue.clause || '') + '</div>' +
+      '<p style="color:#374151;margin:0 0 8px">' + (issue.problem || '') + '</p>' +
+      (issue.suggestion ? '<div style="background:#eef2ff;padding:10px;border-radius:8px;color:#3730a3"><strong>💡 Suggestion :</strong> ' + issue.suggestion + '</div>' : '') +
+      '</div>';
+  }).join('');
 
-    // Construire une map des annotations par clause
-    var annotationMap = {};
-    selectedIssues.forEach(function(issue) {
-      var clauseKey = (issue.clause || '').toLowerCase().trim();
-      // Chercher le paragraphe correspondant dans contractParagraphs
-      var bestMatch = null;
-      var bestScore = 0;
-      contractParagraphs.forEach(function(p) {
-        var pText = p.text.toLowerCase();
-        // Match par ID si disponible
-        if (issue.paragraph_id && p.id === issue.paragraph_id) {
-          bestMatch = p; bestScore = 1;
-        }
-        // Match par texte de la clause
-        else if (clauseKey && pText.includes(clauseKey.slice(0, 20))) {
-          var score = clauseKey.length / Math.max(pText.length, 1);
-          if (score > bestScore) { bestMatch = p; bestScore = score; }
-        }
-        // Match par numéro d'article
-        else if (clauseKey.match(/article\s*\d+/i)) {
-          var artNum = clauseKey.match(/article\s*(\d+)/i);
-          if (artNum && pText.includes('article ' + artNum[1])) {
-            bestMatch = p; bestScore = 0.8;
-          }
-        }
-      });
-      if (bestMatch) {
-        annotationMap[bestMatch.id] = annotationMap[bestMatch.id] || [];
-        annotationMap[bestMatch.id].push(issue);
-      }
-    });
+  var missingHtml = selectedMissing.map(function(c) {
+    return '<div style="padding:10px 0;border-bottom:1px solid #f3f4f6;color:#374151">⚠️ ' + c + '</div>';
+  }).join('');
 
-    // Générer le .docx directement depuis contractParagraphs + annotationMap
-    await generateDocxWithComments(contractParagraphs, annotationMap, selectedMissing);
+  win.document.write('<html><head><title>Rapport Juria</title><style>' +
+    'body{font-family:Inter,Arial,sans-serif;max-width:800px;margin:40px auto;padding:0 32px;color:#0f1117}' +
+    'h1{color:#4f46e5;font-size:24px;margin-bottom:4px}' +
+    'h2{font-size:16px;font-weight:600;margin:28px 0 12px;padding-bottom:8px;border-bottom:2px solid #e5e7eb}' +
+    '.footer{margin-top:48px;padding-top:16px;border-top:1px solid #e5e7eb;color:#9ca3af;font-size:12px;text-align:center}' +
+    '@media print{.no-print{display:none}}' +
+    '</style></head><body>');
 
-  } catch(e) {
-    alert('Erreur: ' + e.message);
-  } finally {
-    btn.textContent = '📝 Générer le document annoté (.docx)';
-    btn.disabled = false;
+  win.document.write('<h1>⚖️ Rapport d'analyse — Juria</h1>');
+  win.document.write('<p style="color:#6b7280;font-size:14px">' + (selectedFile ? selectedFile.name : 'Document') + ' · ' + new Date().toLocaleDateString('fr-MA') + '</p>');
+
+  win.document.write('<div style="background:' + scoreBg + ';border-radius:12px;padding:20px;margin:20px 0;display:flex;gap:20px;align-items:center">');
+  win.document.write('<div style="font-size:52px;font-weight:700;color:' + scoreColor + ';font-family:Georgia,serif">' + score + '<span style="font-size:22px">/10</span></div>');
+  win.document.write('<div><strong style="font-size:15px">Score de conformité juridique</strong><p style="margin:4px 0 0;color:#374151">' + (analysisResult.summary || '') + '</p></div>');
+  win.document.write('</div>');
+
+  if (issuesHtml) {
+    win.document.write('<h2>⚠️ Points à corriger (' + selectedIssues.length + ' sélectionnés)</h2>' + issuesHtml);
   }
+  if (missingHtml) {
+    win.document.write('<h2>📋 Clauses manquantes (' + selectedMissing.length + ' sélectionnées)</h2>' + missingHtml);
+  }
+
+  win.document.write('<div class="footer">Rapport généré par Juria · À titre indicatif uniquement · Faites valider ce contrat par un avocat avant signature.</div>');
+  win.document.write('<div class="no-print" style="text-align:center;margin-top:24px"><button onclick="window.print()" style="padding:12px 32px;background:#4f46e5;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-weight:600">🖨️ Imprimer / Sauvegarder en PDF</button></div>');
+  win.document.write('</body></html>');
+  win.document.close();
 }
 
 async function generateDocxWithComments(contractParas, annotationMap, missing) {
