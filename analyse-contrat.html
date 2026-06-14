@@ -213,6 +213,7 @@ const EDGE_URL = 'https://dnrudcpaqcqyybpbbrum.supabase.co/functions/v1/smart-en
 var selectedFile = null;
 var extractedText = null;
 var analysisResult = null;
+var contractParagraphs = []; // Contrat parsé en paragraphes {id, text}
 
 // Auth check
 async function init() {
@@ -280,16 +281,27 @@ async function startAnalysis() {
       throw new Error('Impossible d\'extraire le texte du document.');
     }
 
+    // Parser le contrat en paragraphes numérotés
+    contractParagraphs = extractedText.split('\n')
+      .map(function(t) { return t.trim(); })
+      .filter(function(t) { return t.length > 2; })
+      .map(function(t, i) { return { id: i + 1, text: t }; });
+
     setStep('Analyse juridique en cours...');
     var session = await _sb.auth.getSession();
     var token = session.data.session.access_token;
+
+    // Envoyer les paragraphes numérotés à GPT pour identification précise
+    var paragraphsForGPT = contractParagraphs.slice(0, 150).map(function(p) {
+      return '[' + p.id + '] ' + p.text.slice(0, 300);
+    }).join('\n');
 
     var res = await fetch(EDGE_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
       body: JSON.stringify({
         question: 'Analyse ce contrat',
-        contract_to_analyze: extractedText,
+        contract_to_analyze: paragraphsForGPT,
         mode: 'analyze',
         history: []
       }),
@@ -378,34 +390,44 @@ async function generateAnnotatedDoc() {
   btn.disabled = true;
 
   try {
-    var session = await _sb.auth.getSession();
-    var token = session.data.session.access_token;
+    // ANNOTATION LOCALE — zéro appel GPT supplémentaire
+    // On utilise les paragraph_ids retournés par l'analyse
+    // ou on fait du fuzzy matching sur les clauses
 
-    // Construire la liste des points à annoter
-    var pointsList = selectedIssues.map(function(issue) {
-      return 'PROBLEME sur "' + issue.clause + '": ' + issue.problem + ' | SUGGESTION: ' + issue.suggestion;
-    }).concat(selectedMissing.map(function(m) {
-      return 'CLAUSE MANQUANTE: ' + m;
-    })).join(' || ');
-
-    // Demander à GPT de retourner le contrat original avec annotations insérées
-    var res = await fetch('https://dnrudcpaqcqyybpbbrum.supabase.co/functions/v1/smart-endpoint', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-      body: JSON.stringify({
-        question: 'Retourne le contrat original complet avec des annotations [JURIA: ...] insérées directement après chaque clause concernée. Pour les clauses manquantes, ajoute [JURIA AJOUT: ...] à la fin du contrat. Points à annoter: ' + pointsList,
-        document_context: extractedText.slice(0, 10000),
-        mode: 'document_question',
-        history: []
-      }),
+    // Construire une map des annotations par clause
+    var annotationMap = {};
+    selectedIssues.forEach(function(issue) {
+      var clauseKey = (issue.clause || '').toLowerCase().trim();
+      // Chercher le paragraphe correspondant dans contractParagraphs
+      var bestMatch = null;
+      var bestScore = 0;
+      contractParagraphs.forEach(function(p) {
+        var pText = p.text.toLowerCase();
+        // Match par ID si disponible
+        if (issue.paragraph_id && p.id === issue.paragraph_id) {
+          bestMatch = p; bestScore = 1;
+        }
+        // Match par texte de la clause
+        else if (clauseKey && pText.includes(clauseKey.slice(0, 20))) {
+          var score = clauseKey.length / Math.max(pText.length, 1);
+          if (score > bestScore) { bestMatch = p; bestScore = score; }
+        }
+        // Match par numéro d'article
+        else if (clauseKey.match(/article\s*\d+/i)) {
+          var artNum = clauseKey.match(/article\s*(\d+)/i);
+          if (artNum && pText.includes('article ' + artNum[1])) {
+            bestMatch = p; bestScore = 0.8;
+          }
+        }
+      });
+      if (bestMatch) {
+        annotationMap[bestMatch.id] = annotationMap[bestMatch.id] || [];
+        annotationMap[bestMatch.id].push(issue);
+      }
     });
 
-    if (!res.ok) throw new Error('Erreur serveur: ' + res.status);
-    var data = await res.json();
-    var annotatedText = data.answer || '';
-
-    // Générer le .docx avec le contrat annoté
-    await generateDocxWithComments(annotatedText, selectedIssues, selectedMissing);
+    // Générer le .docx directement depuis contractParagraphs + annotationMap
+    await generateDocxWithComments(contractParagraphs, annotationMap, selectedMissing);
 
   } catch(e) {
     alert('Erreur: ' + e.message);
@@ -415,18 +437,7 @@ async function generateAnnotatedDoc() {
   }
 }
 
-async function generateDocxWithComments(annotatedText, issues, missing) {
-  // Charger docx depuis le repo local
-  if (typeof window.docx === 'undefined') {
-    await new Promise(function(resolve, reject) {
-      var s = document.createElement('script');
-      s.src = '/Juria/assets/libs/docx.min.js';
-      s.onload = resolve;
-      s.onerror = reject;
-      document.head.appendChild(s);
-    });
-  }
-
+async function generateDocxWithComments(contractParas, annotationMap, missing) {
   var D = window.docx;
   if (!D) {
     alert('Librairie Word non disponible. Utilisez le bouton PDF a la place.');
@@ -441,50 +452,74 @@ async function generateDocxWithComments(annotatedText, issues, missing) {
     alignment: D.AlignmentType.CENTER,
     spacing: { after: 120 },
   }));
-
   paragraphs.push(new D.Paragraph({
-    children: [new D.TextRun({ text: 'Genere le ' + new Date().toLocaleDateString("fr-MA") + ' - Annotations en bleu - A reviser par un avocat', size: 16, color: '888888', italics: true })],
+    children: [new D.TextRun({ text: 'Annote le ' + new Date().toLocaleDateString('fr-MA') + ' - A reviser par un avocat avant signature', size: 16, color: '888888', italics: true })],
     alignment: D.AlignmentType.CENTER,
     spacing: { after: 400 },
   }));
 
-  // Contrat original avec annotations inserees par GPT
-  var lines = annotatedText.split('
-');
-  lines.forEach(function(line) {
-    var trimmed = line.trim();
-    if (!trimmed) {
-      paragraphs.push(new D.Paragraph({ children: [], spacing: { after: 80 } }));
-      return;
-    }
+  // Contrat original avec annotations injectees localement (zero appel GPT)
+  contractParas.forEach(function(p) {
+    var isTitre = p.text.length < 100 && (
+      p.text.toLowerCase().indexOf('article') === 0 ||
+      p.text.toLowerCase().indexOf('chapitre') === 0
+    );
 
-    var isAnnotation = trimmed.startsWith('[JURIA') || trimmed.startsWith('[SUGGESTION') || trimmed.startsWith('[COMMENTAIRE');
-    var isAddition = trimmed.indexOf('AJOUT') !== -1 || trimmed.indexOf('MANQUANTE') !== -1;
+    paragraphs.push(new D.Paragraph({
+      children: [new D.TextRun({ text: p.text, bold: !!isTitre, size: isTitre ? 22 : 20 })],
+      spacing: { after: isTitre ? 100 : 60 },
+    }));
 
-    if (isAnnotation) {
-      var color = isAddition ? 'f59e0b' : '4f46e5';
+    var annotations = annotationMap[p.id] || [];
+    annotations.forEach(function(issue) {
+      var sevColor = issue.severity === 'high' ? 'ef4444' : issue.severity === 'medium' ? 'f59e0b' : '10b981';
+      var sevLabel = issue.severity === 'high' ? 'CRITIQUE' : issue.severity === 'medium' ? 'IMPORTANT' : 'MINEUR';
+
       paragraphs.push(new D.Paragraph({
-        children: [new D.TextRun({ text: trimmed, color: color, italics: true, size: 19 })],
-        spacing: { before: 60, after: 120 },
+        children: [
+          new D.TextRun({ text: '[JURIA - ' + sevLabel + '] ', bold: true, size: 18, color: sevColor }),
+          new D.TextRun({ text: issue.problem || '', size: 18, color: '374151', italics: true }),
+        ],
+        spacing: { before: 40, after: 40 },
+        indent: { left: 480 },
+      }));
+
+      if (issue.suggestion) {
+        paragraphs.push(new D.Paragraph({
+          children: [
+            new D.TextRun({ text: 'Suggestion: ', bold: true, size: 18, color: '4f46e5' }),
+            new D.TextRun({ text: issue.suggestion, size: 18, color: '3730a3' }),
+          ],
+          spacing: { after: 120 },
+          indent: { left: 480 },
+        }));
+      }
+    });
+  });
+
+  // Clauses manquantes a la fin
+  if (missing && missing.length > 0) {
+    paragraphs.push(new D.Paragraph({ children: [], spacing: { before: 400 } }));
+    paragraphs.push(new D.Paragraph({
+      children: [new D.TextRun({ text: 'CLAUSES A AJOUTER', bold: true, size: 24, color: 'f59e0b' })],
+      spacing: { after: 200 },
+    }));
+    missing.forEach(function(clause) {
+      paragraphs.push(new D.Paragraph({
+        children: [
+          new D.TextRun({ text: '+ ', bold: true, size: 20, color: 'f59e0b' }),
+          new D.TextRun({ text: clause, size: 20 }),
+        ],
+        spacing: { after: 100 },
         indent: { left: 360 },
       }));
-    } else {
-      var isTitre = trimmed.length < 100 && (
-        trimmed.toLowerCase().startsWith('article') ||
-        trimmed.toLowerCase().startsWith('chapitre') ||
-        trimmed.match(/^\d+[\.\):]/)
-      );
-      paragraphs.push(new D.Paragraph({
-        children: [new D.TextRun({ text: trimmed, bold: !!isTitre, size: isTitre ? 22 : 20 })],
-        spacing: { after: isTitre ? 100 : 60 },
-      }));
-    }
-  });
+    });
+  }
 
   // Footer
   paragraphs.push(new D.Paragraph({ children: [], spacing: { before: 600 } }));
   paragraphs.push(new D.Paragraph({
-    children: [new D.TextRun({ text: 'Rapport Juria - A titre indicatif - Faire valider par un avocat avant toute modification.', color: '888888', size: 16, italics: true })],
+    children: [new D.TextRun({ text: 'Document annote par Juria - A titre indicatif uniquement - Faire valider par un avocat.', color: '9ca3af', size: 16, italics: true })],
     alignment: D.AlignmentType.CENTER,
   }));
 
@@ -505,6 +540,7 @@ async function generateDocxWithComments(annotatedText, issues, missing) {
     setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
   });
 }
+
 
 function exportPDF() {
   if (!analysisResult) return;
