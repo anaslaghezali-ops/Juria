@@ -200,7 +200,8 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.min.js"></script>
+
 <script>
 const _sb = supabase.createClient(
   'https://dnrudcpaqcqyybpbbrum.supabase.co',
@@ -411,8 +412,19 @@ async function generateAnnotatedDoc() {
 
 async function generateDocxWithComments(issues, missing) {
   if (typeof docx === 'undefined') {
-    alert('Librairie Word non chargée. Réessayez.');
-    return;
+    // Essayer de charger dynamiquement
+    await new Promise(function(resolve, reject) {
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.min.js';
+      s.onload = resolve;
+      s.onerror = reject;
+      document.head.appendChild(s);
+    }).catch(function() {});
+    
+    if (typeof docx === 'undefined') {
+      alert('Librairie Word non chargée. Vérifiez votre connexion et réessayez.');
+      return;
+    }
   }
 
   var paragraphs = [];
