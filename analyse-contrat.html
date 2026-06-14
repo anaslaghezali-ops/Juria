@@ -1,1 +1,422 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Juria — Analyse de Contrat</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --indigo: #4f46e5; --indigo-light: #6366f1; --indigo-bg: #eef2ff; --indigo-text: #3730a3;
+      --slate-900: #0f1117; --slate-700: #374151; --slate-500: #6b7280; --slate-400: #9ca3af;
+      --slate-300: #d1d5db; --slate-100: #f3f4f6; --border: #e5e7eb; --white: #ffffff;
+      --green: #10b981; --green-bg: #ecfdf5; --green-text: #065f46;
+      --red: #ef4444; --red-bg: #fef2f2; --red-text: #991b1b;
+      --amber: #f59e0b; --amber-bg: #fffbeb; --amber-text: #92400e;
+      --font: 'Inter', sans-serif; --serif: 'DM Serif Display', Georgia, serif;
+    }
+    html { font-size: 15px; }
+    body { font-family: var(--font); color: var(--slate-900); background: #f8f9fb; min-height: 100vh; }
+
+    /* NAV */
+    .topnav { background: var(--white); border-bottom: 1px solid var(--border); padding: 0 32px; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+    .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-mark { width: 30px; height: 30px; background: var(--indigo); color: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-family: var(--serif); font-size: 17px; }
+    .logo-name { font-family: var(--serif); font-size: 20px; color: var(--slate-900); }
+    .nav-back { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--slate-500); text-decoration: none; padding: 6px 12px; border-radius: 8px; transition: all 0.15s; }
+    .nav-back:hover { background: var(--slate-100); color: var(--slate-900); }
+
+    /* MAIN */
+    .main { max-width: 820px; margin: 0 auto; padding: 40px 24px; }
+    .page-header { margin-bottom: 32px; }
+    .page-title { font-family: var(--serif); font-size: 30px; margin-bottom: 6px; }
+    .page-sub { font-size: 14px; color: var(--slate-500); }
+
+    /* DROP ZONE */
+    .drop-zone {
+      border: 2px dashed var(--slate-300); border-radius: 16px;
+      padding: 60px 32px; text-align: center;
+      cursor: pointer; transition: all 0.2s; background: var(--white);
+      margin-bottom: 24px;
+    }
+    .drop-zone:hover, .drop-zone.drag-over { border-color: var(--indigo); background: var(--indigo-bg); }
+    .drop-icon { font-size: 48px; margin-bottom: 16px; }
+    .drop-title { font-size: 18px; font-weight: 600; color: var(--slate-900); margin-bottom: 8px; }
+    .drop-sub { font-size: 13px; color: var(--slate-400); margin-bottom: 20px; }
+    .btn-browse { display: inline-block; padding: 10px 24px; background: var(--indigo); color: #fff; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; font-family: var(--font); transition: background 0.15s; }
+    .btn-browse:hover { background: var(--indigo-light); }
+    .file-formats { font-size: 12px; color: var(--slate-400); margin-top: 12px; }
+
+    /* FILE SELECTED */
+    .file-selected { display: none; background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; align-items: center; gap: 14px; }
+    .file-selected.show { display: flex; }
+    .file-icon { font-size: 28px; }
+    .file-info { flex: 1; }
+    .file-name { font-size: 14px; font-weight: 500; color: var(--slate-900); }
+    .file-size { font-size: 12px; color: var(--slate-400); margin-top: 2px; }
+    .btn-remove { background: none; border: none; cursor: pointer; color: var(--slate-400); font-size: 18px; padding: 4px; transition: color 0.15s; }
+    .btn-remove:hover { color: var(--red); }
+    .btn-analyse { width: 100%; padding: 14px; background: var(--indigo); color: #fff; border: none; border-radius: 12px; font-family: var(--font); font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.15s; margin-bottom: 32px; }
+    .btn-analyse:hover { background: var(--indigo-light); }
+    .btn-analyse:disabled { opacity: 0.5; cursor: default; }
+
+    /* LOADING */
+    .loading { display: none; text-align: center; padding: 48px; }
+    .loading.show { display: block; }
+    .spinner { width: 40px; height: 40px; border: 3px solid var(--indigo-bg); border-top-color: var(--indigo); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { font-size: 14px; color: var(--slate-500); }
+    .loading-steps { font-size: 12px; color: var(--slate-400); margin-top: 8px; }
+
+    /* RESULTS */
+    .results { display: none; }
+    .results.show { display: block; }
+
+    /* SCORE CARD */
+    .score-card { background: var(--white); border: 1px solid var(--border); border-radius: 16px; padding: 28px; margin-bottom: 20px; display: flex; align-items: center; gap: 28px; }
+    .score-circle { width: 88px; height: 88px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-direction: column; flex-shrink: 0; font-family: var(--serif); }
+    .score-number { font-size: 32px; font-weight: 700; line-height: 1; }
+    .score-denom { font-size: 13px; opacity: 0.7; }
+    .score-info { flex: 1; }
+    .score-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--slate-400); margin-bottom: 6px; }
+    .score-summary { font-size: 16px; font-weight: 500; color: var(--slate-900); line-height: 1.4; }
+    .score-actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+    .btn-export { padding: 8px 16px; border-radius: 8px; font-family: var(--font); font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: none; color: var(--slate-700); transition: all 0.15s; }
+    .btn-export:hover { border-color: var(--indigo); color: var(--indigo); }
+    .btn-chat { padding: 8px 16px; border-radius: 8px; font-family: var(--font); font-size: 13px; font-weight: 500; cursor: pointer; border: none; background: var(--indigo); color: #fff; transition: background 0.15s; text-decoration: none; }
+    .btn-chat:hover { background: var(--indigo-light); }
+
+    /* ISSUES */
+    .section-card { background: var(--white); border: 1px solid var(--border); border-radius: 16px; padding: 24px; margin-bottom: 16px; }
+    .section-title { font-size: 15px; font-weight: 600; color: var(--slate-900); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .issue-item { padding: 14px 0; border-bottom: 1px solid var(--border); }
+    .issue-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .issue-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+    .severity-badge { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 99px; text-transform: uppercase; }
+    .severity-high { background: var(--red-bg); color: var(--red-text); }
+    .severity-medium { background: var(--amber-bg); color: var(--amber-text); }
+    .severity-low { background: var(--green-bg); color: var(--green-text); }
+    .issue-clause { font-size: 13px; font-weight: 500; color: var(--slate-700); }
+    .issue-problem { font-size: 13px; color: var(--slate-500); margin-bottom: 6px; }
+    .issue-suggestion { font-size: 13px; color: var(--indigo-text); background: var(--indigo-bg); padding: 8px 12px; border-radius: 8px; }
+
+    /* MISSING */
+    .missing-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; color: var(--slate-700); }
+    .missing-item:last-child { border-bottom: none; }
+    .missing-item::before { content: "⚠️"; flex-shrink: 0; }
+
+    /* NEW ANALYSIS */
+    .btn-new { width: 100%; padding: 12px; border: 2px dashed var(--slate-300); border-radius: 12px; background: none; font-family: var(--font); font-size: 14px; color: var(--slate-400); cursor: pointer; transition: all 0.15s; margin-top: 8px; }
+    .btn-new:hover { border-color: var(--indigo); color: var(--indigo); }
+  </style>
+</head>
+<body>
+
+<nav class="topnav">
+  <a href="dashboard.html" class="nav-logo">
+    <div class="logo-mark">J</div>
+    <span class="logo-name">Juria</span>
+  </a>
+  <a href="dashboard.html" class="nav-back">← Tableau de bord</a>
+</nav>
+
+<main class="main">
+  <div class="page-header">
+    <div class="page-title">📄 Analyse de Contrat</div>
+    <div class="page-sub">Importez un PDF ou Word — Juria détecte les risques, clauses manquantes et incohérences juridiques.</div>
+  </div>
+
+  <!-- DROP ZONE -->
+  <div class="drop-zone" id="dropZone">
+    <div class="drop-icon">📁</div>
+    <div class="drop-title">Glissez votre contrat ici</div>
+    <div class="drop-sub">ou cliquez pour parcourir vos fichiers</div>
+    <button class="btn-browse" onclick="document.getElementById('fileInput').click()">Parcourir</button>
+    <div class="file-formats">PDF · DOCX · DOC · Maximum 10 MB</div>
+  </div>
+  <input type="file" id="fileInput" accept=".pdf,.docx,.doc" style="display:none"/>
+
+  <!-- FILE SELECTED -->
+  <div class="file-selected" id="fileSelected">
+    <div class="file-icon" id="fileIcon">📄</div>
+    <div class="file-info">
+      <div class="file-name" id="fileName">—</div>
+      <div class="file-size" id="fileSize">—</div>
+    </div>
+    <button class="btn-remove" id="btnRemove" title="Retirer le fichier">×</button>
+  </div>
+
+  <button class="btn-analyse" id="btnAnalyse" disabled onclick="startAnalysis()">
+    Analyser le contrat
+  </button>
+
+  <!-- LOADING -->
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <div class="loading-text">Analyse en cours...</div>
+    <div class="loading-steps" id="loadingStep">Extraction du texte</div>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="results" id="results">
+
+    <!-- SCORE -->
+    <div class="score-card" id="scoreCard">
+      <div class="score-circle" id="scoreCircle">
+        <div class="score-number" id="scoreNumber">—</div>
+        <div class="score-denom">/10</div>
+      </div>
+      <div class="score-info">
+        <div class="score-label">Score de conformité juridique</div>
+        <div class="score-summary" id="scoreSummary">—</div>
+        <div class="score-actions">
+          <button class="btn-export" onclick="exportPDF()">⬇️ Exporter PDF</button>
+          <a href="chat.html" class="btn-chat" id="btnChatDoc">💬 Poser des questions sur ce contrat</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ISSUES -->
+    <div class="section-card" id="issuesCard" style="display:none">
+      <div class="section-title">⚠️ Points à corriger</div>
+      <div id="issuesList"></div>
+    </div>
+
+    <!-- MISSING -->
+    <div class="section-card" id="missingCard" style="display:none">
+      <div class="section-title">📋 Clauses manquantes</div>
+      <div id="missingList"></div>
+    </div>
+
+    <button class="btn-new" onclick="resetForm()">+ Analyser un autre contrat</button>
+  </div>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.min.js"></script>
+<script>
+const _sb = supabase.createClient(
+  'https://dnrudcpaqcqyybpbbrum.supabase.co',
+  'sb_publishable__c1wQLooo7xS-34-zNi3_A_EZetr3zIbg'
+);
+
+const EDGE_URL = 'https://dnrudcpaqcqyybpbbrum.supabase.co/functions/v1/smart-endpoint';
+
+var selectedFile = null;
+var extractedText = null;
+var analysisResult = null;
+
+// Auth check
+async function init() {
+  const { data: { session } } = await _sb.auth.getSession();
+  if (!session) { window.location.href = 'auth.html'; return; }
+}
+init();
+
+// Drag & Drop
+var dropZone = document.getElementById('dropZone');
+dropZone.addEventListener('dragover', function(e) { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', function() { dropZone.classList.remove('drag-over'); });
+dropZone.addEventListener('drop', function(e) {
+  e.preventDefault(); dropZone.classList.remove('drag-over');
+  var file = e.dataTransfer.files[0];
+  if (file) handleFile(file);
+});
+dropZone.addEventListener('click', function() { document.getElementById('fileInput').click(); });
+document.getElementById('fileInput').addEventListener('change', function(e) {
+  if (e.target.files[0]) handleFile(e.target.files[0]);
+});
+
+function handleFile(file) {
+  if (file.size > 10 * 1024 * 1024) { alert('Fichier trop volumineux. Maximum 10 MB.'); return; }
+  var ext = file.name.split('.').pop().toLowerCase();
+  if (!['pdf','docx','doc'].includes(ext)) { alert('Format non supporté. Utilisez PDF ou DOCX.'); return; }
+
+  selectedFile = file;
+  document.getElementById('fileName').textContent = file.name;
+  document.getElementById('fileSize').textContent = (file.size / 1024).toFixed(0) + ' KB';
+  document.getElementById('fileIcon').textContent = ext === 'pdf' ? '📕' : '📘';
+  document.getElementById('fileSelected').classList.add('show');
+  document.getElementById('btnAnalyse').disabled = false;
+  document.getElementById('dropZone').style.display = 'none';
+}
+
+document.getElementById('btnRemove').addEventListener('click', function() { resetForm(); });
+
+function resetForm() {
+  selectedFile = null; extractedText = null; analysisResult = null;
+  document.getElementById('fileSelected').classList.remove('show');
+  document.getElementById('dropZone').style.display = 'block';
+  document.getElementById('btnAnalyse').disabled = true;
+  document.getElementById('results').classList.remove('show');
+  document.getElementById('loading').classList.remove('show');
+  document.getElementById('fileInput').value = '';
+}
+
+async function startAnalysis() {
+  if (!selectedFile) return;
+  document.getElementById('btnAnalyse').disabled = true;
+  document.getElementById('loading').classList.add('show');
+  document.getElementById('results').classList.remove('show');
+
+  try {
+    setStep('Extraction du texte...');
+    var ext = selectedFile.name.split('.').pop().toLowerCase();
+    if (ext === 'pdf') {
+      extractedText = await extractPDFText(selectedFile);
+    } else {
+      extractedText = await extractDOCXText(selectedFile);
+    }
+
+    if (!extractedText || extractedText.trim().length < 50) {
+      throw new Error('Impossible d\'extraire le texte du document.');
+    }
+
+    setStep('Analyse juridique en cours...');
+    var session = await _sb.auth.getSession();
+    var token = session.data.session.access_token;
+
+    var res = await fetch(EDGE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({
+        question: 'Analyse ce contrat',
+        contract_to_analyze: extractedText,
+        mode: 'analyze',
+        history: []
+      }),
+    });
+
+    if (!res.ok) throw new Error('Erreur serveur: ' + res.status);
+    analysisResult = await res.json();
+
+    setStep('Finalisation...');
+    showResults(analysisResult);
+
+    // Stocker le texte dans sessionStorage pour "poser des questions"
+    sessionStorage.setItem('juriaDocText', extractedText);
+    sessionStorage.setItem('juriaDocName', selectedFile.name);
+
+  } catch(e) {
+    alert('Erreur: ' + e.message);
+    document.getElementById('btnAnalyse').disabled = false;
+  } finally {
+    document.getElementById('loading').classList.remove('show');
+  }
+}
+
+function setStep(text) {
+  document.getElementById('loadingStep').textContent = text;
+}
+
+function showResults(result) {
+  var score = result.score || 0;
+  var scoreEl = document.getElementById('scoreNumber');
+  scoreEl.textContent = score;
+
+  var circle = document.getElementById('scoreCircle');
+  if (score >= 7) { circle.style.background = '#ecfdf5'; scoreEl.style.color = '#065f46'; }
+  else if (score >= 5) { circle.style.background = '#fffbeb'; scoreEl.style.color = '#92400e'; }
+  else { circle.style.background = '#fef2f2'; scoreEl.style.color = '#991b1b'; }
+
+  document.getElementById('scoreSummary').textContent = result.summary || 'Analyse complète';
+
+  // Issues
+  if (result.issues && result.issues.length > 0) {
+    document.getElementById('issuesCard').style.display = 'block';
+    document.getElementById('issuesList').innerHTML = result.issues.map(function(issue) {
+      var sev = issue.severity || 'medium';
+      var sevLabel = sev === 'high' ? 'Critique' : sev === 'medium' ? 'Important' : 'Mineur';
+      return '<div class="issue-item"><div class="issue-header"><span class="severity-badge severity-' + sev + '">' + sevLabel + '</span><span class="issue-clause">' + (issue.clause || '') + '</span></div><div class="issue-problem">' + (issue.problem || '') + '</div>' + (issue.suggestion ? '<div class="issue-suggestion">💡 ' + issue.suggestion + '</div>' : '') + '</div>';
+    }).join('');
+  }
+
+  // Missing clauses
+  if (result.missing_clauses && result.missing_clauses.length > 0) {
+    document.getElementById('missingCard').style.display = 'block';
+    document.getElementById('missingList').innerHTML = result.missing_clauses.map(function(c) {
+      return '<div class="missing-item">' + c + '</div>';
+    }).join('');
+  }
+
+  document.getElementById('results').classList.add('show');
+}
+
+function exportPDF() {
+  if (!analysisResult) return;
+  var win = window.open('', '_blank');
+  var score = analysisResult.score || 0;
+  var scoreColor = score >= 7 ? '#065f46' : score >= 5 ? '#92400e' : '#991b1b';
+  var issuesHtml = '';
+  if (analysisResult.issues) {
+    issuesHtml = analysisResult.issues.map(function(i) {
+      var sev = i.severity === 'high' ? '🔴 Critique' : i.severity === 'medium' ? '🟡 Important' : '🟢 Mineur';
+      return '<div style="padding:12px;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:8px"><strong>' + sev + ' — ' + i.clause + '</strong><p style="color:#374151;margin:6px 0">' + i.problem + '</p>' + (i.suggestion ? '<p style="color:#3730a3;background:#eef2ff;padding:8px;border-radius:6px">💡 ' + i.suggestion + '</p>' : '') + '</div>';
+    }).join('');
+  }
+  var missingHtml = '';
+  if (analysisResult.missing_clauses) {
+    missingHtml = analysisResult.missing_clauses.map(function(c) { return '<li>' + c + '</li>'; }).join('');
+  }
+  win.document.write('<html><head><title>Rapport Juria</title><style>body{font-family:Inter,sans-serif;max-width:800px;margin:40px auto;padding:0 24px;color:#0f1117}h1{color:#4f46e5;margin-bottom:4px}h2{margin:24px 0 12px;font-size:16px}.footer{margin-top:40px;padding-top:16px;border-top:1px solid #e5e7eb;color:#9ca3af;font-size:12px}</style></head><body>');
+  win.document.write('<h1>⚖️ Rapport d\'analyse — Juria</h1>');
+  win.document.write('<p style="color:#6b7280;font-size:14px">' + selectedFile.name + ' · ' + new Date().toLocaleDateString('fr-MA') + '</p>');
+  win.document.write('<div style="background:#f8f9fb;border-radius:12px;padding:20px;margin:20px 0;display:flex;gap:20px;align-items:center"><div style="font-size:48px;font-weight:700;color:' + scoreColor + '">' + score + '<span style="font-size:20px">/10</span></div><div><strong>Score de conformité juridique</strong><p>' + (analysisResult.summary || '') + '</p></div></div>');
+  if (issuesHtml) { win.document.write('<h2>⚠️ Points à corriger</h2>' + issuesHtml); }
+  if (missingHtml) { win.document.write('<h2>📋 Clauses manquantes</h2><ul>' + missingHtml + '</ul>'); }
+  win.document.write('<div class="footer">Rapport généré par Juria · À titre indicatif uniquement · Faites valider ce contrat par un avocat avant signature.<br><button onclick="window.print()" style="margin-top:12px;padding:10px 24px;background:#4f46e5;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px">Imprimer / Sauvegarder en PDF</button></div>');
+  win.document.write('</body></html>');
+  win.document.close();
+}
+
+// PDF extraction via PDF.js
+async function extractPDFText(file) {
+  return new Promise(function(resolve, reject) {
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js';
+    script.onload = async function() {
+      try {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+        var arrayBuffer = await file.arrayBuffer();
+        var pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        var text = '';
+        for (var i = 1; i <= Math.min(pdf.numPages, 30); i++) {
+          var page = await pdf.getPage(i);
+          var content = await page.getTextContent();
+          text += content.items.map(function(s){ return s.str; }).join(' ') + '\n';
+        }
+        resolve(text);
+      } catch(e) { reject(e); }
+    };
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+}
+
+// DOCX extraction via mammoth
+async function extractDOCXText(file) {
+  return new Promise(function(resolve, reject) {
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js';
+    script.onload = function() {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        mammoth.extractRawText({ arrayBuffer: e.target.result })
+          .then(function(result) { resolve(result.value); })
+          .catch(reject);
+      };
+      reader.onerror = reject;
+      reader.readAsArrayBuffer(file);
+    };
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+}
+</script>
+</body>
+</html>
 
