@@ -191,6 +191,9 @@
       <div id="missingList"></div>
     </div>
 
+    <button id="generateDocBtn" onclick="generateAnnotatedDoc()" style="display:none;width:100%;padding:14px;background:#4f46e5;color:#fff;border:none;border-radius:12px;font-family:var(--font);font-size:15px;font-weight:600;cursor:pointer;margin-bottom:12px;transition:background 0.15s">
+      📝 Générer le document annoté (.docx) avec les points cochés
+    </button>
     <button class="btn-new" onclick="resetForm()">+ Analyser un autre contrat</button>
   </div>
 
@@ -325,25 +328,187 @@ function showResults(result) {
 
   document.getElementById('scoreSummary').textContent = result.summary || 'Analyse complète';
 
-  // Issues
+  // Issues avec checkboxes
   if (result.issues && result.issues.length > 0) {
     document.getElementById('issuesCard').style.display = 'block';
-    document.getElementById('issuesList').innerHTML = result.issues.map(function(issue) {
+    document.getElementById('issuesList').innerHTML = result.issues.map(function(issue, i) {
       var sev = issue.severity || 'medium';
       var sevLabel = sev === 'high' ? 'Critique' : sev === 'medium' ? 'Important' : 'Mineur';
-      return '<div class="issue-item"><div class="issue-header"><span class="severity-badge severity-' + sev + '">' + sevLabel + '</span><span class="issue-clause">' + (issue.clause || '') + '</span></div><div class="issue-problem">' + (issue.problem || '') + '</div>' + (issue.suggestion ? '<div class="issue-suggestion">💡 ' + issue.suggestion + '</div>' : '') + '</div>';
+      return '<div class="issue-item"><div class="issue-header"><input type="checkbox" class="issue-checkbox" data-index="' + i + '" data-type="issue" style="width:16px;height:16px;cursor:pointer;accent-color:#4f46e5"/><span class="severity-badge severity-' + sev + '">' + sevLabel + '</span><span class="issue-clause">' + (issue.clause || '') + '</span></div><div class="issue-problem">' + (issue.problem || '') + '</div>' + (issue.suggestion ? '<div class="issue-suggestion">💡 ' + issue.suggestion + '</div>' : '') + '</div>';
     }).join('');
   }
 
-  // Missing clauses
+  // Missing clauses avec checkboxes
   if (result.missing_clauses && result.missing_clauses.length > 0) {
     document.getElementById('missingCard').style.display = 'block';
-    document.getElementById('missingList').innerHTML = result.missing_clauses.map(function(c) {
-      return '<div class="missing-item">' + c + '</div>';
+    document.getElementById('missingList').innerHTML = result.missing_clauses.map(function(c, i) {
+      return '<div class="missing-item"><input type="checkbox" class="issue-checkbox" data-index="' + i + '" data-type="missing" style="width:16px;height:16px;cursor:pointer;accent-color:#4f46e5;flex-shrink:0"/>' + c + '</div>';
     }).join('');
   }
 
+  // Bouton générer docx avec commentaires
+  document.getElementById('generateDocBtn').style.display = 'block';
   document.getElementById('results').classList.add('show');
+}
+
+async function generateAnnotatedDoc() {
+  var selectedIssues = [];
+  var selectedMissing = [];
+
+  document.querySelectorAll('.issue-checkbox:checked').forEach(function(cb) {
+    var idx = parseInt(cb.dataset.index);
+    if (cb.dataset.type === 'issue') {
+      selectedIssues.push(analysisResult.issues[idx]);
+    } else {
+      selectedMissing.push(analysisResult.missing_clauses[idx]);
+    }
+  });
+
+  if (selectedIssues.length === 0 && selectedMissing.length === 0) {
+    alert('Cochez au moins un point à modifier.');
+    return;
+  }
+
+  var btn = document.getElementById('generateDocBtn');
+  btn.textContent = 'Génération en cours...';
+  btn.disabled = true;
+
+  try {
+    // Appeler l'IA pour générer le contrat annoté
+    var session = await _sb.auth.getSession();
+    var token = session.data.session.access_token;
+
+    var pointsList = selectedIssues.map(function(i) {
+      return '- ' + i.clause + ': ' + i.problem + ' → ' + i.suggestion;
+    }).concat(selectedMissing.map(function(m) {
+      return '- Clause manquante: ' + m;
+    })).join('
+');
+
+    var res = await fetch('https://dnrudcpaqcqyybpbbrum.supabase.co/functions/v1/smart-endpoint', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({
+        question: 'Génère le contrat annoté avec commentaires pour avocat',
+        document_context: extractedText,
+        mode: 'document_question',
+        history: [],
+        annotate_points: pointsList
+      }),
+    });
+
+    // Générer le .docx avec les annotations
+    await generateDocxWithComments(selectedIssues, selectedMissing);
+
+  } catch(e) {
+    alert('Erreur: ' + e.message);
+  } finally {
+    btn.textContent = '📝 Générer le document annoté (.docx)';
+    btn.disabled = false;
+  }
+}
+
+async function generateDocxWithComments(issues, missing) {
+  if (typeof docx === 'undefined') {
+    alert('Librairie Word non chargée. Réessayez.');
+    return;
+  }
+
+  var paragraphs = [];
+
+  // Titre du rapport
+  paragraphs.push(new docx.Paragraph({
+    children: [new docx.TextRun({ text: 'CONTRAT ANNOTÉ — JURIA', bold: true, size: 32, color: '4f46e5' })],
+    alignment: docx.AlignmentType.CENTER,
+    spacing: { after: 200 },
+  }));
+
+  paragraphs.push(new docx.Paragraph({
+    children: [new docx.TextRun({ text: 'Document généré le ' + new Date().toLocaleDateString('fr-MA') + ' · À réviser par un avocat avant signature', size: 18, color: '888888', italics: true })],
+    alignment: docx.AlignmentType.CENTER,
+    spacing: { after: 400 },
+  }));
+
+  // Section points à corriger
+  if (issues.length > 0) {
+    paragraphs.push(new docx.Paragraph({
+      children: [new docx.TextRun({ text: '⚠️ POINTS À CORRIGER', bold: true, size: 26, color: 'ef4444' })],
+      spacing: { before: 200, after: 200 },
+    }));
+
+    issues.forEach(function(issue, i) {
+      var sev = issue.severity === 'high' ? '[CRITIQUE]' : issue.severity === 'medium' ? '[IMPORTANT]' : '[MINEUR]';
+      var sevColor = issue.severity === 'high' ? 'ef4444' : issue.severity === 'medium' ? 'f59e0b' : '10b981';
+
+      paragraphs.push(new docx.Paragraph({
+        children: [new docx.TextRun({ text: sev + ' ' + (issue.clause || ''), bold: true, size: 22, color: sevColor })],
+        spacing: { before: 240, after: 80 },
+      }));
+
+      paragraphs.push(new docx.Paragraph({
+        children: [new docx.TextRun({ text: '🔍 Problème: ', bold: true, size: 20 }), new docx.TextRun({ text: issue.problem || '', size: 20 })],
+        spacing: { after: 80 },
+        indent: { left: 360 },
+      }));
+
+      if (issue.suggestion) {
+        paragraphs.push(new docx.Paragraph({
+          children: [new docx.TextRun({ text: '✏️ Suggestion: ', bold: true, size: 20, color: '4f46e5' }), new docx.TextRun({ text: issue.suggestion, size: 20, color: '3730a3' })],
+          spacing: { after: 160 },
+          indent: { left: 360 },
+        }));
+      }
+
+      // Ligne de séparation visuelle
+      paragraphs.push(new docx.Paragraph({
+        children: [new docx.TextRun({ text: '─'.repeat(50), size: 16, color: 'e5e7eb' })],
+        spacing: { after: 80 },
+      }));
+    });
+  }
+
+  // Section clauses manquantes
+  if (missing.length > 0) {
+    paragraphs.push(new docx.Paragraph({
+      children: [new docx.TextRun({ text: '📋 CLAUSES À AJOUTER', bold: true, size: 26, color: 'f59e0b' })],
+      spacing: { before: 400, after: 200 },
+    }));
+
+    missing.forEach(function(clause) {
+      paragraphs.push(new docx.Paragraph({
+        children: [
+          new docx.TextRun({ text: '➕ ', size: 20 }),
+          new docx.TextRun({ text: clause, size: 20 }),
+        ],
+        spacing: { after: 120 },
+        indent: { left: 360 },
+      }));
+    }); 
+  }
+
+  // Footer
+  paragraphs.push(new docx.Paragraph({ children: [], spacing: { before: 600 } }));
+  paragraphs.push(new docx.Paragraph({
+    children: [new docx.TextRun({ text: 'Généré par Juria · À titre indicatif uniquement · Faites valider par un avocat avant toute modification contractuelle.', color: '888888', size: 16, italics: true })],
+    alignment: docx.AlignmentType.CENTER,
+  }));
+
+  var doc = new docx.Document({
+    creator: 'Juria',
+    title: 'Contrat Annoté',
+    sections: [{ properties: {}, children: paragraphs }],
+  });
+
+  docx.Packer.toBlob(doc).then(function(blob) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'contrat-annote-juria.docx';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+  });
 }
 
 function exportPDF() {
