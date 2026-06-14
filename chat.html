@@ -222,6 +222,7 @@ const _sb = window.supabase.createClient(JURIA_CONFIG.SUPABASE_URL, JURIA_CONFIG
 let currentUser = null;
 let userProfile = null;
 let isLoading   = false;
+var conversationHistory = []; // Mémoire des 3 derniers échanges
 
 const chatMessages = document.getElementById('chatMessages');
 const userInput    = document.getElementById('userInput');
@@ -300,6 +301,10 @@ async function sendMessage() {
   userInput.style.height = 'auto';
   charCount.textContent = '0 / 600';
   setLoading(true);
+  
+  // Ajouter la question à l'historique
+  conversationHistory.push({ role: 'user', content: question });
+  if (conversationHistory.length > 6) conversationHistory = conversationHistory.slice(-6);
 
   // Détecter mode
   var isContractAnalysis = uploadedContractText !== null;
@@ -326,6 +331,9 @@ async function sendMessage() {
       // QUESTION JURIDIQUE OU CONVERSATION — toujours appeler l'IA
       var result = await askAI(question, articles);
       appendMsg('assistant', result.answer, result.citations || [], false);
+      // Ajouter la réponse à l'historique
+      conversationHistory.push({ role: 'assistant', content: result.answer });
+      if (conversationHistory.length > 6) conversationHistory = conversationHistory.slice(-6);
       await saveConversation(question, result.answer, articles);
     }
   } catch(e) {
@@ -370,13 +378,17 @@ async function askAI(question, articles) {
   var sessionData = await _sb.auth.getSession();
   if (!sessionData.data.session) throw new Error('Session expirée');
   var token = sessionData.data.session.access_token;
+  
+  // Envoyer l'historique sans le dernier message (déjà dans question)
+  var history = conversationHistory.slice(0, -1);
+  
   var res = await fetch(JURIA_CONFIG.EDGE_FUNCTION_URL, {
     method: 'POST',
     headers: { 
       'Content-Type': 'application/json', 
       'Authorization': 'Bearer ' + token
     },
-    body: JSON.stringify({ question: question, articles: articles }),
+    body: JSON.stringify({ question: question, articles: articles, history: history }),
   });
   if (!res.ok) throw new Error('Edge Function: ' + res.status);
   return await res.json();
