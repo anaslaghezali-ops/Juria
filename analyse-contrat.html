@@ -379,11 +379,10 @@ async function generateAnnotatedDoc() {
     var token = session.data.session.access_token;
 
     var pointsList = selectedIssues.map(function(i) {
-      return '- ' + i.clause + ': ' + i.problem + ' → ' + i.suggestion;
+      return '- ' + i.clause + ': ' + i.problem + ' -> ' + i.suggestion;
     }).concat(selectedMissing.map(function(m) {
       return '- Clause manquante: ' + m;
-    })).join('
-');
+    })).join('\n');
 
     var res = await fetch('https://dnrudcpaqcqyybpbbrum.supabase.co/functions/v1/smart-endpoint', {
       method: 'POST',
@@ -461,7 +460,7 @@ async function generateDocxWithComments(issues, missing) {
 
       // Ligne de séparation visuelle
       paragraphs.push(new docx.Paragraph({
-        children: [new docx.TextRun({ text: '─'.repeat(50), size: 16, color: 'e5e7eb' })],
+        children: [new docx.TextRun({ text: '--------------------------------------------------', size: 16, color: 'e5e7eb' })],
         spacing: { after: 80 },
       }));
     });
