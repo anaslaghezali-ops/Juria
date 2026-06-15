@@ -806,6 +806,12 @@ window.startComparison = async function startComparison() {
 
 function renderComparison(result) {
   var changes = result.changes || [];
+  // Normaliser les types (GPT peut retourner addition/ajout/added etc.)
+  changes.forEach(function(c) {
+    if (c.type === 'addition' || c.type === 'added' || c.type === 'add') c.type = 'ajout';
+    if (c.type === 'deletion' || c.type === 'removed' || c.type === 'remove' || c.type === 'deleted') c.type = 'suppression';
+    if (c.type === 'change' || c.type === 'changed' || c.type === 'update' || c.type === 'updated') c.type = 'modification';
+  });
   var typeColors = { ajout: '#10b981', suppression: '#ef4444', modification: '#f59e0b' };
   var typeLabels = { ajout: '➕ Ajout', suppression: '➖ Suppression', modification: '✏️ Modification' };
   var impactColors = { majeur: '#fef2f2', mineur: '#fffbeb', neutre: '#f9fafb' };
