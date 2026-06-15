@@ -146,7 +146,7 @@
     <button class="btn-browse" onclick="document.getElementById('fileInput').click()">Parcourir</button>
     <div class="file-formats">PDF · DOCX · DOC · Maximum 10 MB</div>
   </div>
-  <input type="file" id="fileInput" accept=".pdf,.docx,.doc" style="display:none"/>
+  <input type="file" id="fileInput" accept=".pdf,.docx" style="display:none"/>
 
   <!-- FILE SELECTED -->
   <div class="file-selected" id="fileSelected">
@@ -222,7 +222,7 @@
       <div id="dropZone1" style="border:2px dashed var(--slate-300);border-radius:12px;padding:24px;text-align:center;cursor:pointer;background:var(--white);transition:all 0.2s;" onclick="document.getElementById('fileInput1').click()">
         <div id="dropLabel1" style="font-size:14px;color:var(--slate-400);">Cliquez ou glissez le contrat V1 ici</div>
       </div>
-      <input type="file" id="fileInput1" accept=".pdf,.docx,.doc" style="display:none"/>
+      <input type="file" id="fileInput1" accept=".pdf,.docx" style="display:none"/>
     </div>
 
     <!-- Upload V2 -->
@@ -231,7 +231,7 @@
       <div id="dropZone2" style="border:2px dashed var(--slate-300);border-radius:12px;padding:24px;text-align:center;cursor:pointer;background:var(--white);transition:all 0.2s;" onclick="document.getElementById('fileInput2').click()">
         <div id="dropLabel2" style="font-size:14px;color:var(--slate-400);">Cliquez ou glissez le contrat V2 ici</div>
       </div>
-      <input type="file" id="fileInput2" accept=".pdf,.docx,.doc" style="display:none"/>
+      <input type="file" id="fileInput2" accept=".pdf,.docx" style="display:none"/>
     </div>
 
     <button id="btnCompare" disabled onclick="startComparison()" style="width:100%;padding:14px;background:var(--indigo);color:#fff;border:none;border-radius:12px;font-family:var(--font);font-size:15px;font-weight:600;cursor:pointer;opacity:0.5;transition:all 0.15s;margin-bottom:32px;">
@@ -291,7 +291,7 @@ document.getElementById('fileInput').addEventListener('change', function(e) {
 function handleFile(file) {
   if (file.size > 10 * 1024 * 1024) { alert('Fichier trop volumineux. Maximum 10 MB.'); return; }
   var ext = file.name.split('.').pop().toLowerCase();
-  if (!['pdf','docx','doc'].includes(ext)) { alert('Format non supporté. Utilisez PDF ou DOCX.'); return; }
+  if (!['pdf','docx'].includes(ext)) { alert('Format non supporté. Utilisez PDF ou DOCX.'); return; }
 
   selectedFile = file;
   document.getElementById('fileName').textContent = file.name;
@@ -305,7 +305,7 @@ function handleFile(file) {
 document.getElementById('btnRemove').addEventListener('click', function() { resetForm(); });
 
 function resetForm() {
-  selectedFile = null; extractedText = null; analysisResult = null;
+  selectedFile = null; extractedText = null; analysisResult = null; contractParagraphs = [];
   document.getElementById('fileSelected').classList.remove('show');
   document.getElementById('dropZone').style.display = 'block';
   document.getElementById('btnAnalyse').disabled = true;
@@ -605,7 +605,7 @@ function exportPDF() {
   }
   var missingHtml = '';
   if (analysisResult.missing_clauses) {
-    missingHtml = analysisResult.missing_clauses.map(function(c) { return '<li>' + c + '</li>'; }).join('');
+    missingHtml = analysisResult.missing_clauses.map(function(c) { return '<li>' + (typeof c === 'string' ? c : (c.clause || c.name || JSON.stringify(c))) + '</li>'; }).join('');
   }
   win.document.write('<html><head><title>Rapport Juria</title><style>body{font-family:Inter,sans-serif;max-width:800px;margin:40px auto;padding:0 24px;color:#0f1117}h1{color:#4f46e5;margin-bottom:4px}h2{margin:24px 0 12px;font-size:16px}.footer{margin-top:40px;padding-top:16px;border-top:1px solid #e5e7eb;color:#9ca3af;font-size:12px}</style></head><body>');
   win.document.write('<h1>⚖️ Rapport d\'analyse — Juria</h1>');
@@ -621,6 +621,21 @@ function exportPDF() {
 // PDF extraction via PDF.js
 async function extractPDFText(file) {
   return new Promise(function(resolve, reject) {
+    if (window.pdfjsLib) {
+      try {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+        var arrayBuffer = await file.arrayBuffer();
+        var pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        var text = '';
+        for (var i = 1; i <= Math.min(pdf.numPages, 30); i++) {
+          var page = await pdf.getPage(i);
+          var content2 = await page.getTextContent();
+          text += content2.items.map(function(s){ return s.str; }).join(' ') + '\n';
+        }
+        resolve(text);
+      } catch(e) { reject(e); }
+      return;
+    }
     var script = document.createElement('script');
     script.src = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js';
     script.onload = async function() {
@@ -732,8 +747,9 @@ window.startComparison = async function startComparison() {
   document.getElementById('btnCompare').disabled = true;
   
   try {
-    var session = await _sb.auth.getSession();
-    var token = session.data.session.access_token;
+    var sessionData = await _sb.auth.getSession();
+    if (!sessionData.data.session) { alert('Session expirée'); window.location.href = 'auth.html'; return; }
+    var token = sessionData.data.session.access_token;
     
     var prompt = 'Compare ces deux versions du contrat et identifie toutes les différences. Retourne un JSON: {summary: string, changes: [{type: "ajout"|"suppression"|"modification", clause: string, v1: string, v2: string, impact: "majeur"|"mineur"|"neutre"}], risk_changes: [string], favorable_changes: [string]}';
     
@@ -742,11 +758,7 @@ window.startComparison = async function startComparison() {
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
       body: JSON.stringify({
         question: prompt,
-        contract_to_analyze: 'CONTRAT V1:
-' + contractText1.slice(0, 6000) + '
-
-CONTRAT V2:
-' + contractText2.slice(0, 6000),
+        contract_to_analyze: 'CONTRAT V1:\n' + contractText1.slice(0, 6000) + '\n\nCONTRAT V2:\n' + contractText2.slice(0, 6000),
         mode: 'analyze',
         history: []
       }),
@@ -754,8 +766,20 @@ CONTRAT V2:
     
     if (!res.ok) throw new Error('Erreur: ' + res.status);
     var result = await res.json();
+    console.log('COMPARE RESULT', result);
     
-    renderComparison(result);
+    // L'Edge Function retourne {answer: "..."} — on parse le JSON dans answer
+    var compareData = result;
+    if (result.answer) {
+      try {
+        var clean = result.answer.replace(/```json|```/g, '').trim();
+        compareData = JSON.parse(clean);
+      } catch(e) {
+        compareData = { summary: result.answer, changes: [] };
+      }
+    }
+    
+    renderComparison(compareData);
   } catch(e) {
     alert('Erreur: ' + e.message);
   } finally {
