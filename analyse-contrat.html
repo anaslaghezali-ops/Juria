@@ -772,15 +772,15 @@ window.startComparison = async function startComparison() {
     if (!sessionData.data.session) { alert('Session expirée'); window.location.href = 'auth.html'; return; }
     var token = sessionData.data.session.access_token;
     
-    var prompt = 'Compare ces deux versions du contrat et identifie toutes les différences. Retourne un JSON: {summary: string, changes: [{type: "ajout"|"suppression"|"modification", clause: string, v1: string, v2: string, impact: "majeur"|"mineur"|"neutre"}], risk_changes: [string], favorable_changes: [string]}';
+    var prompt = 'Tu es expert juridique. Compare ces deux versions de contrat. Retourne UNIQUEMENT un JSON valide sans markdown: {"summary": "resume", "changes": [{"type": "modification", "clause": "Salaire", "v1": "3000 MAD", "v2": "3500 MAD", "impact": "majeur"}]}. Types: ajout, suppression, modification. Impact: majeur, mineur, neutre.';
     
     var res = await fetch(EDGE_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
       body: JSON.stringify({
         question: prompt,
-        contract_to_analyze: 'CONTRAT V1:\n' + contractText1.slice(0, 6000) + '\n\nCONTRAT V2:\n' + contractText2.slice(0, 6000),
-        mode: 'analyze',
+        document_context: 'CONTRAT V1:\n' + contractText1.slice(0, 5000) + '\n\n---\n\nCONTRAT V2:\n' + contractText2.slice(0, 5000),
+        mode: 'compare',
         history: []
       }),
     });
@@ -789,15 +789,10 @@ window.startComparison = async function startComparison() {
     var result = await res.json();
     console.log('COMPARE RESULT', result);
     
-    // L Edge Function retourne answer string - on parse le JSON dans answer
+    // Compare mode retourne JSON directement
     var compareData = result;
-    if (result.answer) {
-      try {
-        var clean = result.answer.replace(/```json|```/g, '').trim();
-        compareData = JSON.parse(clean);
-      } catch(e) {
-        compareData = { summary: result.answer, changes: [] };
-      }
+    if (!compareData.changes) {
+      compareData = { summary: result.answer || 'Erreur', changes: [] };
     }
     
     renderComparison(compareData);
