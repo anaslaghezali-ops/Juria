@@ -489,8 +489,18 @@ function appendMsg(role, text, citations, isContract, deliverables) {
 
   deliverables = deliverables || [];
 
-  var p = document.createElement('p');
-  p.innerHTML = escHtml(text).replace(/\n/g, '<br>');
+  var p = document.createElement('div');
+  // Rendu markdown basique
+  var html = escHtml(text);
+  // Listes numérotées -> puces sur lignes séparées
+  html = html.replace(/(\d+\.\s)/g, '<br>• ');
+  // Gras **texte**
+  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  // Sauts de ligne
+  html = html.replace(/\n/g, '<br>');
+  // Nettoyer le premier <br> en trop
+  html = html.replace(/^(<br>)+/, '');
+  p.innerHTML = html;
   bubble.appendChild(p);
 
   // Afficher les livrables comme boutons cliquables (depuis le catalogue backend)
