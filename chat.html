@@ -354,7 +354,8 @@ async function sendMessage() {
       var contractText = uploadedContractText;
       var result = await askAI(question, contractText);
       var citations = (result.needs_clarification) ? [] : (result.citations || []);
-      appendMsg('assistant', result.answer, citations, false);
+      var deliverables = (result.needs_clarification) ? [] : (result.deliverables || []);
+      appendMsg('assistant', result.answer, citations, false, deliverables);
       conversationHistory.push({ role: 'assistant', content: result.answer });
       if (conversationHistory.length > 6) conversationHistory = conversationHistory.slice(-6);
       await saveConversation(question, result.answer, []);
@@ -370,7 +371,8 @@ async function sendMessage() {
       var result = await askAI(question);
       // Si Juria demande une clarification, ne pas afficher de citations
       var citations = (result.needs_clarification) ? [] : (result.citations || []);
-      appendMsg('assistant', result.answer, citations, false);
+      var deliverables = (result.needs_clarification) ? [] : (result.deliverables || []);
+      appendMsg('assistant', result.answer, citations, false, deliverables);
       // Ajouter la réponse à l'historique
       conversationHistory.push({ role: 'assistant', content: result.answer });
       if (conversationHistory.length > 6) conversationHistory = conversationHistory.slice(-6);
@@ -464,7 +466,7 @@ async function saveConversation(question, answer, articles) {
 }
 
 // ---- DISPLAY ----
-function appendMsg(role, text, citations, isContract) {
+function appendMsg(role, text, citations, isContract, deliverables) {
   citations = citations || [];
   isContract = isContract || false;
   var wrap = document.createElement('div');
@@ -484,35 +486,25 @@ function appendMsg(role, text, citations, isContract) {
   var bubble = document.createElement('div');
   bubble.className = 'msg-bubble';
 
-  // Détecter et rendre les livrables cliquables
-  var livrables = null;
-  var mainText = text;
-  var livrableMatch = text.match(/(Si vous souhaitez[^:]*:?\s*)(1\..+)/s);
-  if (livrableMatch) {
-    mainText = text.slice(0, text.indexOf(livrableMatch[0])).trim();
-    livrables = livrableMatch[0];
-  }
+  deliverables = deliverables || [];
 
   var p = document.createElement('p');
-  p.innerHTML = escHtml(mainText).replace(/\n/g, '<br>');
+  p.innerHTML = escHtml(text).replace(/\n/g, '<br>');
   bubble.appendChild(p);
 
-  // Afficher les livrables comme boutons cliquables
-  if (livrables && role === 'assistant') {
+  // Afficher les livrables comme boutons cliquables (depuis le catalogue backend)
+  if (deliverables.length > 0 && role === 'assistant') {
     var livDiv = document.createElement('div');
     livDiv.style.cssText = 'margin-top:12px;padding-top:12px;border-top:1px solid #e5e7eb;';
     
     var livTitle = document.createElement('div');
-    livTitle.style.cssText = 'font-size:13px;color:#6b7280;margin-bottom:8px;';
-    livTitle.textContent = 'Si vous souhaitez, je peux vous préparer :';
+    livTitle.style.cssText = 'font-size:13px;color:#6b7280;margin-bottom:8px;font-weight:500;';
+    livTitle.textContent = 'Je peux vous préparer :';
     livDiv.appendChild(livTitle);
 
-    // Extraire les 3 livrables
-    var livMatches = livrables.match(/\d+\.\s*([^\n\d][^\n]*)/g) || [];
-    livMatches.forEach(function(lm) {
-      var livText = lm.replace(/^\d+\.\s*/, '').trim();
+    deliverables.forEach(function(livText) {
       var btn = document.createElement('button');
-      btn.textContent = livText;
+      btn.textContent = '→ ' + livText;
       btn.style.cssText = 'display:block;width:100%;text-align:left;padding:8px 12px;margin-bottom:6px;background:#eef2ff;border:1px solid #c7d2fe;border-radius:8px;font-size:13px;color:#3730a3;cursor:pointer;transition:all 0.15s;font-family:inherit;';
       btn.addEventListener('mouseenter', function() { this.style.background = '#e0e7ff'; });
       btn.addEventListener('mouseleave', function() { this.style.background = '#eef2ff'; });
