@@ -780,7 +780,7 @@ window.startComparison = async function startComparison() {
       body: JSON.stringify({
         question: prompt,
         document_context: 'CONTRAT V1:\n' + contractText1.slice(0, 5000) + '\n\n---\n\nCONTRAT V2:\n' + contractText2.slice(0, 5000),
-        mode: 'document_question',
+        mode: 'compare',
         history: []
       }),
     });
@@ -789,18 +789,10 @@ window.startComparison = async function startComparison() {
     var result = await res.json();
     console.log('COMPARE RESULT', result);
     
-    // Parser la réponse
-    var compareData = { summary: '', changes: [] };
-    var rawAnswer = result.answer || JSON.stringify(result);
-    try {
-      var clean = rawAnswer.replace(/```json/g, '').replace(/```/g, '').trim();
-      var start = clean.indexOf('{');
-      var end = clean.lastIndexOf('}');
-      if (start !== -1 && end !== -1) {
-        compareData = JSON.parse(clean.slice(start, end + 1));
-      }
-    } catch(e) {
-      compareData = { summary: rawAnswer.slice(0, 300), changes: [] };
+    // Compare mode retourne JSON directement
+    var compareData = result;
+    if (!compareData.changes) {
+      compareData = { summary: result.answer || 'Erreur', changes: [] };
     }
     
     renderComparison(compareData);
