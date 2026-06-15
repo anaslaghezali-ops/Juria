@@ -270,7 +270,12 @@ var contractParagraphs = []; // Contrat parsé en paragraphes {id, text}
 // Auth check
 async function init() {
   const { data: { session } } = await _sb.auth.getSession();
-  if (!session) { window.location.href = 'auth.html'; return; }
+  if (!session) {
+    // Attendre un peu que Supabase charge la session depuis localStorage
+    await new Promise(r => setTimeout(r, 800));
+    const { data: { session: session2 } } = await _sb.auth.getSession();
+    if (!session2) { window.location.href = 'auth.html'; return; }
+  }
 }
 init();
 
