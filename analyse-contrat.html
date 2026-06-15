@@ -112,6 +112,7 @@
     .btn-new { width: 100%; padding: 12px; border: 2px dashed var(--slate-300); border-radius: 12px; background: none; font-family: var(--font); font-size: 14px; color: var(--slate-400); cursor: pointer; transition: all 0.15s; margin-top: 8px; }
     .btn-new:hover { border-color: var(--indigo); color: var(--indigo); }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
 </head>
 <body>
 
@@ -252,7 +253,8 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="/Juria/assets/libs/docx.min.js"></script>
+  <script src="./assets/libs/docx.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
 
 <script>
 const _sb = supabase.createClient(
@@ -670,9 +672,7 @@ async function extractPDFText(file) {
 // DOCX extraction via mammoth
 async function extractDOCXText(file) {
   return new Promise(function(resolve, reject) {
-    var script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js';
-    script.onload = function() {
+    function doExtract() {
       var reader = new FileReader();
       reader.onload = function(e) {
         mammoth.extractRawText({ arrayBuffer: e.target.result })
@@ -681,9 +681,16 @@ async function extractDOCXText(file) {
       };
       reader.onerror = reject;
       reader.readAsArrayBuffer(file);
-    };
-    script.onerror = reject;
-    document.head.appendChild(script);
+    }
+    if (window.mammoth) {
+      doExtract();
+    } else {
+      var script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js';
+      script.onload = doExtract;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    }
   });
 }
 
@@ -703,9 +710,10 @@ window.switchTab = function switchTab(tab) {
 var contractText1 = null;
 var contractText2 = null;
 
-function setupDropZone(zoneId, inputId, labelId, varSetter, otherVar, btnId) {
+function setupDropZone(zoneId, inputId, labelId, varSetter, btnId) {
   var zone = document.getElementById(zoneId);
   var input = document.getElementById(inputId);
+  if (!zone || !input) return;
   
   zone.addEventListener('dragover', function(e) { e.preventDefault(); zone.style.borderColor = 'var(--indigo)'; zone.style.background = 'var(--indigo-bg)'; });
   zone.addEventListener('dragleave', function() { zone.style.borderColor = 'var(--slate-300)'; zone.style.background = 'var(--white)'; });
@@ -715,7 +723,6 @@ function setupDropZone(zoneId, inputId, labelId, varSetter, otherVar, btnId) {
     zone.style.background = 'var(--white)';
     if (e.dataTransfer.files[0]) handleCompareFile(e.dataTransfer.files[0], labelId, varSetter, btnId);
   });
-  
   input.addEventListener('change', function(e) {
     if (e.target.files[0]) handleCompareFile(e.target.files[0], labelId, varSetter, btnId);
   });
@@ -723,30 +730,34 @@ function setupDropZone(zoneId, inputId, labelId, varSetter, otherVar, btnId) {
 
 async function handleCompareFile(file, labelId, varSetter, btnId) {
   var ext = file.name.split('.').pop().toLowerCase();
-  document.getElementById(labelId).textContent = '⏳ Extraction en cours...';
+  document.getElementById(labelId).textContent = 'Extraction en cours...';
   
-  var text = '';
-  if (ext === 'pdf') {
-    text = await extractPDFText(file);
-  } else {
-    text = await extractDOCXText(file);
-  }
-  
-  varSetter(text);
-  document.getElementById(labelId).innerHTML = '✅ <strong>' + file.name + '</strong> chargé (' + Math.round(text.length/1000) + 'k caractères)';
-  document.getElementById(labelId).parentElement.style.borderColor = 'var(--green)';
-  document.getElementById(labelId).parentElement.style.background = 'var(--green-bg)';
-  
-  // Activer le bouton si les deux fichiers sont chargés
-  if (contractText1 && contractText2) {
-    document.getElementById(btnId).disabled = false;
-    document.getElementById(btnId).style.opacity = '1';
+  try {
+    var text = '';
+    if (ext === 'pdf') {
+      text = await extractPDFText(file);
+    } else {
+      text = await extractDOCXText(file);
+    }
+    
+    varSetter(text);
+    document.getElementById(labelId).innerHTML = '<strong>' + file.name + '</strong> charge (' + Math.round(text.length/1000) + 'k car.)';
+    document.getElementById(labelId).parentElement.style.borderColor = '#10b981';
+    document.getElementById(labelId).parentElement.style.background = '#ecfdf5';
+    
+    // Activer le bouton si les deux fichiers sont charges
+    if (contractText1 && contractText2) {
+      var btn = document.getElementById(btnId);
+      if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+    }
+  } catch(e) {
+    document.getElementById(labelId).textContent = 'Erreur extraction: ' + e.message;
   }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-  setupDropZone('dropZone1', 'fileInput1', 'dropLabel1', function(t) { contractText1 = t; }, contractText2, 'btnCompare');
-  setupDropZone('dropZone2', 'fileInput2', 'dropLabel2', function(t) { contractText2 = t; }, contractText1, 'btnCompare');
+  setupDropZone('dropZone1', 'fileInput1', 'dropLabel1', function(t) { contractText1 = t; }, 'btnCompare');
+  setupDropZone('dropZone2', 'fileInput2', 'dropLabel2', function(t) { contractText2 = t; }, 'btnCompare');
 });
 
 window.startComparison = async function startComparison() {
