@@ -203,7 +203,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 <script>
-const supabase = window.supabase.createClient(JURIA_CONFIG.SUPABASE_URL, JURIA_CONFIG.SUPABASE_ANON_KEY);
+const _sb = window.supabase.createClient(JURIA_CONFIG.SUPABASE_URL, JURIA_CONFIG.SUPABASE_ANON_KEY);
 
 // Détecter mode depuis URL
 const params = new URLSearchParams(window.location.search);
@@ -249,7 +249,7 @@ async function handleLogin() {
   setLoading('btnLogin', true);
   hideAlerts();
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { error } = await _sb.auth.signInWithPassword({ email, password });
 
   if (error) {
     setLoading('btnLogin', false);
@@ -278,7 +278,7 @@ async function handleSignup() {
   setLoading('btnSignup', true);
   hideAlerts();
 
-  const { error } = await supabase.auth.signUp({
+  const { error } = await _sb.auth.signUp({
     email, password,
     options: { data: { full_name: name } }
   });
@@ -292,7 +292,7 @@ async function handleSignup() {
 }
 
 // Si déjà connecté → rediriger
-supabase.auth.getSession().then(({ data }) => {
+_sb.auth.getSession().then(({ data }) => {
   if (data.session) window.location.href = 'dashboard.html';
 });
 
