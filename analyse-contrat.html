@@ -112,6 +112,7 @@
     .btn-new { width: 100%; padding: 12px; border: 2px dashed var(--slate-300); border-radius: 12px; background: none; font-family: var(--font); font-size: 14px; color: var(--slate-400); cursor: pointer; transition: all 0.15s; margin-top: 8px; }
     .btn-new:hover { border-color: var(--indigo); color: var(--indigo); }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
 </head>
 <body>
 
@@ -131,8 +132,8 @@
 
   <!-- ONGLETS -->
   <div style="display:flex;gap:8px;margin-bottom:24px;border-bottom:1px solid var(--border);padding-bottom:0;">
-    <button onclick="switchTab('analyse')" id="tab-analyse" style="padding:10px 20px;border:none;background:none;font-family:var(--font);font-size:14px;font-weight:600;color:var(--indigo);border-bottom:2px solid var(--indigo);cursor:pointer;margin-bottom:-1px;">Analyse de contrat</button>
-    <button onclick="switchTab('comparaison')" id="tab-comparaison" style="padding:10px 20px;border:none;background:none;font-family:var(--font);font-size:14px;font-weight:500;color:var(--slate-400);border-bottom:2px solid transparent;cursor:pointer;margin-bottom:-1px;">Comparaison de contrats</button>
+    <button type="button" onclick="switchTab('analyse')" id="tab-analyse" style="padding:10px 20px;border:none;background:none;font-family:var(--font);font-size:14px;font-weight:600;color:var(--indigo);border-bottom:2px solid var(--indigo);cursor:pointer;margin-bottom:-1px;">Analyse de contrat</button>
+    <button type="button" onclick="switchTab('comparaison')" id="tab-comparaison" style="padding:10px 20px;border:none;background:none;font-family:var(--font);font-size:14px;font-weight:500;color:var(--slate-400);border-bottom:2px solid transparent;cursor:pointer;margin-bottom:-1px;">Comparaison de contrats</button>
   </div>
 
   <!-- SECTION ANALYSE -->
@@ -143,7 +144,7 @@
     <div class="drop-icon">📁</div>
     <div class="drop-title">Glissez votre contrat ici</div>
     <div class="drop-sub">ou cliquez pour parcourir vos fichiers</div>
-    <button class="btn-browse" onclick="document.getElementById('fileInput').click()">Parcourir</button>
+    <button type="button" class="btn-browse" onclick="document.getElementById('fileInput').click()">Parcourir</button>
     <div class="file-formats">PDF · DOCX · DOC · Maximum 10 MB</div>
   </div>
   <input type="file" id="fileInput" accept=".pdf,.docx" style="display:none"/>
@@ -155,10 +156,10 @@
       <div class="file-name" id="fileName">—</div>
       <div class="file-size" id="fileSize">—</div>
     </div>
-    <button class="btn-remove" id="btnRemove" title="Retirer le fichier">×</button>
+    <button type="button" class="btn-remove" id="btnRemove" title="Retirer le fichier">×</button>
   </div>
 
-  <button class="btn-analyse" id="btnAnalyse" disabled onclick="startAnalysis()">
+  <button type="button" class="btn-analyse" id="btnAnalyse" disabled onclick="startAnalysis()">
     Analyser le contrat
   </button>
 
@@ -182,7 +183,7 @@
         <div class="score-label">Score de conformité juridique</div>
         <div class="score-summary" id="scoreSummary">—</div>
         <div class="score-actions">
-          <button class="btn-export" onclick="exportPDF()">⬇️ Exporter PDF</button>
+          <button type="button" class="btn-export" onclick="exportPDF()">⬇️ Exporter PDF</button>
           <a href="chat.html" class="btn-chat" id="btnChatDoc">💬 Poser des questions sur ce contrat</a>
         </div>
       </div>
@@ -200,10 +201,10 @@
       <div id="missingList"></div>
     </div>
 
-    <button id="generateDocBtn" onclick="generateAnnotatedDoc()" style="display:none;width:100%;padding:14px;background:#4f46e5;color:#fff;border:none;border-radius:12px;font-family:var(--font);font-size:15px;font-weight:600;cursor:pointer;margin-bottom:12px;transition:background 0.15s">
+    <button type="button" id="generateDocBtn" onclick="generateAnnotatedDoc()" style="display:none;width:100%;padding:14px;background:#4f46e5;color:#fff;border:none;border-radius:12px;font-family:var(--font);font-size:15px;font-weight:600;cursor:pointer;margin-bottom:12px;transition:background 0.15s">
       📄 Générer le rapport PDF avec les points sélectionnés
     </button>
-    <button class="btn-new" onclick="resetForm()">+ Analyser un autre contrat</button>
+    <button type="button" class="btn-new" onclick="resetForm()">+ Analyser un autre contrat</button>
 
   </div> <!-- end results -->
 
@@ -234,7 +235,7 @@
       <input type="file" id="fileInput2" accept=".pdf,.docx" style="display:none"/>
     </div>
 
-    <button id="btnCompare" disabled onclick="startComparison()" style="width:100%;padding:14px;background:var(--indigo);color:#fff;border:none;border-radius:12px;font-family:var(--font);font-size:15px;font-weight:600;cursor:pointer;opacity:0.5;transition:all 0.15s;margin-bottom:32px;">
+    <button type="button" id="btnCompare" disabled onclick="startComparison()" style="width:100%;padding:14px;background:var(--indigo);color:#fff;border:none;border-radius:12px;font-family:var(--font);font-size:15px;font-weight:600;cursor:pointer;opacity:0.5;transition:all 0.15s;margin-bottom:32px;">
       Comparer les deux contrats
     </button>
 
@@ -252,7 +253,8 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="/Juria/assets/libs/docx.min.js"></script>
+  <script src="./assets/libs/docx.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
 
 <script>
 const _sb = supabase.createClient(
@@ -270,7 +272,12 @@ var contractParagraphs = []; // Contrat parsé en paragraphes {id, text}
 // Auth check
 async function init() {
   const { data: { session } } = await _sb.auth.getSession();
-  if (!session) { window.location.href = 'auth.html'; return; }
+  if (!session) {
+    // Attendre un peu que Supabase charge la session depuis localStorage
+    await new Promise(r => setTimeout(r, 800));
+    const { data: { session: session2 } } = await _sb.auth.getSession();
+    if (!session2) { window.location.href = 'auth.html'; return; }
+  }
 }
 init();
 
@@ -465,7 +472,7 @@ async function generateAnnotatedDoc() {
     '@media print{.no-print{display:none}}' +
     '</style></head><body>');
 
-  win.document.write('<h1>⚖️ Rapport d\'analyse — Juria</h1>');
+  win.document.write('<h1>Rapport d analyse - Juria</h1>');
   win.document.write('<p style="color:#6b7280;font-size:14px">' + (selectedFile ? selectedFile.name : 'Document') + ' · ' + new Date().toLocaleDateString('fr-MA') + '</p>');
 
   win.document.write('<div style="background:' + scoreBg + ';border-radius:12px;padding:20px;margin:20px 0;display:flex;gap:20px;align-items:center">');
@@ -481,7 +488,7 @@ async function generateAnnotatedDoc() {
   }
 
   win.document.write('<div class="footer">Rapport généré par Juria · À titre indicatif uniquement · Faites valider ce contrat par un avocat avant signature.</div>');
-  win.document.write('<div class="no-print" style="text-align:center;margin-top:24px"><button onclick="window.print()" style="padding:12px 32px;background:#4f46e5;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-weight:600">🖨️ Imprimer / Sauvegarder en PDF</button></div>');
+  win.document.write('<div class="no-print" style="text-align:center;margin-top:24px"><button type="button" onclick="window.print()" style="padding:12px 32px;background:#4f46e5;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-weight:600">🖨️ Imprimer / Sauvegarder en PDF</button></div>');
   win.document.write('</body></html>');
   win.document.close();
 }
@@ -613,7 +620,7 @@ function exportPDF() {
   win.document.write('<div style="background:#f8f9fb;border-radius:12px;padding:20px;margin:20px 0;display:flex;gap:20px;align-items:center"><div style="font-size:48px;font-weight:700;color:' + scoreColor + '">' + score + '<span style="font-size:20px">/10</span></div><div><strong>Score de conformité juridique</strong><p>' + (analysisResult.summary || '') + '</p></div></div>');
   if (issuesHtml) { win.document.write('<h2>⚠️ Points à corriger</h2>' + issuesHtml); }
   if (missingHtml) { win.document.write('<h2>📋 Clauses manquantes</h2><ul>' + missingHtml + '</ul>'); }
-  win.document.write('<div class="footer">Rapport généré par Juria · À titre indicatif uniquement · Faites valider ce contrat par un avocat avant signature.<br><button onclick="window.print()" style="margin-top:12px;padding:10px 24px;background:#4f46e5;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px">Imprimer / Sauvegarder en PDF</button></div>');
+  win.document.write('<div class="footer">Rapport généré par Juria · À titre indicatif uniquement · Faites valider ce contrat par un avocat avant signature.<br><button type="button" onclick="window.print()" style="margin-top:12px;padding:10px 24px;background:#4f46e5;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px">Imprimer / Sauvegarder en PDF</button></div>');
   win.document.write('</body></html>');
   win.document.close();
 }
@@ -622,18 +629,23 @@ function exportPDF() {
 async function extractPDFText(file) {
   return new Promise(function(resolve, reject) {
     if (window.pdfjsLib) {
-      try {
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
-        var arrayBuffer = await file.arrayBuffer();
-        var pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+      file.arrayBuffer().then(function(buf) {
+        return pdfjsLib.getDocument({ data: buf }).promise;
+      }).then(function(pdf) {
+        var pages = [];
+        for (var i = 1; i <= Math.min(pdf.numPages, 30); i++) pages.push(i);
         var text = '';
-        for (var i = 1; i <= Math.min(pdf.numPages, 30); i++) {
-          var page = await pdf.getPage(i);
-          var content2 = await page.getTextContent();
-          text += content2.items.map(function(s){ return s.str; }).join(' ') + '\n';
-        }
-        resolve(text);
-      } catch(e) { reject(e); }
+        return pages.reduce(function(p, i) {
+          return p.then(function() {
+            return pdf.getPage(i).then(function(page) {
+              return page.getTextContent().then(function(c) {
+                text += c.items.map(function(s){ return s.str; }).join(' ') + '\n';
+              });
+            });
+          });
+        }, Promise.resolve()).then(function() { resolve(text); });
+      }).catch(reject);
       return;
     }
     var script = document.createElement('script');
@@ -660,9 +672,7 @@ async function extractPDFText(file) {
 // DOCX extraction via mammoth
 async function extractDOCXText(file) {
   return new Promise(function(resolve, reject) {
-    var script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js';
-    script.onload = function() {
+    function doExtract() {
       var reader = new FileReader();
       reader.onload = function(e) {
         mammoth.extractRawText({ arrayBuffer: e.target.result })
@@ -671,9 +681,16 @@ async function extractDOCXText(file) {
       };
       reader.onerror = reject;
       reader.readAsArrayBuffer(file);
-    };
-    script.onerror = reject;
-    document.head.appendChild(script);
+    }
+    if (window.mammoth) {
+      doExtract();
+    } else {
+      var script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js';
+      script.onload = doExtract;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    }
   });
 }
 
@@ -693,9 +710,10 @@ window.switchTab = function switchTab(tab) {
 var contractText1 = null;
 var contractText2 = null;
 
-function setupDropZone(zoneId, inputId, labelId, varSetter, otherVar, btnId) {
+function setupDropZone(zoneId, inputId, labelId, varSetter, btnId) {
   var zone = document.getElementById(zoneId);
   var input = document.getElementById(inputId);
+  if (!zone || !input) return;
   
   zone.addEventListener('dragover', function(e) { e.preventDefault(); zone.style.borderColor = 'var(--indigo)'; zone.style.background = 'var(--indigo-bg)'; });
   zone.addEventListener('dragleave', function() { zone.style.borderColor = 'var(--slate-300)'; zone.style.background = 'var(--white)'; });
@@ -705,7 +723,6 @@ function setupDropZone(zoneId, inputId, labelId, varSetter, otherVar, btnId) {
     zone.style.background = 'var(--white)';
     if (e.dataTransfer.files[0]) handleCompareFile(e.dataTransfer.files[0], labelId, varSetter, btnId);
   });
-  
   input.addEventListener('change', function(e) {
     if (e.target.files[0]) handleCompareFile(e.target.files[0], labelId, varSetter, btnId);
   });
@@ -713,30 +730,34 @@ function setupDropZone(zoneId, inputId, labelId, varSetter, otherVar, btnId) {
 
 async function handleCompareFile(file, labelId, varSetter, btnId) {
   var ext = file.name.split('.').pop().toLowerCase();
-  document.getElementById(labelId).textContent = '⏳ Extraction en cours...';
+  document.getElementById(labelId).textContent = 'Extraction en cours...';
   
-  var text = '';
-  if (ext === 'pdf') {
-    text = await extractPDFText(file);
-  } else {
-    text = await extractDOCXText(file);
-  }
-  
-  varSetter(text);
-  document.getElementById(labelId).innerHTML = '✅ <strong>' + file.name + '</strong> chargé (' + Math.round(text.length/1000) + 'k caractères)';
-  document.getElementById(labelId).parentElement.style.borderColor = 'var(--green)';
-  document.getElementById(labelId).parentElement.style.background = 'var(--green-bg)';
-  
-  // Activer le bouton si les deux fichiers sont chargés
-  if (contractText1 && contractText2) {
-    document.getElementById(btnId).disabled = false;
-    document.getElementById(btnId).style.opacity = '1';
+  try {
+    var text = '';
+    if (ext === 'pdf') {
+      text = await extractPDFText(file);
+    } else {
+      text = await extractDOCXText(file);
+    }
+    
+    varSetter(text);
+    document.getElementById(labelId).innerHTML = '<strong>' + file.name + '</strong> charge (' + Math.round(text.length/1000) + 'k car.)';
+    document.getElementById(labelId).parentElement.style.borderColor = '#10b981';
+    document.getElementById(labelId).parentElement.style.background = '#ecfdf5';
+    
+    // Activer le bouton si les deux fichiers sont charges
+    if (contractText1 && contractText2) {
+      var btn = document.getElementById(btnId);
+      if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+    }
+  } catch(e) {
+    document.getElementById(labelId).textContent = 'Erreur extraction: ' + e.message;
   }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-  setupDropZone('dropZone1', 'fileInput1', 'dropLabel1', function(t) { contractText1 = t; }, contractText2, 'btnCompare');
-  setupDropZone('dropZone2', 'fileInput2', 'dropLabel2', function(t) { contractText2 = t; }, contractText1, 'btnCompare');
+  setupDropZone('dropZone1', 'fileInput1', 'dropLabel1', function(t) { contractText1 = t; }, 'btnCompare');
+  setupDropZone('dropZone2', 'fileInput2', 'dropLabel2', function(t) { contractText2 = t; }, 'btnCompare');
 });
 
 window.startComparison = async function startComparison() {
@@ -768,7 +789,7 @@ window.startComparison = async function startComparison() {
     var result = await res.json();
     console.log('COMPARE RESULT', result);
     
-    // L'Edge Function retourne {answer: "..."} — on parse le JSON dans answer
+    // L Edge Function retourne answer string - on parse le JSON dans answer
     var compareData = result;
     if (result.answer) {
       try {
@@ -827,7 +848,7 @@ function renderComparison(result) {
   }
 
   // Export PDF
-  html += '<button onclick="exportComparePDF()" style="width:100%;padding:12px;border:1px solid var(--border);background:none;border-radius:10px;font-family:var(--font);font-size:14px;color:var(--slate-700);cursor:pointer;margin-top:12px;">⬇️ Exporter le rapport PDF</button>';
+  html += '<button type="button" onclick="exportComparePDF()" style="width:100%;padding:12px;border:1px solid var(--border);background:none;border-radius:10px;font-family:var(--font);font-size:14px;color:var(--slate-700);cursor:pointer;margin-top:12px;">⬇️ Exporter le rapport PDF</button>';
 
   document.getElementById('compareResults').innerHTML = html;
   document.getElementById('compareResults').style.display = 'block';
@@ -857,7 +878,7 @@ window.exportComparePDF = function exportComparePDF() {
   win.document.write('<h2>Résumé</h2><p>' + (result.summary || '') + '</p>');
   win.document.write('<h2>Changements détectés</h2>' + changesHtml);
   win.document.write('<div style="margin-top:40px;padding-top:16px;border-top:1px solid #e5e7eb;color:#9ca3af;font-size:12px;text-align:center">Rapport généré par Juria · À titre indicatif uniquement</div>');
-  win.document.write('<div style="text-align:center;margin-top:16px"><button onclick="window.print()" style="padding:10px 24px;background:#4f46e5;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px">🖨️ Imprimer / PDF</button></div>');
+  win.document.write('<div style="text-align:center;margin-top:16px"><button type="button" onclick="window.print()" style="padding:10px 24px;background:#4f46e5;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px">🖨️ Imprimer / PDF</button></div>');
   win.document.write('</body></html>');
   win.document.close();
 }
