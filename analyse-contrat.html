@@ -663,7 +663,7 @@ async function extractDOCXText(file) {
 }
 
 // ---- ONGLETS ----
-function switchTab(tab) {
+window.switchTab = function switchTab(tab) {
   document.getElementById('section-analyse').style.display = tab === 'analyse' ? 'block' : 'none';
   document.getElementById('section-comparaison').style.display = tab === 'comparaison' ? 'block' : 'none';
   document.getElementById('tab-analyse').style.color = tab === 'analyse' ? 'var(--indigo)' : 'var(--slate-400)';
@@ -719,10 +719,12 @@ async function handleCompareFile(file, labelId, varSetter, btnId) {
   }
 }
 
-setupDropZone('dropZone1', 'fileInput1', 'dropLabel1', function(t) { contractText1 = t; }, contractText2, 'btnCompare');
-setupDropZone('dropZone2', 'fileInput2', 'dropLabel2', function(t) { contractText2 = t; }, contractText1, 'btnCompare');
+document.addEventListener('DOMContentLoaded', function() {
+  setupDropZone('dropZone1', 'fileInput1', 'dropLabel1', function(t) { contractText1 = t; }, contractText2, 'btnCompare');
+  setupDropZone('dropZone2', 'fileInput2', 'dropLabel2', function(t) { contractText2 = t; }, contractText1, 'btnCompare');
+});
 
-async function startComparison() {
+window.startComparison = async function startComparison() {
   if (!contractText1 || !contractText2) return;
   
   document.getElementById('loadingCompare').style.display = 'block';
@@ -810,7 +812,7 @@ function renderComparison(result) {
   window._compareResult = result;
 }
 
-function exportComparePDF() {
+window.exportComparePDF = function exportComparePDF() {
   var result = window._compareResult;
   if (!result) return;
   var win = window.open('', '_blank');
