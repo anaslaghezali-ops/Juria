@@ -465,7 +465,7 @@ async function generateAnnotatedDoc() {
     '@media print{.no-print{display:none}}' +
     '</style></head><body>');
 
-  win.document.write('<h1>⚖️ Rapport d'analyse — Juria</h1>');
+  win.document.write('<h1>Rapport d analyse - Juria</h1>');
   win.document.write('<p style="color:#6b7280;font-size:14px">' + (selectedFile ? selectedFile.name : 'Document') + ' · ' + new Date().toLocaleDateString('fr-MA') + '</p>');
 
   win.document.write('<div style="background:' + scoreBg + ';border-radius:12px;padding:20px;margin:20px 0;display:flex;gap:20px;align-items:center">');
@@ -773,7 +773,7 @@ window.startComparison = async function startComparison() {
     var result = await res.json();
     console.log('COMPARE RESULT', result);
     
-    // L'Edge Function retourne {answer: "..."} — on parse le JSON dans answer
+    // L Edge Function retourne answer string - on parse le JSON dans answer
     var compareData = result;
     if (result.answer) {
       try {
