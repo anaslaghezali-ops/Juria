@@ -1052,9 +1052,9 @@ async function generateDeliverable(livText, citations) {
 
     // Prompt spécifique pour générer un document structuré
     var prompt = 'Génère un document professionnel complet intitulé "' + livText + '" pour un professionnel juridique marocain. ' +
-      'Structure le document avec : 1. Introduction/contexte 2. Base légale (articles de loi applicables) 3. Contenu principal détaillé (checklist, étapes, ou guide selon le type) 4. Points d'attention 5. Références légales. ' +
-      'Le document doit être pratique, précis et directement utilisable. ' +
-      (citationsContext ? 'Utilise ces sources juridiques disponibles: ' + citationsContext : '');
+      'Structure le document avec : 1. Introduction/contexte 2. Base legale 3. Contenu principal detaille (checklist, etapes, ou guide selon le type) 4. Points importants 5. References legales. ' +
+      'Le document doit etre pratique, precis et directement utilisable. ' +
+      (citationsContext ? 'Sources juridiques: ' + citationsContext : '');
 
     var res = await fetch(JURIA_CONFIG.EDGE_FUNCTION_URL, {
       method: 'POST',
