@@ -254,644 +254,17 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./assets/libs/docx.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
-
-<script>
-const _sb = supabase.createClient(
-  'https://dnrudcpaqcqyybpbbrum.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRucnVkY3BhcWNxeXlicGJicnVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyODQwMjMsImV4cCI6MjA5Njg2MDAyM30.f6_byMzZBE2SQH2XjNmRQFQpRkRIfXE2OC0mNxQt5z4'
-);
-
-const EDGE_URL = 'https://dnrudcpaqcqyybpbbrum.supabase.co/functions/v1/smart-endpoint';
-
-var selectedFile = null;
-var extractedText = null;
-var analysisResult = null;
-var contractParagraphs = []; // Contrat parsé en paragraphes {id, text}
-
-// Auth check
-async function init() {
-  const { data: { session } } = await _sb.auth.getSession();
-  if (!session) {
-    // Attendre un peu que Supabase charge la session depuis localStorage
-    await new Promise(r => setTimeout(r, 800));
-    const { data: { session: session2 } } = await _sb.auth.getSession();
-    if (!session2) { window.location.href = 'auth.html'; return; }
-  }
-}
-init();
-
-// Drag & Drop
-var dropZone = document.getElementById('dropZone');
-dropZone.addEventListener('dragover', function(e) { e.preventDefault(); dropZone.classList.add('drag-over'); });
-dropZone.addEventListener('dragleave', function() { dropZone.classList.remove('drag-over'); });
-dropZone.addEventListener('drop', function(e) {
-  e.preventDefault(); dropZone.classList.remove('drag-over');
-  var file = e.dataTransfer.files[0];
-  if (file) handleFile(file);
-});
-dropZone.addEventListener('click', function() { document.getElementById('fileInput').click(); });
-document.getElementById('fileInput').addEventListener('change', function(e) {
-  if (e.target.files[0]) handleFile(e.target.files[0]);
-});
-
-function handleFile(file) {
-  if (file.size > 10 * 1024 * 1024) { alert('Fichier trop volumineux. Maximum 10 MB.'); return; }
-  var ext = file.name.split('.').pop().toLowerCase();
-  if (!['pdf','docx'].includes(ext)) { alert('Format non supporté. Utilisez PDF ou DOCX.'); return; }
-
-  selectedFile = file;
-  document.getElementById('fileName').textContent = file.name;
-  document.getElementById('fileSize').textContent = (file.size / 1024).toFixed(0) + ' KB';
-  document.getElementById('fileIcon').textContent = ext === 'pdf' ? '📕' : '📘';
-  document.getElementById('fileSelected').classList.add('show');
-  document.getElementById('btnAnalyse').disabled = false;
-  document.getElementById('dropZone').style.display = 'none';
-}
-
-document.getElementById('btnRemove').addEventListener('click', function() { resetForm(); });
-
-function resetForm() {
-  selectedFile = null; extractedText = null; analysisResult = null; contractParagraphs = [];
-  document.getElementById('fileSelected').classList.remove('show');
-  document.getElementById('dropZone').style.display = 'block';
-  document.getElementById('btnAnalyse').disabled = true;
-  document.getElementById('results').classList.remove('show');
-  document.getElementById('loading').classList.remove('show');
-  document.getElementById('fileInput').value = '';
-}
-
-async function startAnalysis() {
-  if (!selectedFile) return;
-  document.getElementById('btnAnalyse').disabled = true;
-  document.getElementById('loading').classList.add('show');
-  document.getElementById('results').classList.remove('show');
-
-  try {
-    setStep('Extraction du texte...');
-    var ext = selectedFile.name.split('.').pop().toLowerCase();
-    if (ext === 'pdf') {
-      extractedText = await extractPDFText(selectedFile);
-    } else {
-      extractedText = await extractDOCXText(selectedFile);
-    }
-
-    if (!extractedText || extractedText.trim().length < 50) {
-      throw new Error('Impossible d\'extraire le texte du document.');
-    }
-
-    // Parser le contrat en paragraphes numérotés
-    contractParagraphs = extractedText.split('\n')
-      .map(function(t) { return t.trim(); })
-      .filter(function(t) { return t.length > 2; })
-      .map(function(t, i) { return { id: i + 1, text: t }; });
-
-    setStep('Analyse juridique en cours...');
-    var session = await _sb.auth.getSession();
-    var token = session.data.session.access_token;
-
-    // Envoyer les paragraphes numérotés à GPT pour identification précise
-    var paragraphsForGPT = contractParagraphs.slice(0, 150).map(function(p) {
-      return '[' + p.id + '] ' + p.text.slice(0, 300);
-    }).join('\n');
-
-    var res = await fetch(EDGE_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-      body: JSON.stringify({
-        question: 'Analyse ce contrat',
-        contract_to_analyze: paragraphsForGPT,
-        mode: 'analyze',
-        history: []
-      }),
-    });
-
-    if (!res.ok) throw new Error('Erreur serveur: ' + res.status);
-    analysisResult = await res.json();
-
-    setStep('Finalisation...');
-    showResults(analysisResult);
-
-    // Stocker le texte dans sessionStorage pour "poser des questions"
-    sessionStorage.setItem('juriaDocText', extractedText);
-    sessionStorage.setItem('juriaDocName', selectedFile.name);
-
-
-    // NOUVEAU : Persister l'analyse en base de données
-    setStep('Enregistrement de l\'analyse...');
-    await saveAnalysisToDatabase(analysisResult, selectedFile, extractedText);
-  } catch(e) {
-    alert('Erreur: ' + e.message);
-    document.getElementById('btnAnalyse').disabled = false;
-  } finally {
-    document.getElementById('loading').classList.remove('show');
-  }
-}
-
-function setStep(text) {
-  document.getElementById('loadingStep').textContent = text;
-}
-
-function showResults(result) {
-  var score = result.score || 0;
-  var scoreEl = document.getElementById('scoreNumber');
-  scoreEl.textContent = score;
-
-  var circle = document.getElementById('scoreCircle');
-  if (score >= 7) { circle.style.background = '#ecfdf5'; scoreEl.style.color = '#065f46'; }
-  else if (score >= 5) { circle.style.background = '#fffbeb'; scoreEl.style.color = '#92400e'; }
-  else { circle.style.background = '#fef2f2'; scoreEl.style.color = '#991b1b'; }
-
-  document.getElementById('scoreSummary').textContent = result.summary || 'Analyse complète';
-
-  // Issues avec checkboxes
-  if (result.issues && result.issues.length > 0) {
-    document.getElementById('issuesCard').style.display = 'block';
-    document.getElementById('issuesList').innerHTML = result.issues.map(function(issue, i) {
-      var sev = issue.severity || 'medium';
-      var sevLabel = sev === 'high' ? 'Critique' : sev === 'medium' ? 'Important' : 'Mineur';
-      return '<div class="issue-item"><div class="issue-header"><input type="checkbox" class="issue-checkbox" data-index="' + i + '" data-type="issue" style="width:16px;height:16px;cursor:pointer;accent-color:#4f46e5"/><span class="severity-badge severity-' + sev + '">' + sevLabel + '</span><span class="issue-clause">' + (issue.clause || '') + '</span></div><div class="issue-problem">' + (issue.problem || '') + '</div>' + (issue.suggestion ? '<div class="issue-suggestion">💡 ' + issue.suggestion + '</div>' : '') + '</div>';
-    }).join('');
-  }
-
-  // Missing clauses avec checkboxes
-  if (result.missing_clauses && result.missing_clauses.length > 0) {
-    document.getElementById('missingCard').style.display = 'block';
-    document.getElementById('missingList').innerHTML = result.missing_clauses.map(function(c, i) {
-      // Handle both string and object formats
-      var text = typeof c === 'string' ? c : (c.clause || c.name || c.description || JSON.stringify(c));
-      return '<div class="missing-item"><input type="checkbox" class="issue-checkbox" data-index="' + i + '" data-type="missing" style="width:16px;height:16px;cursor:pointer;accent-color:#4f46e5;flex-shrink:0"/>' + text + '</div>';
-    }).join('');
-  }
-
-  // Bouton générer docx avec commentaires
-  document.getElementById('generateDocBtn').style.display = 'block';
-  document.getElementById('results').classList.add('show');
-}
-
-async function generateAnnotatedDoc() {
-  var selectedIssues = [];
-  var selectedMissing = [];
-
-  document.querySelectorAll('.issue-checkbox:checked').forEach(function(cb) {
-    var idx = parseInt(cb.dataset.index);
-    if (cb.dataset.type === 'issue') {
-      selectedIssues.push(analysisResult.issues[idx]);
-    } else {
-      var clause = analysisResult.missing_clauses[idx];
-      selectedMissing.push(typeof clause === 'string' ? clause : (clause.name || JSON.stringify(clause)));
-    }
-  });
-
-  if (selectedIssues.length === 0 && selectedMissing.length === 0) {
-    alert('Cochez au moins un point à modifier.');
-    return;
-  }
-
-  // Générer rapport PDF avec uniquement les points sélectionnés
-  var win = window.open('', '_blank');
-  var score = analysisResult.score || 0;
-  var scoreColor = score >= 7 ? '#065f46' : score >= 5 ? '#92400e' : '#991b1b';
-  var scoreBg = score >= 7 ? '#ecfdf5' : score >= 5 ? '#fffbeb' : '#fef2f2';
-
-  var issuesHtml = selectedIssues.map(function(issue) {
-    var sev = issue.severity === 'high' ? '🔴 Critique' : issue.severity === 'medium' ? '🟡 Important' : '🟢 Mineur';
-    var sevBg = issue.severity === 'high' ? '#fef2f2' : issue.severity === 'medium' ? '#fffbeb' : '#ecfdf5';
-    return '<div style="padding:16px;border:1px solid #e5e7eb;border-radius:10px;margin-bottom:12px;background:' + sevBg + '">' +
-      '<div style="font-weight:600;margin-bottom:8px">' + sev + ' — ' + (issue.clause || '') + '</div>' +
-      '<p style="color:#374151;margin:0 0 8px">' + (issue.problem || '') + '</p>' +
-      (issue.suggestion ? '<div style="background:#eef2ff;padding:10px;border-radius:8px;color:#3730a3"><strong>💡 Suggestion :</strong> ' + issue.suggestion + '</div>' : '') +
-      '</div>';
-  }).join('');
-
-  var missingHtml = selectedMissing.map(function(c) {
-    return '<div style="padding:10px 0;border-bottom:1px solid #f3f4f6;color:#374151">⚠️ ' + c + '</div>';
-  }).join('');
-
-  win.document.write('<html><head><title>Rapport Juria</title><style>' +
-    'body{font-family:Inter,Arial,sans-serif;max-width:800px;margin:40px auto;padding:0 32px;color:#0f1117}' +
-    'h1{color:#4f46e5;font-size:24px;margin-bottom:4px}' +
-    'h2{font-size:16px;font-weight:600;margin:28px 0 12px;padding-bottom:8px;border-bottom:2px solid #e5e7eb}' +
-    '.footer{margin-top:48px;padding-top:16px;border-top:1px solid #e5e7eb;color:#9ca3af;font-size:12px;text-align:center}' +
-    '@media print{.no-print{display:none}}' +
-    '</style></head><body>');
-
-  win.document.write('<h1>Rapport d analyse - Juria</h1>');
-  win.document.write('<p style="color:#6b7280;font-size:14px">' + (selectedFile ? selectedFile.name : 'Document') + ' · ' + new Date().toLocaleDateString('fr-MA') + '</p>');
-
-  win.document.write('<div style="background:' + scoreBg + ';border-radius:12px;padding:20px;margin:20px 0;display:flex;gap:20px;align-items:center">');
-  win.document.write('<div style="font-size:52px;font-weight:700;color:' + scoreColor + ';font-family:Georgia,serif">' + score + '<span style="font-size:22px">/10</span></div>');
-  win.document.write('<div><strong style="font-size:15px">Score de conformité juridique</strong><p style="margin:4px 0 0;color:#374151">' + (analysisResult.summary || '') + '</p></div>');
-  win.document.write('</div>');
-
-  if (issuesHtml) {
-    win.document.write('<h2>⚠️ Points à corriger (' + selectedIssues.length + ' sélectionnés)</h2>' + issuesHtml);
-  }
-  if (missingHtml) {
-    win.document.write('<h2>📋 Clauses manquantes (' + selectedMissing.length + ' sélectionnées)</h2>' + missingHtml);
-  }
-
-  win.document.write('<div class="footer">Rapport généré par Juria · À titre indicatif uniquement · Faites valider ce contrat par un avocat avant signature.</div>');
-  win.document.write('<div class="no-print" style="text-align:center;margin-top:24px"><button type="button" onclick="window.print()" style="padding:12px 32px;background:#4f46e5;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-weight:600">🖨️ Imprimer / Sauvegarder en PDF</button></div>');
-  win.document.write('</body></html>');
-  win.document.close();
-}
-
-async function generateDocxWithComments(contractParas, annotationMap, missing) {
-  var D = window.docx;
-  if (!D) {
-    alert('Librairie Word non disponible. Utilisez le bouton PDF a la place.');
-    return;
-  }
-
-  var paragraphs = [];
-
-  // En-tete
-  paragraphs.push(new D.Paragraph({
-    children: [new D.TextRun({ text: 'CONTRAT AVEC ANNOTATIONS - JURIA', bold: true, size: 28, color: '4f46e5' })],
-    alignment: D.AlignmentType.CENTER,
-    spacing: { after: 120 },
-  }));
-  paragraphs.push(new D.Paragraph({
-    children: [new D.TextRun({ text: 'Annote le ' + new Date().toLocaleDateString('fr-MA') + ' - A reviser par un avocat avant signature', size: 16, color: '888888', italics: true })],
-    alignment: D.AlignmentType.CENTER,
-    spacing: { after: 400 },
-  }));
-
-  // Contrat original avec annotations injectees localement (zero appel GPT)
-  contractParas.forEach(function(p) {
-    var isTitre = p.text.length < 100 && (
-      p.text.toLowerCase().indexOf('article') === 0 ||
-      p.text.toLowerCase().indexOf('chapitre') === 0
-    );
-
-    paragraphs.push(new D.Paragraph({
-      children: [new D.TextRun({ text: p.text, bold: !!isTitre, size: isTitre ? 22 : 20 })],
-      spacing: { after: isTitre ? 100 : 60 },
-    }));
-
-    var annotations = annotationMap[p.id] || [];
-    annotations.forEach(function(issue) {
-      var sevColor = issue.severity === 'high' ? 'ef4444' : issue.severity === 'medium' ? 'f59e0b' : '10b981';
-      var sevLabel = issue.severity === 'high' ? 'CRITIQUE' : issue.severity === 'medium' ? 'IMPORTANT' : 'MINEUR';
-
-      paragraphs.push(new D.Paragraph({
-        children: [
-          new D.TextRun({ text: '[JURIA - ' + sevLabel + '] ', bold: true, size: 18, color: sevColor }),
-          new D.TextRun({ text: issue.problem || '', size: 18, color: '374151', italics: true }),
-        ],
-        spacing: { before: 40, after: 40 },
-        indent: { left: 480 },
-      }));
-
-      if (issue.suggestion) {
-        paragraphs.push(new D.Paragraph({
-          children: [
-            new D.TextRun({ text: 'Suggestion: ', bold: true, size: 18, color: '4f46e5' }),
-            new D.TextRun({ text: issue.suggestion, size: 18, color: '3730a3' }),
-          ],
-          spacing: { after: 120 },
-          indent: { left: 480 },
-        }));
-      }
-    });
-  });
-
-  // Clauses manquantes a la fin
-  if (missing && missing.length > 0) {
-    paragraphs.push(new D.Paragraph({ children: [], spacing: { before: 400 } }));
-    paragraphs.push(new D.Paragraph({
-      children: [new D.TextRun({ text: 'CLAUSES A AJOUTER', bold: true, size: 24, color: 'f59e0b' })],
-      spacing: { after: 200 },
-    }));
-    missing.forEach(function(clause) {
-      paragraphs.push(new D.Paragraph({
-        children: [
-          new D.TextRun({ text: '+ ', bold: true, size: 20, color: 'f59e0b' }),
-          new D.TextRun({ text: clause, size: 20 }),
-        ],
-        spacing: { after: 100 },
-        indent: { left: 360 },
-      }));
-    });
-  }
-
-  // Footer
-  paragraphs.push(new D.Paragraph({ children: [], spacing: { before: 600 } }));
-  paragraphs.push(new D.Paragraph({
-    children: [new D.TextRun({ text: 'Document annote par Juria - A titre indicatif uniquement - Faire valider par un avocat.', color: '9ca3af', size: 16, italics: true })],
-    alignment: D.AlignmentType.CENTER,
-  }));
-
-  var doc = new D.Document({
-    creator: 'Juria',
-    title: 'Contrat Annote',
-    sections: [{ properties: {}, children: paragraphs }],
-  });
-
-  D.Packer.toBlob(doc).then(function(blob) {
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = 'contrat-annote-juria.docx';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
-  });
-}
-
-
-function exportPDF() {
-  if (!analysisResult) return;
-  var win = window.open('', '_blank');
-  var score = analysisResult.score || 0;
-  var scoreColor = score >= 7 ? '#065f46' : score >= 5 ? '#92400e' : '#991b1b';
-  var issuesHtml = '';
-  if (analysisResult.issues) {
-    issuesHtml = analysisResult.issues.map(function(i) {
-      var sev = i.severity === 'high' ? '🔴 Critique' : i.severity === 'medium' ? '🟡 Important' : '🟢 Mineur';
-      return '<div style="padding:12px;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:8px"><strong>' + sev + ' — ' + i.clause + '</strong><p style="color:#374151;margin:6px 0">' + i.problem + '</p>' + (i.suggestion ? '<p style="color:#3730a3;background:#eef2ff;padding:8px;border-radius:6px">💡 ' + i.suggestion + '</p>' : '') + '</div>';
-    }).join('');
-  }
-  var missingHtml = '';
-  if (analysisResult.missing_clauses) {
-    missingHtml = analysisResult.missing_clauses.map(function(c) { return '<li>' + (typeof c === 'string' ? c : (c.clause || c.name || JSON.stringify(c))) + '</li>'; }).join('');
-  }
-  win.document.write('<html><head><title>Rapport Juria</title><style>body{font-family:Inter,sans-serif;max-width:800px;margin:40px auto;padding:0 24px;color:#0f1117}h1{color:#4f46e5;margin-bottom:4px}h2{margin:24px 0 12px;font-size:16px}.footer{margin-top:40px;padding-top:16px;border-top:1px solid #e5e7eb;color:#9ca3af;font-size:12px}</style></head><body>');
-  win.document.write('<h1>⚖️ Rapport d\'analyse — Juria</h1>');
-  win.document.write('<p style="color:#6b7280;font-size:14px">' + selectedFile.name + ' · ' + new Date().toLocaleDateString('fr-MA') + '</p>');
-  win.document.write('<div style="background:#f8f9fb;border-radius:12px;padding:20px;margin:20px 0;display:flex;gap:20px;align-items:center"><div style="font-size:48px;font-weight:700;color:' + scoreColor + '">' + score + '<span style="font-size:20px">/10</span></div><div><strong>Score de conformité juridique</strong><p>' + (analysisResult.summary || '') + '</p></div></div>');
-  if (issuesHtml) { win.document.write('<h2>⚠️ Points à corriger</h2>' + issuesHtml); }
-  if (missingHtml) { win.document.write('<h2>📋 Clauses manquantes</h2><ul>' + missingHtml + '</ul>'); }
-  win.document.write('<div class="footer">Rapport généré par Juria · À titre indicatif uniquement · Faites valider ce contrat par un avocat avant signature.<br><button type="button" onclick="window.print()" style="margin-top:12px;padding:10px 24px;background:#4f46e5;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px">Imprimer / Sauvegarder en PDF</button></div>');
-  win.document.write('</body></html>');
-  win.document.close();
-}
-
-// PDF extraction via PDF.js
-async function extractPDFText(file) {
-  return new Promise(function(resolve, reject) {
-    if (window.pdfjsLib) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
-      file.arrayBuffer().then(function(buf) {
-        return pdfjsLib.getDocument({ data: buf }).promise;
-      }).then(function(pdf) {
-        var pages = [];
-        for (var i = 1; i <= Math.min(pdf.numPages, 30); i++) pages.push(i);
-        var text = '';
-        return pages.reduce(function(p, i) {
-          return p.then(function() {
-            return pdf.getPage(i).then(function(page) {
-              return page.getTextContent().then(function(c) {
-                text += c.items.map(function(s){ return s.str; }).join(' ') + '\n';
-              });
-            });
-          });
-        }, Promise.resolve()).then(function() { resolve(text); });
-      }).catch(reject);
-      return;
-    }
-    var script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js';
-    script.onload = async function() {
-      try {
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
-        var arrayBuffer = await file.arrayBuffer();
-        var pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        var text = '';
-        for (var i = 1; i <= Math.min(pdf.numPages, 30); i++) {
-          var page = await pdf.getPage(i);
-          var content = await page.getTextContent();
-          text += content.items.map(function(s){ return s.str; }).join(' ') + '\n';
-        }
-        resolve(text);
-      } catch(e) { reject(e); }
-    };
-    script.onerror = reject;
-    document.head.appendChild(script);
-  });
-}
-
-// DOCX extraction via mammoth
-async function extractDOCXText(file) {
-  return new Promise(function(resolve, reject) {
-    function doExtract() {
-      var reader = new FileReader();
-      reader.onload = function(e) {
-        mammoth.extractRawText({ arrayBuffer: e.target.result })
-          .then(function(result) { resolve(result.value); })
-          .catch(reject);
-      };
-      reader.onerror = reject;
-      reader.readAsArrayBuffer(file);
-    }
-    if (window.mammoth) {
-      doExtract();
-    } else {
-      var script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js';
-      script.onload = doExtract;
-      script.onerror = reject;
-      document.head.appendChild(script);
-    }
-  });
-}
-
-// ---- ONGLETS ----
-window.switchTab = function switchTab(tab) {
-  document.getElementById('section-analyse').style.display = tab === 'analyse' ? 'block' : 'none';
-  document.getElementById('section-comparaison').style.display = tab === 'comparaison' ? 'block' : 'none';
-  document.getElementById('tab-analyse').style.color = tab === 'analyse' ? 'var(--indigo)' : 'var(--slate-400)';
-  document.getElementById('tab-analyse').style.borderBottomColor = tab === 'analyse' ? 'var(--indigo)' : 'transparent';
-  document.getElementById('tab-analyse').style.fontWeight = tab === 'analyse' ? '600' : '500';
-  document.getElementById('tab-comparaison').style.color = tab === 'comparaison' ? 'var(--indigo)' : 'var(--slate-400)';
-  document.getElementById('tab-comparaison').style.borderBottomColor = tab === 'comparaison' ? 'var(--indigo)' : 'transparent';
-  document.getElementById('tab-comparaison').style.fontWeight = tab === 'comparaison' ? '600' : '500';
-}
-
-// ---- COMPARAISON ----
-var contractText1 = null;
-var contractText2 = null;
-
-function setupDropZone(zoneId, inputId, labelId, varSetter, btnId) {
-  var zone = document.getElementById(zoneId);
-  var input = document.getElementById(inputId);
-  if (!zone || !input) return;
-  
-  zone.addEventListener('dragover', function(e) { e.preventDefault(); zone.style.borderColor = 'var(--indigo)'; zone.style.background = 'var(--indigo-bg)'; });
-  zone.addEventListener('dragleave', function() { zone.style.borderColor = 'var(--slate-300)'; zone.style.background = 'var(--white)'; });
-  zone.addEventListener('drop', function(e) {
-    e.preventDefault();
-    zone.style.borderColor = 'var(--slate-300)';
-    zone.style.background = 'var(--white)';
-    if (e.dataTransfer.files[0]) handleCompareFile(e.dataTransfer.files[0], labelId, varSetter, btnId);
-  });
-  input.addEventListener('change', function(e) {
-    if (e.target.files[0]) handleCompareFile(e.target.files[0], labelId, varSetter, btnId);
-  });
-}
-
-async function handleCompareFile(file, labelId, varSetter, btnId) {
-  var ext = file.name.split('.').pop().toLowerCase();
-  document.getElementById(labelId).textContent = 'Extraction en cours...';
-  
-  try {
-    var text = '';
-    if (ext === 'pdf') {
-      text = await extractPDFText(file);
-    } else {
-      text = await extractDOCXText(file);
-    }
-    
-    varSetter(text);
-    document.getElementById(labelId).innerHTML = '<strong>' + file.name + '</strong> charge (' + Math.round(text.length/1000) + 'k car.)';
-    document.getElementById(labelId).parentElement.style.borderColor = '#10b981';
-    document.getElementById(labelId).parentElement.style.background = '#ecfdf5';
-    
-    // Activer le bouton si les deux fichiers sont charges
-    if (contractText1 && contractText2) {
-      var btn = document.getElementById(btnId);
-      if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
-    }
-  } catch(e) {
-    document.getElementById(labelId).textContent = 'Erreur extraction: ' + e.message;
-  }
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-  setupDropZone('dropZone1', 'fileInput1', 'dropLabel1', function(t) { contractText1 = t; }, 'btnCompare');
-  setupDropZone('dropZone2', 'fileInput2', 'dropLabel2', function(t) { contractText2 = t; }, 'btnCompare');
-});
-
-window.startComparison = async function startComparison() {
-  if (!contractText1 || !contractText2) return;
-  
-  document.getElementById('loadingCompare').style.display = 'block';
-  document.getElementById('compareResults').style.display = 'none';
-  document.getElementById('btnCompare').disabled = true;
-  
-  try {
-    var sessionData = await _sb.auth.getSession();
-    if (!sessionData.data.session) { alert('Session expirée'); window.location.href = 'auth.html'; return; }
-    var token = sessionData.data.session.access_token;
-    
-    var prompt = 'Tu es expert juridique. Compare ces deux versions de contrat. Retourne UNIQUEMENT un JSON valide sans markdown: {"summary": "resume", "changes": [{"type": "modification", "clause": "Salaire", "v1": "3000 MAD", "v2": "3500 MAD", "impact": "majeur"}]}. Types: ajout, suppression, modification. Impact: majeur, mineur, neutre.';
-    
-    var res = await fetch(EDGE_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-      body: JSON.stringify({
-        question: prompt,
-        document_context: 'CONTRAT V1:\n' + contractText1.slice(0, 5000) + '\n\n---\n\nCONTRAT V2:\n' + contractText2.slice(0, 5000),
-        mode: 'compare',
-        history: []
-      }),
-    });
-    
-    if (!res.ok) throw new Error('Erreur: ' + res.status);
-    var result = await res.json();
-    console.log('COMPARE RESULT', result);
-    
-    // Compare mode retourne JSON directement
-    var compareData = result;
-    if (!compareData.changes) {
-      compareData = { summary: result.answer || 'Erreur', changes: [] };
-    }
-    
-    renderComparison(compareData);
-  } catch(e) {
-    alert('Erreur: ' + e.message);
-  } finally {
-    document.getElementById('loadingCompare').style.display = 'none';
-    document.getElementById('btnCompare').disabled = false;
-  }
-}
-
-function renderComparison(result) {
-  var changes = result.changes || [];
-  // Normaliser les types (GPT peut retourner addition/ajout/added etc.)
-  changes.forEach(function(c) {
-    if (c.type === 'addition' || c.type === 'added' || c.type === 'add') c.type = 'ajout';
-    if (c.type === 'deletion' || c.type === 'removed' || c.type === 'remove' || c.type === 'deleted') c.type = 'suppression';
-    if (c.type === 'change' || c.type === 'changed' || c.type === 'update' || c.type === 'updated') c.type = 'modification';
-  });
-  var typeColors = { ajout: '#10b981', suppression: '#ef4444', modification: '#f59e0b' };
-  var typeLabels = { ajout: '➕ Ajout', suppression: '➖ Suppression', modification: '✏️ Modification' };
-  var impactColors = { majeur: '#fef2f2', mineur: '#fffbeb', neutre: '#f9fafb' };
-
-  var html = '<div style="background:var(--white);border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:16px;">';
-  html += '<div style="font-size:15px;font-weight:600;color:var(--slate-900);margin-bottom:8px;">📊 Résumé de la comparaison</div>';
-  html += '<div style="font-size:14px;color:var(--slate-500);">' + (result.summary || '') + '</div>';
-  html += '<div style="display:flex;gap:16px;margin-top:16px;flex-wrap:wrap;">';
-  var ajouts = changes.filter(function(c) { return c.type === 'ajout'; }).length;
-  var supps = changes.filter(function(c) { return c.type === 'suppression'; }).length;
-  var mods = changes.filter(function(c) { return c.type === 'modification'; }).length;
-  html += '<div style="background:#ecfdf5;padding:10px 16px;border-radius:8px;font-size:13px;color:#065f46;font-weight:600;">➕ ' + ajouts + ' ajout' + (ajouts > 1 ? 's' : '') + '</div>';
-  html += '<div style="background:#fef2f2;padding:10px 16px;border-radius:8px;font-size:13px;color:#991b1b;font-weight:600;">➖ ' + supps + ' suppression' + (supps > 1 ? 's' : '') + '</div>';
-  html += '<div style="background:#fffbeb;padding:10px 16px;border-radius:8px;font-size:13px;color:#92400e;font-weight:600;">✏️ ' + mods + ' modification' + (mods > 1 ? 's' : '') + '</div>';
-  html += '</div></div>';
-
-  if (changes.length > 0) {
-    html += '<div style="background:var(--white);border:1px solid var(--border);border-radius:16px;padding:24px;">';
-    html += '<div style="font-size:15px;font-weight:600;color:var(--slate-900);margin-bottom:16px;">📋 Détail des changements</div>';
-    changes.forEach(function(change, i) {
-      var color = typeColors[change.type] || '#6b7280';
-      var label = typeLabels[change.type] || change.type;
-      var bg = impactColors[change.impact] || '#f9fafb';
-      html += '<div style="padding:16px;border-radius:10px;margin-bottom:12px;background:' + bg + ';border-left:4px solid ' + color + ';">';
-      html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">';
-      html += '<span style="font-size:12px;font-weight:700;color:' + color + ';">' + label + '</span>';
-      html += '<span style="font-size:12px;font-weight:600;color:var(--slate-700);">' + (change.clause || '') + '</span>';
-      if (change.impact === 'majeur') html += '<span style="font-size:11px;background:#fef2f2;color:#991b1b;padding:2px 8px;border-radius:99px;font-weight:600;">Impact majeur</span>';
-      html += '</div>';
-      if (change.v1) html += '<div style="font-size:12px;color:var(--slate-500);margin-bottom:4px;"><strong>V1:</strong> ' + change.v1 + '</div>';
-      if (change.v2) html += '<div style="font-size:12px;color:var(--slate-700);"><strong>V2:</strong> ' + change.v2 + '</div>';
-      html += '</div>';
-    });
-    html += '</div>';
-  }
-
-  // Export PDF
-  html += '<button type="button" onclick="exportComparePDF()" style="width:100%;padding:12px;border:1px solid var(--border);background:none;border-radius:10px;font-family:var(--font);font-size:14px;color:var(--slate-700);cursor:pointer;margin-top:12px;">⬇️ Exporter le rapport PDF</button>';
-
-  document.getElementById('compareResults').innerHTML = html;
-  document.getElementById('compareResults').style.display = 'block';
-  
-  // Stocker pour export
-  window._compareResult = result;
-}
-
-window.exportComparePDF = function exportComparePDF() {
-  var result = window._compareResult;
-  if (!result) return;
-  var win = window.open('', '_blank');
-  var changes = result.changes || [];
-  var changesHtml = changes.map(function(c) {
-    var color = c.type === 'ajout' ? '#10b981' : c.type === 'suppression' ? '#ef4444' : '#f59e0b';
-    var label = c.type === 'ajout' ? 'Ajout' : c.type === 'suppression' ? 'Suppression' : 'Modification';
-    return '<div style="padding:12px;border-left:4px solid ' + color + ';margin-bottom:10px;background:#f9fafb;">' +
-      '<strong style="color:' + color + '">[' + label + ']</strong> ' + (c.clause || '') +
-      (c.v1 ? '<div style="font-size:12px;color:#666;margin-top:4px">V1: ' + c.v1 + '</div>' : '') +
-      (c.v2 ? '<div style="font-size:12px;color:#333;margin-top:2px">V2: ' + c.v2 + '</div>' : '') +
-      '</div>';
-  }).join('');
-  
-  win.document.write('<html><head><title>Comparaison Juria</title><style>body{font-family:Arial,sans-serif;max-width:800px;margin:40px auto;padding:0 24px;color:#0f1117}h1{color:#4f46e5}</style></head><body>');
-  win.document.write('<h1>⚖️ Rapport de comparaison — Juria</h1>');
-  win.document.write('<p style="color:#6b7280">' + new Date().toLocaleDateString('fr-MA') + '</p>');
-  win.document.write('<h2>Résumé</h2><p>' + (result.summary || '') + '</p>');
-  win.document.write('<h2>Changements détectés</h2>' + changesHtml);
-  win.document.write('<div style="margin-top:40px;padding-top:16px;border-top:1px solid #e5e7eb;color:#9ca3af;font-size:12px;text-align:center">Rapport généré par Juria · À titre indicatif uniquement</div>');
-  win.document.write('<div style="text-align:center;margin-top:16px"><button type="button" onclick="window.print()" style="padding:10px 24px;background:#4f46e5;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px">🖨️ Imprimer / PDF</button></div>');
-  win.document.write('</body></html>');
-  win.document.close();
-}
+  <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js">
 
 <!-- ============================================================ -->
 <!-- JURIA V2 — PERSISTANCE ANALYSE (NOUVELLES FONCTIONS)         -->
 <!-- ============================================================ -->
 <script>
+
+// ============================================================
+// 1. HELPER : Calcul SHA-256 du contenu
+// ============================================================
+
 async function calculateSHA256(text) {
   try {
     const encoder = new TextEncoder();
@@ -1413,6 +786,10 @@ async function saveAnalysisToDatabase(analysisResult, selectedFile, extractedTex
     // Stocker le texte dans sessionStorage pour "poser des questions"
     sessionStorage.setItem('juriaDocText', extractedText);
     sessionStorage.setItem('juriaDocName', selectedFile.name);
+
+    // NOUVEAU : Persister l'analyse en base de données
+    setStep('Enregistrement de l\'analyse...');
+    await saveAnalysisToDatabase(analysisResult, selectedFile, extractedText);
   
   APRÈS (ajouter ces lignes) :
   ────────────────────────────
@@ -1422,6 +799,10 @@ async function saveAnalysisToDatabase(analysisResult, selectedFile, extractedTex
     // Stocker le texte dans sessionStorage pour "poser des questions"
     sessionStorage.setItem('juriaDocText', extractedText);
     sessionStorage.setItem('juriaDocName', selectedFile.name);
+
+    // NOUVEAU : Persister l'analyse en base de données
+    setStep('Enregistrement de l\'analyse...');
+    await saveAnalysisToDatabase(analysisResult, selectedFile, extractedText);
 
     // NOUVEAU : Persister l'analyse en base de données
     setStep('Enregistrement de l\'analyse...');
@@ -1493,6 +874,641 @@ function showToast(message, type = 'info') {
 // ============================================================
 // FIN DU CODE À INTÉGRER
 // ============================================================
+
+</script>
+</script>
+
+<script>
+const _sb = supabase.createClient(
+  'https://dnrudcpaqcqyybpbbrum.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRucnVkY3BhcWNxeXlicGJicnVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyODQwMjMsImV4cCI6MjA5Njg2MDAyM30.f6_byMzZBE2SQH2XjNmRQFQpRkRIfXE2OC0mNxQt5z4'
+);
+
+const EDGE_URL = 'https://dnrudcpaqcqyybpbbrum.supabase.co/functions/v1/smart-endpoint';
+
+var selectedFile = null;
+var extractedText = null;
+var analysisResult = null;
+var contractParagraphs = []; // Contrat parsé en paragraphes {id, text}
+
+// Auth check
+async function init() {
+  const { data: { session } } = await _sb.auth.getSession();
+  if (!session) {
+    // Attendre un peu que Supabase charge la session depuis localStorage
+    await new Promise(r => setTimeout(r, 800));
+    const { data: { session: session2 } } = await _sb.auth.getSession();
+    if (!session2) { window.location.href = 'auth.html'; return; }
+  }
+}
+init();
+
+// Drag & Drop
+var dropZone = document.getElementById('dropZone');
+dropZone.addEventListener('dragover', function(e) { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', function() { dropZone.classList.remove('drag-over'); });
+dropZone.addEventListener('drop', function(e) {
+  e.preventDefault(); dropZone.classList.remove('drag-over');
+  var file = e.dataTransfer.files[0];
+  if (file) handleFile(file);
+});
+dropZone.addEventListener('click', function() { document.getElementById('fileInput').click(); });
+document.getElementById('fileInput').addEventListener('change', function(e) {
+  if (e.target.files[0]) handleFile(e.target.files[0]);
+});
+
+function handleFile(file) {
+  if (file.size > 10 * 1024 * 1024) { alert('Fichier trop volumineux. Maximum 10 MB.'); return; }
+  var ext = file.name.split('.').pop().toLowerCase();
+  if (!['pdf','docx'].includes(ext)) { alert('Format non supporté. Utilisez PDF ou DOCX.'); return; }
+
+  selectedFile = file;
+  document.getElementById('fileName').textContent = file.name;
+  document.getElementById('fileSize').textContent = (file.size / 1024).toFixed(0) + ' KB';
+  document.getElementById('fileIcon').textContent = ext === 'pdf' ? '📕' : '📘';
+  document.getElementById('fileSelected').classList.add('show');
+  document.getElementById('btnAnalyse').disabled = false;
+  document.getElementById('dropZone').style.display = 'none';
+}
+
+document.getElementById('btnRemove').addEventListener('click', function() { resetForm(); });
+
+function resetForm() {
+  selectedFile = null; extractedText = null; analysisResult = null; contractParagraphs = [];
+  document.getElementById('fileSelected').classList.remove('show');
+  document.getElementById('dropZone').style.display = 'block';
+  document.getElementById('btnAnalyse').disabled = true;
+  document.getElementById('results').classList.remove('show');
+  document.getElementById('loading').classList.remove('show');
+  document.getElementById('fileInput').value = '';
+}
+
+async function startAnalysis() {
+  if (!selectedFile) return;
+  document.getElementById('btnAnalyse').disabled = true;
+  document.getElementById('loading').classList.add('show');
+  document.getElementById('results').classList.remove('show');
+
+  try {
+    setStep('Extraction du texte...');
+    var ext = selectedFile.name.split('.').pop().toLowerCase();
+    if (ext === 'pdf') {
+      extractedText = await extractPDFText(selectedFile);
+    } else {
+      extractedText = await extractDOCXText(selectedFile);
+    }
+
+    if (!extractedText || extractedText.trim().length < 50) {
+      throw new Error('Impossible d\'extraire le texte du document.');
+    }
+
+    // Parser le contrat en paragraphes numérotés
+    contractParagraphs = extractedText.split('\n')
+      .map(function(t) { return t.trim(); })
+      .filter(function(t) { return t.length > 2; })
+      .map(function(t, i) { return { id: i + 1, text: t }; });
+
+    setStep('Analyse juridique en cours...');
+    var session = await _sb.auth.getSession();
+    var token = session.data.session.access_token;
+
+    // Envoyer les paragraphes numérotés à GPT pour identification précise
+    var paragraphsForGPT = contractParagraphs.slice(0, 150).map(function(p) {
+      return '[' + p.id + '] ' + p.text.slice(0, 300);
+    }).join('\n');
+
+    var res = await fetch(EDGE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({
+        question: 'Analyse ce contrat',
+        contract_to_analyze: paragraphsForGPT,
+        mode: 'analyze',
+        history: []
+      }),
+    });
+
+    if (!res.ok) throw new Error('Erreur serveur: ' + res.status);
+    analysisResult = await res.json();
+
+    setStep('Finalisation...');
+    showResults(analysisResult);
+
+    // Stocker le texte dans sessionStorage pour "poser des questions"
+    sessionStorage.setItem('juriaDocText', extractedText);
+    sessionStorage.setItem('juriaDocName', selectedFile.name);
+
+    // NOUVEAU : Persister l'analyse en base de données
+    setStep('Enregistrement de l\'analyse...');
+    await saveAnalysisToDatabase(analysisResult, selectedFile, extractedText);
+
+  } catch(e) {
+    alert('Erreur: ' + e.message);
+    document.getElementById('btnAnalyse').disabled = false;
+  } finally {
+    document.getElementById('loading').classList.remove('show');
+  }
+}
+
+function setStep(text) {
+  document.getElementById('loadingStep').textContent = text;
+}
+
+function showResults(result) {
+  var score = result.score || 0;
+  var scoreEl = document.getElementById('scoreNumber');
+  scoreEl.textContent = score;
+
+  var circle = document.getElementById('scoreCircle');
+  if (score >= 7) { circle.style.background = '#ecfdf5'; scoreEl.style.color = '#065f46'; }
+  else if (score >= 5) { circle.style.background = '#fffbeb'; scoreEl.style.color = '#92400e'; }
+  else { circle.style.background = '#fef2f2'; scoreEl.style.color = '#991b1b'; }
+
+  document.getElementById('scoreSummary').textContent = result.summary || 'Analyse complète';
+
+  // Issues avec checkboxes
+  if (result.issues && result.issues.length > 0) {
+    document.getElementById('issuesCard').style.display = 'block';
+    document.getElementById('issuesList').innerHTML = result.issues.map(function(issue, i) {
+      var sev = issue.severity || 'medium';
+      var sevLabel = sev === 'high' ? 'Critique' : sev === 'medium' ? 'Important' : 'Mineur';
+      return '<div class="issue-item"><div class="issue-header"><input type="checkbox" class="issue-checkbox" data-index="' + i + '" data-type="issue" style="width:16px;height:16px;cursor:pointer;accent-color:#4f46e5"/><span class="severity-badge severity-' + sev + '">' + sevLabel + '</span><span class="issue-clause">' + (issue.clause || '') + '</span></div><div class="issue-problem">' + (issue.problem || '') + '</div>' + (issue.suggestion ? '<div class="issue-suggestion">💡 ' + issue.suggestion + '</div>' : '') + '</div>';
+    }).join('');
+  }
+
+  // Missing clauses avec checkboxes
+  if (result.missing_clauses && result.missing_clauses.length > 0) {
+    document.getElementById('missingCard').style.display = 'block';
+    document.getElementById('missingList').innerHTML = result.missing_clauses.map(function(c, i) {
+      // Handle both string and object formats
+      var text = typeof c === 'string' ? c : (c.clause || c.name || c.description || JSON.stringify(c));
+      return '<div class="missing-item"><input type="checkbox" class="issue-checkbox" data-index="' + i + '" data-type="missing" style="width:16px;height:16px;cursor:pointer;accent-color:#4f46e5;flex-shrink:0"/>' + text + '</div>';
+    }).join('');
+  }
+
+  // Bouton générer docx avec commentaires
+  document.getElementById('generateDocBtn').style.display = 'block';
+  document.getElementById('results').classList.add('show');
+}
+
+async function generateAnnotatedDoc() {
+  var selectedIssues = [];
+  var selectedMissing = [];
+
+  document.querySelectorAll('.issue-checkbox:checked').forEach(function(cb) {
+    var idx = parseInt(cb.dataset.index);
+    if (cb.dataset.type === 'issue') {
+      selectedIssues.push(analysisResult.issues[idx]);
+    } else {
+      var clause = analysisResult.missing_clauses[idx];
+      selectedMissing.push(typeof clause === 'string' ? clause : (clause.name || JSON.stringify(clause)));
+    }
+  });
+
+  if (selectedIssues.length === 0 && selectedMissing.length === 0) {
+    alert('Cochez au moins un point à modifier.');
+    return;
+  }
+
+  // Générer rapport PDF avec uniquement les points sélectionnés
+  var win = window.open('', '_blank');
+  var score = analysisResult.score || 0;
+  var scoreColor = score >= 7 ? '#065f46' : score >= 5 ? '#92400e' : '#991b1b';
+  var scoreBg = score >= 7 ? '#ecfdf5' : score >= 5 ? '#fffbeb' : '#fef2f2';
+
+  var issuesHtml = selectedIssues.map(function(issue) {
+    var sev = issue.severity === 'high' ? '🔴 Critique' : issue.severity === 'medium' ? '🟡 Important' : '🟢 Mineur';
+    var sevBg = issue.severity === 'high' ? '#fef2f2' : issue.severity === 'medium' ? '#fffbeb' : '#ecfdf5';
+    return '<div style="padding:16px;border:1px solid #e5e7eb;border-radius:10px;margin-bottom:12px;background:' + sevBg + '">' +
+      '<div style="font-weight:600;margin-bottom:8px">' + sev + ' — ' + (issue.clause || '') + '</div>' +
+      '<p style="color:#374151;margin:0 0 8px">' + (issue.problem || '') + '</p>' +
+      (issue.suggestion ? '<div style="background:#eef2ff;padding:10px;border-radius:8px;color:#3730a3"><strong>💡 Suggestion :</strong> ' + issue.suggestion + '</div>' : '') +
+      '</div>';
+  }).join('');
+
+  var missingHtml = selectedMissing.map(function(c) {
+    return '<div style="padding:10px 0;border-bottom:1px solid #f3f4f6;color:#374151">⚠️ ' + c + '</div>';
+  }).join('');
+
+  win.document.write('<html><head><title>Rapport Juria</title><style>' +
+    'body{font-family:Inter,Arial,sans-serif;max-width:800px;margin:40px auto;padding:0 32px;color:#0f1117}' +
+    'h1{color:#4f46e5;font-size:24px;margin-bottom:4px}' +
+    'h2{font-size:16px;font-weight:600;margin:28px 0 12px;padding-bottom:8px;border-bottom:2px solid #e5e7eb}' +
+    '.footer{margin-top:48px;padding-top:16px;border-top:1px solid #e5e7eb;color:#9ca3af;font-size:12px;text-align:center}' +
+    '@media print{.no-print{display:none}}' +
+    '</style></head><body>');
+
+  win.document.write('<h1>Rapport d analyse - Juria</h1>');
+  win.document.write('<p style="color:#6b7280;font-size:14px">' + (selectedFile ? selectedFile.name : 'Document') + ' · ' + new Date().toLocaleDateString('fr-MA') + '</p>');
+
+  win.document.write('<div style="background:' + scoreBg + ';border-radius:12px;padding:20px;margin:20px 0;display:flex;gap:20px;align-items:center">');
+  win.document.write('<div style="font-size:52px;font-weight:700;color:' + scoreColor + ';font-family:Georgia,serif">' + score + '<span style="font-size:22px">/10</span></div>');
+  win.document.write('<div><strong style="font-size:15px">Score de conformité juridique</strong><p style="margin:4px 0 0;color:#374151">' + (analysisResult.summary || '') + '</p></div>');
+  win.document.write('</div>');
+
+  if (issuesHtml) {
+    win.document.write('<h2>⚠️ Points à corriger (' + selectedIssues.length + ' sélectionnés)</h2>' + issuesHtml);
+  }
+  if (missingHtml) {
+    win.document.write('<h2>📋 Clauses manquantes (' + selectedMissing.length + ' sélectionnées)</h2>' + missingHtml);
+  }
+
+  win.document.write('<div class="footer">Rapport généré par Juria · À titre indicatif uniquement · Faites valider ce contrat par un avocat avant signature.</div>');
+  win.document.write('<div class="no-print" style="text-align:center;margin-top:24px"><button type="button" onclick="window.print()" style="padding:12px 32px;background:#4f46e5;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-weight:600">🖨️ Imprimer / Sauvegarder en PDF</button></div>');
+  win.document.write('</body></html>');
+  win.document.close();
+}
+
+async function generateDocxWithComments(contractParas, annotationMap, missing) {
+  var D = window.docx;
+  if (!D) {
+    alert('Librairie Word non disponible. Utilisez le bouton PDF a la place.');
+    return;
+  }
+
+  var paragraphs = [];
+
+  // En-tete
+  paragraphs.push(new D.Paragraph({
+    children: [new D.TextRun({ text: 'CONTRAT AVEC ANNOTATIONS - JURIA', bold: true, size: 28, color: '4f46e5' })],
+    alignment: D.AlignmentType.CENTER,
+    spacing: { after: 120 },
+  }));
+  paragraphs.push(new D.Paragraph({
+    children: [new D.TextRun({ text: 'Annote le ' + new Date().toLocaleDateString('fr-MA') + ' - A reviser par un avocat avant signature', size: 16, color: '888888', italics: true })],
+    alignment: D.AlignmentType.CENTER,
+    spacing: { after: 400 },
+  }));
+
+  // Contrat original avec annotations injectees localement (zero appel GPT)
+  contractParas.forEach(function(p) {
+    var isTitre = p.text.length < 100 && (
+      p.text.toLowerCase().indexOf('article') === 0 ||
+      p.text.toLowerCase().indexOf('chapitre') === 0
+    );
+
+    paragraphs.push(new D.Paragraph({
+      children: [new D.TextRun({ text: p.text, bold: !!isTitre, size: isTitre ? 22 : 20 })],
+      spacing: { after: isTitre ? 100 : 60 },
+    }));
+
+    var annotations = annotationMap[p.id] || [];
+    annotations.forEach(function(issue) {
+      var sevColor = issue.severity === 'high' ? 'ef4444' : issue.severity === 'medium' ? 'f59e0b' : '10b981';
+      var sevLabel = issue.severity === 'high' ? 'CRITIQUE' : issue.severity === 'medium' ? 'IMPORTANT' : 'MINEUR';
+
+      paragraphs.push(new D.Paragraph({
+        children: [
+          new D.TextRun({ text: '[JURIA - ' + sevLabel + '] ', bold: true, size: 18, color: sevColor }),
+          new D.TextRun({ text: issue.problem || '', size: 18, color: '374151', italics: true }),
+        ],
+        spacing: { before: 40, after: 40 },
+        indent: { left: 480 },
+      }));
+
+      if (issue.suggestion) {
+        paragraphs.push(new D.Paragraph({
+          children: [
+            new D.TextRun({ text: 'Suggestion: ', bold: true, size: 18, color: '4f46e5' }),
+            new D.TextRun({ text: issue.suggestion, size: 18, color: '3730a3' }),
+          ],
+          spacing: { after: 120 },
+          indent: { left: 480 },
+        }));
+      }
+    });
+  });
+
+  // Clauses manquantes a la fin
+  if (missing && missing.length > 0) {
+    paragraphs.push(new D.Paragraph({ children: [], spacing: { before: 400 } }));
+    paragraphs.push(new D.Paragraph({
+      children: [new D.TextRun({ text: 'CLAUSES A AJOUTER', bold: true, size: 24, color: 'f59e0b' })],
+      spacing: { after: 200 },
+    }));
+    missing.forEach(function(clause) {
+      paragraphs.push(new D.Paragraph({
+        children: [
+          new D.TextRun({ text: '+ ', bold: true, size: 20, color: 'f59e0b' }),
+          new D.TextRun({ text: clause, size: 20 }),
+        ],
+        spacing: { after: 100 },
+        indent: { left: 360 },
+      }));
+    });
+  }
+
+  // Footer
+  paragraphs.push(new D.Paragraph({ children: [], spacing: { before: 600 } }));
+  paragraphs.push(new D.Paragraph({
+    children: [new D.TextRun({ text: 'Document annote par Juria - A titre indicatif uniquement - Faire valider par un avocat.', color: '9ca3af', size: 16, italics: true })],
+    alignment: D.AlignmentType.CENTER,
+  }));
+
+  var doc = new D.Document({
+    creator: 'Juria',
+    title: 'Contrat Annote',
+    sections: [{ properties: {}, children: paragraphs }],
+  });
+
+  D.Packer.toBlob(doc).then(function(blob) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'contrat-annote-juria.docx';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+  });
+}
+
+
+function exportPDF() {
+  if (!analysisResult) return;
+  var win = window.open('', '_blank');
+  var score = analysisResult.score || 0;
+  var scoreColor = score >= 7 ? '#065f46' : score >= 5 ? '#92400e' : '#991b1b';
+  var issuesHtml = '';
+  if (analysisResult.issues) {
+    issuesHtml = analysisResult.issues.map(function(i) {
+      var sev = i.severity === 'high' ? '🔴 Critique' : i.severity === 'medium' ? '🟡 Important' : '🟢 Mineur';
+      return '<div style="padding:12px;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:8px"><strong>' + sev + ' — ' + i.clause + '</strong><p style="color:#374151;margin:6px 0">' + i.problem + '</p>' + (i.suggestion ? '<p style="color:#3730a3;background:#eef2ff;padding:8px;border-radius:6px">💡 ' + i.suggestion + '</p>' : '') + '</div>';
+    }).join('');
+  }
+  var missingHtml = '';
+  if (analysisResult.missing_clauses) {
+    missingHtml = analysisResult.missing_clauses.map(function(c) { return '<li>' + (typeof c === 'string' ? c : (c.clause || c.name || JSON.stringify(c))) + '</li>'; }).join('');
+  }
+  win.document.write('<html><head><title>Rapport Juria</title><style>body{font-family:Inter,sans-serif;max-width:800px;margin:40px auto;padding:0 24px;color:#0f1117}h1{color:#4f46e5;margin-bottom:4px}h2{margin:24px 0 12px;font-size:16px}.footer{margin-top:40px;padding-top:16px;border-top:1px solid #e5e7eb;color:#9ca3af;font-size:12px}</style></head><body>');
+  win.document.write('<h1>⚖️ Rapport d\'analyse — Juria</h1>');
+  win.document.write('<p style="color:#6b7280;font-size:14px">' + selectedFile.name + ' · ' + new Date().toLocaleDateString('fr-MA') + '</p>');
+  win.document.write('<div style="background:#f8f9fb;border-radius:12px;padding:20px;margin:20px 0;display:flex;gap:20px;align-items:center"><div style="font-size:48px;font-weight:700;color:' + scoreColor + '">' + score + '<span style="font-size:20px">/10</span></div><div><strong>Score de conformité juridique</strong><p>' + (analysisResult.summary || '') + '</p></div></div>');
+  if (issuesHtml) { win.document.write('<h2>⚠️ Points à corriger</h2>' + issuesHtml); }
+  if (missingHtml) { win.document.write('<h2>📋 Clauses manquantes</h2><ul>' + missingHtml + '</ul>'); }
+  win.document.write('<div class="footer">Rapport généré par Juria · À titre indicatif uniquement · Faites valider ce contrat par un avocat avant signature.<br><button type="button" onclick="window.print()" style="margin-top:12px;padding:10px 24px;background:#4f46e5;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px">Imprimer / Sauvegarder en PDF</button></div>');
+  win.document.write('</body></html>');
+  win.document.close();
+}
+
+// PDF extraction via PDF.js
+async function extractPDFText(file) {
+  return new Promise(function(resolve, reject) {
+    if (window.pdfjsLib) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+      file.arrayBuffer().then(function(buf) {
+        return pdfjsLib.getDocument({ data: buf }).promise;
+      }).then(function(pdf) {
+        var pages = [];
+        for (var i = 1; i <= Math.min(pdf.numPages, 30); i++) pages.push(i);
+        var text = '';
+        return pages.reduce(function(p, i) {
+          return p.then(function() {
+            return pdf.getPage(i).then(function(page) {
+              return page.getTextContent().then(function(c) {
+                text += c.items.map(function(s){ return s.str; }).join(' ') + '\n';
+              });
+            });
+          });
+        }, Promise.resolve()).then(function() { resolve(text); });
+      }).catch(reject);
+      return;
+    }
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js';
+    script.onload = async function() {
+      try {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+        var arrayBuffer = await file.arrayBuffer();
+        var pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        var text = '';
+        for (var i = 1; i <= Math.min(pdf.numPages, 30); i++) {
+          var page = await pdf.getPage(i);
+          var content = await page.getTextContent();
+          text += content.items.map(function(s){ return s.str; }).join(' ') + '\n';
+        }
+        resolve(text);
+      } catch(e) { reject(e); }
+    };
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+}
+
+// DOCX extraction via mammoth
+async function extractDOCXText(file) {
+  return new Promise(function(resolve, reject) {
+    function doExtract() {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        mammoth.extractRawText({ arrayBuffer: e.target.result })
+          .then(function(result) { resolve(result.value); })
+          .catch(reject);
+      };
+      reader.onerror = reject;
+      reader.readAsArrayBuffer(file);
+    }
+    if (window.mammoth) {
+      doExtract();
+    } else {
+      var script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js';
+      script.onload = doExtract;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    }
+  });
+}
+
+// ---- ONGLETS ----
+window.switchTab = function switchTab(tab) {
+  document.getElementById('section-analyse').style.display = tab === 'analyse' ? 'block' : 'none';
+  document.getElementById('section-comparaison').style.display = tab === 'comparaison' ? 'block' : 'none';
+  document.getElementById('tab-analyse').style.color = tab === 'analyse' ? 'var(--indigo)' : 'var(--slate-400)';
+  document.getElementById('tab-analyse').style.borderBottomColor = tab === 'analyse' ? 'var(--indigo)' : 'transparent';
+  document.getElementById('tab-analyse').style.fontWeight = tab === 'analyse' ? '600' : '500';
+  document.getElementById('tab-comparaison').style.color = tab === 'comparaison' ? 'var(--indigo)' : 'var(--slate-400)';
+  document.getElementById('tab-comparaison').style.borderBottomColor = tab === 'comparaison' ? 'var(--indigo)' : 'transparent';
+  document.getElementById('tab-comparaison').style.fontWeight = tab === 'comparaison' ? '600' : '500';
+}
+
+// ---- COMPARAISON ----
+var contractText1 = null;
+var contractText2 = null;
+
+function setupDropZone(zoneId, inputId, labelId, varSetter, btnId) {
+  var zone = document.getElementById(zoneId);
+  var input = document.getElementById(inputId);
+  if (!zone || !input) return;
+  
+  zone.addEventListener('dragover', function(e) { e.preventDefault(); zone.style.borderColor = 'var(--indigo)'; zone.style.background = 'var(--indigo-bg)'; });
+  zone.addEventListener('dragleave', function() { zone.style.borderColor = 'var(--slate-300)'; zone.style.background = 'var(--white)'; });
+  zone.addEventListener('drop', function(e) {
+    e.preventDefault();
+    zone.style.borderColor = 'var(--slate-300)';
+    zone.style.background = 'var(--white)';
+    if (e.dataTransfer.files[0]) handleCompareFile(e.dataTransfer.files[0], labelId, varSetter, btnId);
+  });
+  input.addEventListener('change', function(e) {
+    if (e.target.files[0]) handleCompareFile(e.target.files[0], labelId, varSetter, btnId);
+  });
+}
+
+async function handleCompareFile(file, labelId, varSetter, btnId) {
+  var ext = file.name.split('.').pop().toLowerCase();
+  document.getElementById(labelId).textContent = 'Extraction en cours...';
+  
+  try {
+    var text = '';
+    if (ext === 'pdf') {
+      text = await extractPDFText(file);
+    } else {
+      text = await extractDOCXText(file);
+    }
+    
+    varSetter(text);
+    document.getElementById(labelId).innerHTML = '<strong>' + file.name + '</strong> charge (' + Math.round(text.length/1000) + 'k car.)';
+    document.getElementById(labelId).parentElement.style.borderColor = '#10b981';
+    document.getElementById(labelId).parentElement.style.background = '#ecfdf5';
+    
+    // Activer le bouton si les deux fichiers sont charges
+    if (contractText1 && contractText2) {
+      var btn = document.getElementById(btnId);
+      if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+    }
+  } catch(e) {
+    document.getElementById(labelId).textContent = 'Erreur extraction: ' + e.message;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  setupDropZone('dropZone1', 'fileInput1', 'dropLabel1', function(t) { contractText1 = t; }, 'btnCompare');
+  setupDropZone('dropZone2', 'fileInput2', 'dropLabel2', function(t) { contractText2 = t; }, 'btnCompare');
+});
+
+window.startComparison = async function startComparison() {
+  if (!contractText1 || !contractText2) return;
+  
+  document.getElementById('loadingCompare').style.display = 'block';
+  document.getElementById('compareResults').style.display = 'none';
+  document.getElementById('btnCompare').disabled = true;
+  
+  try {
+    var sessionData = await _sb.auth.getSession();
+    if (!sessionData.data.session) { alert('Session expirée'); window.location.href = 'auth.html'; return; }
+    var token = sessionData.data.session.access_token;
+    
+    var prompt = 'Tu es expert juridique. Compare ces deux versions de contrat. Retourne UNIQUEMENT un JSON valide sans markdown: {"summary": "resume", "changes": [{"type": "modification", "clause": "Salaire", "v1": "3000 MAD", "v2": "3500 MAD", "impact": "majeur"}]}. Types: ajout, suppression, modification. Impact: majeur, mineur, neutre.';
+    
+    var res = await fetch(EDGE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({
+        question: prompt,
+        document_context: 'CONTRAT V1:\n' + contractText1.slice(0, 5000) + '\n\n---\n\nCONTRAT V2:\n' + contractText2.slice(0, 5000),
+        mode: 'compare',
+        history: []
+      }),
+    });
+    
+    if (!res.ok) throw new Error('Erreur: ' + res.status);
+    var result = await res.json();
+    console.log('COMPARE RESULT', result);
+    
+    // Compare mode retourne JSON directement
+    var compareData = result;
+    if (!compareData.changes) {
+      compareData = { summary: result.answer || 'Erreur', changes: [] };
+    }
+    
+    renderComparison(compareData);
+  } catch(e) {
+    alert('Erreur: ' + e.message);
+  } finally {
+    document.getElementById('loadingCompare').style.display = 'none';
+    document.getElementById('btnCompare').disabled = false;
+  }
+}
+
+function renderComparison(result) {
+  var changes = result.changes || [];
+  // Normaliser les types (GPT peut retourner addition/ajout/added etc.)
+  changes.forEach(function(c) {
+    if (c.type === 'addition' || c.type === 'added' || c.type === 'add') c.type = 'ajout';
+    if (c.type === 'deletion' || c.type === 'removed' || c.type === 'remove' || c.type === 'deleted') c.type = 'suppression';
+    if (c.type === 'change' || c.type === 'changed' || c.type === 'update' || c.type === 'updated') c.type = 'modification';
+  });
+  var typeColors = { ajout: '#10b981', suppression: '#ef4444', modification: '#f59e0b' };
+  var typeLabels = { ajout: '➕ Ajout', suppression: '➖ Suppression', modification: '✏️ Modification' };
+  var impactColors = { majeur: '#fef2f2', mineur: '#fffbeb', neutre: '#f9fafb' };
+
+  var html = '<div style="background:var(--white);border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:16px;">';
+  html += '<div style="font-size:15px;font-weight:600;color:var(--slate-900);margin-bottom:8px;">📊 Résumé de la comparaison</div>';
+  html += '<div style="font-size:14px;color:var(--slate-500);">' + (result.summary || '') + '</div>';
+  html += '<div style="display:flex;gap:16px;margin-top:16px;flex-wrap:wrap;">';
+  var ajouts = changes.filter(function(c) { return c.type === 'ajout'; }).length;
+  var supps = changes.filter(function(c) { return c.type === 'suppression'; }).length;
+  var mods = changes.filter(function(c) { return c.type === 'modification'; }).length;
+  html += '<div style="background:#ecfdf5;padding:10px 16px;border-radius:8px;font-size:13px;color:#065f46;font-weight:600;">➕ ' + ajouts + ' ajout' + (ajouts > 1 ? 's' : '') + '</div>';
+  html += '<div style="background:#fef2f2;padding:10px 16px;border-radius:8px;font-size:13px;color:#991b1b;font-weight:600;">➖ ' + supps + ' suppression' + (supps > 1 ? 's' : '') + '</div>';
+  html += '<div style="background:#fffbeb;padding:10px 16px;border-radius:8px;font-size:13px;color:#92400e;font-weight:600;">✏️ ' + mods + ' modification' + (mods > 1 ? 's' : '') + '</div>';
+  html += '</div></div>';
+
+  if (changes.length > 0) {
+    html += '<div style="background:var(--white);border:1px solid var(--border);border-radius:16px;padding:24px;">';
+    html += '<div style="font-size:15px;font-weight:600;color:var(--slate-900);margin-bottom:16px;">📋 Détail des changements</div>';
+    changes.forEach(function(change, i) {
+      var color = typeColors[change.type] || '#6b7280';
+      var label = typeLabels[change.type] || change.type;
+      var bg = impactColors[change.impact] || '#f9fafb';
+      html += '<div style="padding:16px;border-radius:10px;margin-bottom:12px;background:' + bg + ';border-left:4px solid ' + color + ';">';
+      html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">';
+      html += '<span style="font-size:12px;font-weight:700;color:' + color + ';">' + label + '</span>';
+      html += '<span style="font-size:12px;font-weight:600;color:var(--slate-700);">' + (change.clause || '') + '</span>';
+      if (change.impact === 'majeur') html += '<span style="font-size:11px;background:#fef2f2;color:#991b1b;padding:2px 8px;border-radius:99px;font-weight:600;">Impact majeur</span>';
+      html += '</div>';
+      if (change.v1) html += '<div style="font-size:12px;color:var(--slate-500);margin-bottom:4px;"><strong>V1:</strong> ' + change.v1 + '</div>';
+      if (change.v2) html += '<div style="font-size:12px;color:var(--slate-700);"><strong>V2:</strong> ' + change.v2 + '</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+
+  // Export PDF
+  html += '<button type="button" onclick="exportComparePDF()" style="width:100%;padding:12px;border:1px solid var(--border);background:none;border-radius:10px;font-family:var(--font);font-size:14px;color:var(--slate-700);cursor:pointer;margin-top:12px;">⬇️ Exporter le rapport PDF</button>';
+
+  document.getElementById('compareResults').innerHTML = html;
+  document.getElementById('compareResults').style.display = 'block';
+  
+  // Stocker pour export
+  window._compareResult = result;
+}
+
+window.exportComparePDF = function exportComparePDF() {
+  var result = window._compareResult;
+  if (!result) return;
+  var win = window.open('', '_blank');
+  var changes = result.changes || [];
+  var changesHtml = changes.map(function(c) {
+    var color = c.type === 'ajout' ? '#10b981' : c.type === 'suppression' ? '#ef4444' : '#f59e0b';
+    var label = c.type === 'ajout' ? 'Ajout' : c.type === 'suppression' ? 'Suppression' : 'Modification';
+    return '<div style="padding:12px;border-left:4px solid ' + color + ';margin-bottom:10px;background:#f9fafb;">' +
+      '<strong style="color:' + color + '">[' + label + ']</strong> ' + (c.clause || '') +
+      (c.v1 ? '<div style="font-size:12px;color:#666;margin-top:4px">V1: ' + c.v1 + '</div>' : '') +
+      (c.v2 ? '<div style="font-size:12px;color:#333;margin-top:2px">V2: ' + c.v2 + '</div>' : '') +
+      '</div>';
+  }).join('');
+  
+  win.document.write('<html><head><title>Comparaison Juria</title><style>body{font-family:Arial,sans-serif;max-width:800px;margin:40px auto;padding:0 24px;color:#0f1117}h1{color:#4f46e5}</style></head><body>');
+  win.document.write('<h1>⚖️ Rapport de comparaison — Juria</h1>');
+  win.document.write('<p style="color:#6b7280">' + new Date().toLocaleDateString('fr-MA') + '</p>');
+  win.document.write('<h2>Résumé</h2><p>' + (result.summary || '') + '</p>');
+  win.document.write('<h2>Changements détectés</h2>' + changesHtml);
+  win.document.write('<div style="margin-top:40px;padding-top:16px;border-top:1px solid #e5e7eb;color:#9ca3af;font-size:12px;text-align:center">Rapport généré par Juria · À titre indicatif uniquement</div>');
+  win.document.write('<div style="text-align:center;margin-top:16px"><button type="button" onclick="window.print()" style="padding:10px 24px;background:#4f46e5;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px">🖨️ Imprimer / PDF</button></div>');
+  win.document.write('</body></html>');
+  win.document.close();
+}
 </script>
 </body>
 </html>
