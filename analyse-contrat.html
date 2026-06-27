@@ -371,10 +371,15 @@ async function startAnalysis() {
 
     setStep('Finalisation...');
     showResults(analysisResult);
+    window._lastAnalysisResult = analysisResult; // debug
 
     // Stocker le texte dans sessionStorage pour "poser des questions"
     sessionStorage.setItem('juriaDocText', extractedText);
     sessionStorage.setItem('juriaDocName', selectedFile.name);
+
+    // NOUVEAU : Persister l'analyse en base de données
+    setStep('Enregistrement de l\'analyse...');
+    await saveAnalysisToDatabase(analysisResult, selectedFile, extractedText);
 
   } catch(e) {
     alert('Erreur: ' + e.message);
@@ -806,6 +811,12 @@ window.startComparison = async function startComparison() {
 
 function renderComparison(result) {
   var changes = result.changes || [];
+  // Normaliser les types (GPT peut retourner addition/ajout/added etc.)
+  changes.forEach(function(c) {
+    if (c.type === 'addition' || c.type === 'added' || c.type === 'add') c.type = 'ajout';
+    if (c.type === 'deletion' || c.type === 'removed' || c.type === 'remove' || c.type === 'deleted') c.type = 'suppression';
+    if (c.type === 'change' || c.type === 'changed' || c.type === 'update' || c.type === 'updated') c.type = 'modification';
+  });
   var typeColors = { ajout: '#10b981', suppression: '#ef4444', modification: '#f59e0b' };
   var typeLabels = { ajout: '➕ Ajout', suppression: '➖ Suppression', modification: '✏️ Modification' };
   var impactColors = { majeur: '#fef2f2', mineur: '#fffbeb', neutre: '#f9fafb' };
@@ -877,6 +888,665 @@ window.exportComparePDF = function exportComparePDF() {
   win.document.write('</body></html>');
   win.document.close();
 }
+</script>
+
+
+<!-- ============================================================ -->
+<!-- JURIA V2 — PERSISTANCE ANALYSE (NOUVELLES FONCTIONS)         -->
+<!-- ============================================================ -->
+<script>
+
+// ============================================================
+// 1. HELPER : Calcul SHA-256 du contenu
+// ============================================================
+
+async function calculateSHA256(text) {
+  try {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(text);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return hashHex;
+  } catch (e) {
+    console.error('Erreur calcul SHA-256:', e);
+    // Fallback : utiliser un hash simple si crypto.subtle échoue
+    return 'hash_' + Math.random().toString(36).substring(2, 15);
+  }
+}
+
+
+// ============================================================
+// 2. HELPER : Normalisation centralisée des sévérités
+// ============================================================
+// NOUVEAU : Convertit français ↔ anglais, résout les incohérences
+
+function normalizeSeverity(severity) {
+  if (!severity) return 'medium';  // Défaut
+  
+  const normalized = String(severity).toLowerCase().trim();
+  
+  // Mapping français → anglais
+  const mapping = {
+    // Français
+    'critique': 'critical',
+    'élevée': 'high',
+    'haute': 'high',
+    'moyen': 'medium',
+    'moyenne': 'medium',
+    'faible': 'low',
+    
+    // Anglais (passthrough)
+    'critical': 'critical',
+    'high': 'high',
+    'medium': 'medium',
+    'low': 'low'
+  };
+  
+  return mapping[normalized] || 'medium';  // Défaut si inconnue
+}
+
+
+// ============================================================
+// 3. HELPER : Calcul du risk_level basé sur les risques
+// ============================================================
+// MODIFIÉ : Utilise normalizeSeverity()
+
+function calculateRiskLevelFromIssues(issues, score) {
+  // Cas : aucun risque détecté
+  if (!issues || issues.length === 0) {
+    if (score >= 7) return 'low';
+    if (score >= 5) return 'medium';
+    return 'high';  // score < 5 sans risques trouvés = suspect
+  }
+  
+  // Déterminer la sévérité maximale trouvée
+  const severityOrder = { 'critical': 3, 'high': 2, 'medium': 1, 'low': 0 };
+  const maxSeverity = issues.reduce((max, issue) => {
+    // MODIFIÉ : normaliser la sévérité avant comparaison
+    const sev = normalizeSeverity(issue.severity);
+    return Math.max(max, severityOrder[sev] || 0);
+  }, 0);
+  
+  // Mapper sévérité → risk_level
+  const severityMap = {
+    3: 'critical',  // Au moins un risque critique
+    2: 'high',      // Au moins un risque high
+    1: 'medium',    // Au moins un risque medium
+    0: 'low'        // Aucun risque, mais clauses manquantes
+  };
+  
+  return severityMap[maxSeverity];
+}
+
+
+// ============================================================
+// 4. HELPER : Préparation des chunks pour RAG (non-persistant)
+// ============================================================
+
+function prepareChunksForRAG(extractedText) {
+  const chunks = [];
+  
+  // Paramètres de chunking
+  const chunkSizeTokens = 400;        // max tokens par chunk
+  const chunkSizeChars = chunkSizeTokens * 4;  // approximation : 1 token ≈ 4 chars
+  const tokenEstimate = (text) => Math.ceil(text.length / 4);
+  
+  let charPosition = 0;
+  let chunkIndex = 0;
+  let pageNumber = 1;
+  
+  // Split par paragraphes (délimiteur : double saut de ligne)
+  const paragraphs = extractedText
+    .split('\n\n')
+    .filter(p => p.trim().length > 0);
+  
+  let currentChunk = '';
+  let chunkStartChar = 0;
+  
+  paragraphs.forEach((para) => {
+    const paraWithBreak = para + '\n\n';
+    const combinedLength = (currentChunk + paraWithBreak).length;
+    
+    // Si ajout du paragraphe dépasse la taille limite ET qu'on a du contenu
+    if (combinedLength > chunkSizeChars && currentChunk.length > 0) {
+      // Sauvegarder le chunk courant
+      chunks.push({
+        chunk_index: chunkIndex,
+        page_number: pageNumber,
+        section_title: null,  // À enrichir par NLP
+        start_char: chunkStartChar,
+        end_char: chunkStartChar + currentChunk.length,
+        content: currentChunk.trim(),
+        token_count: tokenEstimate(currentChunk),
+        indexing_status: 'pending',  // En attente d'embedding
+        embedding: null
+      });
+      
+      chunkIndex++;
+      currentChunk = '';
+      chunkStartChar = charPosition;
+    }
+    
+    currentChunk += paraWithBreak;
+    charPosition += paraWithBreak.length;
+  });
+  
+  // Dernier chunk
+  if (currentChunk.trim().length > 0) {
+    chunks.push({
+      chunk_index: chunkIndex,
+      page_number: pageNumber,
+      section_title: null,
+      start_char: chunkStartChar,
+      end_char: chunkStartChar + currentChunk.length,
+      content: currentChunk.trim(),
+      token_count: tokenEstimate(currentChunk),
+      indexing_status: 'pending',
+      embedding: null
+    });
+  }
+  
+  console.log(`✓ ${chunks.length} chunks préparés pour RAG (non persistés)`);
+  return chunks;
+}
+
+
+// ============================================================
+// 5. HELPER : Comptage des issues par sévérité
+// ============================================================
+// MODIFIÉ : Utilise normalizeSeverity()
+
+function countBySeverity(issues, severity) {
+  if (!issues || issues.length === 0) return 0;
+  // MODIFIÉ : normaliser les deux côtés avant comparaison
+  const normalizedTarget = normalizeSeverity(severity);
+  return issues.filter(issue => {
+    const normalizedIssue = normalizeSeverity(issue.severity);
+    return normalizedIssue === normalizedTarget;
+  }).length;
+}
+
+
+// ============================================================
+// 6. HELPER : Extraction du clause_type depuis le nom
+// ============================================================
+
+function inferClauseType(clauseName) {
+  if (!clauseName) return 'autre';
+  
+  const nameUpper = clauseName.toUpperCase();
+  const mapping = {
+    'CONFIDENTIALITÉ': 'confidentialite',
+    'CONFIDENTIALITY': 'confidentialite',
+    'RÉSILIATION': 'resiliation',
+    'TERMINATION': 'resiliation',
+    'FORCE MAJEURE': 'force_majeure',
+    'RESPONSABILITÉ': 'responsabilite',
+    'LIABILITY': 'responsabilite',
+    'PAIEMENT': 'paiement',
+    'PAYMENT': 'paiement',
+    'GARANTIE': 'garantie',
+    'WARRANTY': 'garantie',
+    'PROPRIÉTÉ': 'propriete_intellectuelle',
+    'INTELLECTUAL': 'propriete_intellectuelle',
+    'IP': 'propriete_intellectuelle',
+    'CONCURRENCE': 'non_concurrence',
+    'COMPETITION': 'non_concurrence',
+    'ARBITRAGE': 'arbitrage',
+    'ARBITRATION': 'arbitrage',
+    'DROIT': 'droit_applicable',
+    'GOVERNING LAW': 'droit_applicable'
+  };
+  
+  for (const [keyword, type] of Object.entries(mapping)) {
+    if (nameUpper.includes(keyword)) return type;
+  }
+  
+  return 'autre';
+}
+
+
+// ============================================================
+// 7. FONCTION PRINCIPALE : Persistance de l'analyse
+// ============================================================
+
+
+// HELPER : Normalisation du document_type
+function normalizeDocumentType(rawType) {
+  if (!rawType) return 'autre';
+  const t = String(rawType).toLowerCase().trim();
+  const mapping = {
+    'contrat_prestation': 'contrat_prestation',
+    'prestation': 'contrat_prestation',
+    'prestation de services': 'contrat_prestation',
+    'services': 'contrat_prestation',
+    'nda': 'nda',
+    'confidentialite': 'nda',
+    'confidentialité': 'nda',
+    'bail': 'bail',
+    'location': 'bail',
+    'loyer': 'bail',
+    'travail': 'travail',
+    'emploi': 'travail',
+    'cdi': 'travail',
+    'cdd': 'travail',
+    'financement': 'financement',
+    'credit': 'financement',
+    'crédit': 'financement',
+    'pret': 'financement',
+    'prêt': 'financement',
+    'pacte_actionnaires': 'pacte_actionnaires',
+    'actionnaires': 'pacte_actionnaires',
+    'cession': 'cession',
+    'assurance': 'assurance',
+    'autre': 'autre'
+  };
+  return mapping[t] || 'autre';
+}
+
+async function saveAnalysisToDatabase(analysisResult, selectedFile, extractedText) {
+  if (!analysisResult || !selectedFile || !extractedText) {
+    console.warn('Persistance : données manquantes');
+    return;
+  }
+  
+  try {
+    console.log('📊 Début de la persistance de l\'analyse...');
+    
+    // ─────────────────────────────────────────────────────
+    // ÉTAPE 1 : Récupérer la session et l'organisation
+    // ─────────────────────────────────────────────────────
+    
+    const sessionResp = await _sb.auth.getSession();
+    const session = sessionResp.data?.session;
+    if (!session) {
+      throw new Error('Session expirée. Veuillez vous reconnecter.');
+    }
+    
+    const uid = session.user.id;
+    console.log(`✓ Utilisateur connecté : ${uid}`);
+    
+    // Récupérer l'organisation de l'utilisateur
+    const { data: userOrg, error: orgError } = await _sb
+      .from('organization_users')
+      .select('organization_id')
+      .eq('user_id', uid)
+      .single();
+    
+    if (orgError || !userOrg) {
+      throw new Error('Aucune organisation trouvée pour cet utilisateur.');
+    }
+    
+    const orgId = userOrg.organization_id;
+    console.log(`✓ Organisation : ${orgId}`);
+    
+    
+    // ─────────────────────────────────────────────────────
+    // ÉTAPE 2 : Calculer le content_hash
+    // ─────────────────────────────────────────────────────
+    
+    const contentHash = await calculateSHA256(extractedText);
+    console.log(`✓ Content hash calculé : ${contentHash.substring(0, 16)}...`);
+    
+    
+    // ─────────────────────────────────────────────────────
+    // ÉTAPE 3 : Vérifier l'existence du document
+    // ─────────────────────────────────────────────────────
+    
+    let existingDoc = null;
+    try {
+      const { data } = await _sb
+        .from('documents')
+        .select('id, chunk_version')
+        .eq('organization_id', orgId)
+        .eq('content_hash', contentHash)
+        .single();
+      existingDoc = data;
+    } catch (e) {
+      // Pas d'erreur — c'est normal si le document n'existe pas
+    }
+    
+    let docId;
+    let newChunkVersion = 1;
+    let isReanalysis = !!existingDoc;
+    
+    
+    // ─────────────────────────────────────────────────────
+    // ÉTAPE 4 : Créer ou mettre à jour le document
+    // ─────────────────────────────────────────────────────
+    
+    if (isReanalysis) {
+      // Cas : Réanalyse du même document
+      docId = existingDoc.id;
+      newChunkVersion = (existingDoc.chunk_version || 0) + 1;
+      
+      const { error: updateError } = await _sb
+        .from('documents')
+        .update({
+          status: 'analyzing',
+          chunk_version: newChunkVersion,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', docId);
+      
+      if (updateError) throw updateError;
+      console.log(`✓ Document mise à jour (réanalyse) : ${docId}, chunk_version=${newChunkVersion}`);
+      
+    } else {
+      // Cas : Nouveau document
+      const { data: newDoc, error: insertError } = await _sb
+        .from('documents')
+        .insert({
+          organization_id: orgId,
+          uploaded_by: uid,
+          name: selectedFile.name,
+          file_type: selectedFile.name.split('.').pop().toLowerCase(),
+          file_size: selectedFile.size,
+          language: 'fr',
+          governing_law: 'Droit marocain',
+          content_hash: contentHash,
+          chunk_version: 1,
+          status: 'analyzing',
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+      
+      if (insertError) throw insertError;
+      docId = newDoc.id;
+      console.log(`✓ Document créé : ${docId}`);
+    }
+    
+    
+    // ─────────────────────────────────────────────────────
+    // ÉTAPE 5 : Calculer le risk_level
+    // ─────────────────────────────────────────────────────
+    
+    const riskLevel = calculateRiskLevelFromIssues(
+      analysisResult.issues,
+      analysisResult.score
+    );
+    console.log(`✓ Risk level calculé : ${riskLevel}`);
+    
+    
+    // ─────────────────────────────────────────────────────
+    // ÉTAPE 6 : Préparer les chunks pour RAG (non-persistant)
+    // ─────────────────────────────────────────────────────
+    
+    const preparedChunks = prepareChunksForRAG(extractedText);
+    // Les chunks restent en mémoire, prêts pour une persistance ultérieure
+    
+    
+    // ─────────────────────────────────────────────────────
+    // ÉTAPE 7 : Créer l'analyse (document_analyses)
+    // ─────────────────────────────────────────────────────
+    
+    const risksCountCritical = countBySeverity(analysisResult.issues, 'critical');
+    const risksCountHigh = countBySeverity(analysisResult.issues, 'high');
+    const risksCountMedium = countBySeverity(analysisResult.issues, 'medium');
+    const risksCountLow = countBySeverity(analysisResult.issues, 'low');
+    const clausesMissing = (analysisResult.missing_clauses || []).length;
+    
+    const { data: analysis, error: analysisError } = await _sb
+      .from('document_analyses')
+      .insert({
+        document_id: docId,
+        organization_id: orgId,
+        analyzed_by: uid,
+        chunk_version_at_analysis: newChunkVersion,
+        score: analysisResult.score || 0,
+        summary: analysisResult.summary || 'Analyse complète',
+        status: 'completed',
+        model_used: 'gpt-4o',
+        prompt_version: 'v1',
+        raw_result: analysisResult,
+        risks_count_critical: risksCountCritical,
+        risks_count_high: risksCountHigh,
+        risks_count_medium: risksCountMedium,
+        risks_count_low: risksCountLow,
+        obligations_count: 0,  // TODO : enrichir si données disponibles
+        clauses_present: 0,    // TODO : enrichir si données disponibles
+        clauses_missing: clausesMissing,
+        tokens_used: null,
+        analysis_duration_ms: null,
+        created_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+    
+    if (analysisError) throw analysisError;
+    const analysisId = analysis.id;
+    console.log(`✓ Analyse créée : ${analysisId}`);
+    
+    
+    // ─────────────────────────────────────────────────────
+    // ÉTAPE 8 : Créer les risques (document_risks)
+    // ─────────────────────────────────────────────────────
+    
+    if (analysisResult.issues && analysisResult.issues.length > 0) {
+      const risksData = analysisResult.issues.map((issue, idx) => ({
+        analysis_id: analysisId,
+        document_id: docId,
+        organization_id: orgId,
+        clause_name: issue.clause || null,
+        clause_ref: issue.clause_ref || null,
+        paragraph_id: null,
+        problem: issue.problem || '',
+        suggestion: issue.suggestion || null,
+        severity: normalizeSeverity(issue.severity),  // MODIFIÉ : normaliser
+        category: 'autre',  // TODO : enrichir si données disponibles
+        legal_reference: null,
+        is_resolved: false,
+        position: idx,
+        created_at: new Date().toISOString()
+      }));
+      
+      const { error: risksError } = await _sb
+        .from('document_risks')
+        .insert(risksData);
+      
+      if (risksError) throw risksError;
+      console.log(`✓ ${risksData.length} risques créés`);
+    }
+    
+    
+    // ─────────────────────────────────────────────────────
+    // ÉTAPE 9 : Créer les clauses manquantes (document_clauses)
+    // ─────────────────────────────────────────────────────
+    
+    if (analysisResult.missing_clauses && analysisResult.missing_clauses.length > 0) {
+      const clausesData = analysisResult.missing_clauses.map((clause, idx) => {
+        // Gérer les deux formats : string ou objet
+        const clauseName = typeof clause === 'string' 
+          ? clause 
+          : (clause.clause || clause.name || clause.description || '');
+        
+        return {
+          analysis_id: analysisId,
+          document_id: docId,
+          organization_id: orgId,
+          name: clauseName,
+          clause_type: inferClauseType(clauseName),
+          status: 'missing',  // TOUJOURS 'missing' pour les clauses manquantes
+          content_excerpt: null,
+          clause_ref: null,
+          paragraph_id: null,
+          quality: 'good',
+          comment: null,
+          suggestion: null,
+          is_key_clause: false,
+          position: idx,
+          created_at: new Date().toISOString()
+        };
+      });
+      
+      const { error: clausesError } = await _sb
+        .from('document_clauses')
+        .insert(clausesData);
+      
+      if (clausesError) throw clausesError;
+      console.log(`✓ ${clausesData.length} clauses manquantes créées`);
+    }
+    
+    
+    // ─────────────────────────────────────────────────────
+    // ÉTAPE 10 : Mettre à jour le document avec latest_analysis_id
+    // ─────────────────────────────────────────────────────
+    
+    const compliance = Math.min(10, Math.max(0, analysisResult.score || 5));
+    const { error: finalUpdateError } = await _sb
+      .from('documents')
+      .update({
+        latest_analysis_id: analysisId,
+        compliance_score: analysisResult.score,
+        risk_level: riskLevel,
+        executive_summary: analysisResult.summary || '',
+        status: 'analyzed',
+        document_type: normalizeDocumentType(analysisResult.contract_type),
+        title: analysisResult.title || null,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', docId);
+    
+    if (finalUpdateError) throw finalUpdateError;
+    console.log(`✓ Document finalisé avec latest_analysis_id=${analysisId}`);
+    
+    
+    // ─────────────────────────────────────────────────────
+    // SUCCÈS
+    // ─────────────────────────────────────────────────────
+    
+    const logMessage = isReanalysis 
+      ? `✓ Réanalyse du document ${docId} enregistrée (chunk_version=${newChunkVersion})`
+      : `✓ Nouveau document ${docId} analysé et enregistré`;
+    
+    console.log(logMessage);
+    showToast('Analyse enregistrée avec succès ✓', 'success');
+    
+  } catch (error) {
+    console.error('❌ Erreur persistance analyse:', error);
+    
+    // Gestion d'erreurs spécifiques
+    if (error.message.includes('session')) {
+      showToast('Session expirée. Veuillez vous reconnecter.', 'error');
+      window.location.href = 'auth.html';
+    } else if (error.message.includes('organisation')) {
+      showToast('Erreur : Vous n\'avez pas d\'espace de travail actif.', 'error');
+    } else {
+      showToast('Analyse affichée mais non enregistrée. Console pour détails.', 'warning');
+    }
+  }
+}
+
+
+// ============================================================
+// 8. MODIFICATION DE startAnalysis()
+// ============================================================
+
+/*
+  À la fin de la fonction startAnalysis(), après l'appel à showResults(),
+  ajouter cette ligne :
+  
+  AVANT (ligne ~373) :
+  ───────────────────
+    setStep('Finalisation...');
+    showResults(analysisResult);
+    window._lastAnalysisResult = analysisResult; // debug
+
+    // Stocker le texte dans sessionStorage pour "poser des questions"
+    sessionStorage.setItem('juriaDocText', extractedText);
+    sessionStorage.setItem('juriaDocName', selectedFile.name);
+
+    // NOUVEAU : Persister l'analyse en base de données
+    setStep('Enregistrement de l\'analyse...');
+    await saveAnalysisToDatabase(analysisResult, selectedFile, extractedText);
+  
+  APRÈS (ajouter ces lignes) :
+  ────────────────────────────
+    setStep('Finalisation...');
+    showResults(analysisResult);
+    window._lastAnalysisResult = analysisResult; // debug
+
+    // Stocker le texte dans sessionStorage pour "poser des questions"
+    sessionStorage.setItem('juriaDocText', extractedText);
+    sessionStorage.setItem('juriaDocName', selectedFile.name);
+
+    // NOUVEAU : Persister l'analyse en base de données
+    setStep('Enregistrement de l\'analyse...');
+    await saveAnalysisToDatabase(analysisResult, selectedFile, extractedText);
+
+    // NOUVEAU : Persister l'analyse en base de données
+    setStep('Enregistrement de l\'analyse...');
+    await saveAnalysisToDatabase(analysisResult, selectedFile, extractedText);
+*/
+
+
+// ============================================================
+// 9. FONCTION UTILITAIRE : showToast
+// ============================================================
+
+/*
+  La fonction saveAnalysisToDatabase() utilise showToast() pour afficher
+  les messages de succès/erreur.
+
+  Si showToast n'existe pas dans votre analyse-contrat.html,
+  ajouter cette fonction :
+*/
+
+function showToast(message, type = 'info') {
+  // Créer un élément toast
+  const toast = document.createElement('div');
+  toast.style.cssText = `
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : type === 'warning' ? '#f59e0b' : '#6b7280'};
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    z-index: 9999;
+    max-width: 300px;
+    word-wrap: break-word;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    animation: slideIn 0.3s ease-out;
+  `;
+  toast.textContent = message;
+  
+  // Ajouter l'animation CSS
+  if (!document.querySelector('style[data-toast-animation]')) {
+    const style = document.createElement('style');
+    style.setAttribute('data-toast-animation', 'true');
+    style.textContent = `
+      @keyframes slideIn {
+        from {
+          transform: translateX(400px);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+  
+  document.body.appendChild(toast);
+  
+  // Retirer après 3 secondes
+  setTimeout(() => {
+    toast.style.animation = 'slideIn 0.3s ease-out reverse';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+
+// ============================================================
+// FIN DU CODE À INTÉGRER
+// ============================================================
+
 </script>
 </body>
 </html>

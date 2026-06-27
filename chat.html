@@ -520,9 +520,7 @@ function appendMsg(role, text, citations, isContract, deliverables) {
       btn.addEventListener('mouseenter', function() { this.style.background = '#e0e7ff'; });
       btn.addEventListener('mouseleave', function() { this.style.background = '#eef2ff'; });
       btn.addEventListener('click', function() {
-        document.getElementById('userInput').value = livText;
-        document.getElementById('userInput').focus();
-        sendMessage();
+        generateDeliverable(livText, citations);
       });
       livDiv.appendChild(btn);
     });
@@ -1032,6 +1030,119 @@ async function extractPDFText(file) {
 }
 
 init();
+
+// Génération d'un livrable sous forme de document PDF
+async function generateDeliverable(livText, citations) {
+  // Afficher un message de chargement dans le chat
+  var loadingId = 'loading-' + Date.now();
+  appendMsg('assistant', '⏳ Génération de votre document en cours...', [], false);
+
+  try {
+    var sessionData = await _sb.auth.getSession();
+    if (!sessionData.data.session) throw new Error('Session expirée');
+    var token = sessionData.data.session.access_token;
+
+    // Construire le contexte des citations actuelles pour enrichir le document
+    var citationsContext = '';
+    if (citations && citations.length > 0) {
+      citationsContext = citations.map(function(c) {
+        return c.numero_article + ' (' + c.code + '): ' + (c.contenu || '').slice(0, 500);
+      }).join(' | ');
+    }
+
+    // Prompt spécifique pour générer un document structuré
+    var prompt = 'Génère un document professionnel complet intitulé "' + livText + '" pour un professionnel juridique marocain. ' +
+      'Structure le document avec : 1. Introduction/contexte 2. Base legale 3. Contenu principal detaille (checklist, etapes, ou guide selon le type) 4. Points importants 5. References legales. ' +
+      'Le document doit etre pratique, precis et directement utilisable. ' +
+      (citationsContext ? 'Sources juridiques: ' + citationsContext : '');
+
+    var res = await fetch(JURIA_CONFIG.EDGE_FUNCTION_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ question: prompt, history: [], mode: 'deliverable' }),
+    });
+
+    if (!res.ok) throw new Error('Erreur serveur: ' + res.status);
+    var data = await res.json();
+    var content = data.answer || '';
+
+    if (!content) throw new Error('Contenu vide');
+
+    // Générer le PDF
+    exportDeliverablePDF(livText, content, citations || []);
+
+  } catch(e) {
+    console.error('generateDeliverable error:', e);
+    // Fallback: envoyer comme question normale
+    document.getElementById('userInput').value = livText;
+    sendMessage();
+  }
+}
+
+function exportDeliverablePDF(title, content, citations) {
+  var win = window.open('', '_blank');
+  if (!win) {
+    // Popup bloqué - fallback vers le chat
+    document.getElementById('userInput').value = title;
+    sendMessage();
+    return;
+  }
+
+  // Formatter le contenu en HTML
+  var html = content
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/^#{1,3}\s+(.+)$/gm, '<h3>$1</h3>')
+    .replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>')
+    .replace(/^[-•]\s+(.+)$/gm, '<li>$1</li>')
+    .replace(/
+
+/g, '</p><p>')
+    .replace(/
+/g, '<br>');
+
+  // Wrapper les <li> dans <ul>
+  html = html.replace(/(<li>.*?<\/li>(\s*<br>)*)+/g, function(m) {
+    return '<ul>' + m.replace(/<br>/g, '') + '</ul>';
+  });
+
+  var citationsHtml = citations.length > 0
+    ? '<div style="margin-top:32px;padding-top:16px;border-top:2px solid #e5e7eb"><h3 style="color:#4f46e5;margin-bottom:12px">Sources juridiques</h3>' +
+      citations.map(function(c) {
+        return '<div style="padding:10px;background:#f8f9fb;border-radius:6px;margin-bottom:8px;font-size:12px">' +
+          '<strong>' + c.numero_article + '</strong> — ' + c.code + '<br>' +
+          '<span style="color:#6b7280">' + (c.contenu || '').slice(0, 300) + '...</span></div>';
+      }).join('') + '</div>'
+    : '';
+
+  win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + title + '</title>');
+  win.document.write('<style>');
+  win.document.write('body{font-family:Inter,Arial,sans-serif;max-width:800px;margin:40px auto;padding:0 32px;color:#0f1117;line-height:1.7}');
+  win.document.write('.header{border-bottom:3px solid #4f46e5;padding-bottom:20px;margin-bottom:32px}');
+  win.document.write('.logo{font-family:Georgia,serif;color:#4f46e5;font-size:22px;font-weight:700;margin-bottom:8px}');
+  win.document.write('h1{font-family:Georgia,serif;font-size:24px;color:#0f1117;margin:0}');
+  win.document.write('h2{font-size:17px;font-weight:700;color:#0f1117;margin:24px 0 8px;border-left:3px solid #4f46e5;padding-left:10px}');
+  win.document.write('h3{font-size:15px;font-weight:600;color:#374151;margin:16px 0 6px}');
+  win.document.write('ul{padding-left:20px;margin:8px 0}li{margin:6px 0}');
+  win.document.write('p{margin:10px 0}');
+  win.document.write('.footer{margin-top:48px;padding-top:16px;border-top:1px solid #e5e7eb;color:#9ca3af;font-size:11px;text-align:center}');
+  win.document.write('.print-btn{display:block;margin:24px auto;padding:12px 32px;background:#4f46e5;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-weight:600}');
+  win.document.write('@media print{.print-btn{display:none}}');
+  win.document.write('</style></head><body>');
+
+  win.document.write('<div class="header">');
+  win.document.write('<div class="logo">⚖️ Juria</div>');
+  win.document.write('<h1>' + title + '</h1>');
+  win.document.write('<p style="color:#6b7280;font-size:13px;margin:8px 0 0">Généré le ' + new Date().toLocaleDateString('fr-MA', {day:'numeric',month:'long',year:'numeric'}) + ' · Document à titre indicatif</p>');
+  win.document.write('</div>');
+
+  win.document.write('<div>' + html + '</div>');
+  win.document.write(citationsHtml);
+
+  win.document.write('<div class="footer">Document généré par Juria · Base juridique marocaine · À titre indicatif uniquement · Faites valider par un professionnel du droit</div>');
+  win.document.write('<button class="print-btn" onclick="window.print()">🖨️ Imprimer / Sauvegarder en PDF</button>');
+  win.document.write('</body></html>');
+  win.document.close();
+}
 </script>
 </body>
 </html>
