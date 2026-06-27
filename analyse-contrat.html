@@ -1367,7 +1367,7 @@ async function saveAnalysisToDatabase(analysisResult, selectedFile, extractedTex
         risk_level: riskLevel,
         executive_summary: analysisResult.summary || '',
         status: 'analyzed',
-        document_type: analysisResult.contract_type || null,
+        document_type: analysisResult.contract_type || 'autre',
         title: analysisResult.title || null,
         updated_at: new Date().toISOString()
       })
