@@ -1154,11 +1154,6 @@ function openDoc(id) {
   }
 }
 
-function analyzeDoc(id) {
-  showToast('Redirection vers l\'analyse de contrat…', '');
-  setTimeout(() => { window.location.href = 'analyse-contrat.html'; }, 600);
-}
-
 async function deleteDoc(id) {
   const doc = allDocs.find(d => d.id === id);
   if (!doc) return;
