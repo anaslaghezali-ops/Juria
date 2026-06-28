@@ -1155,8 +1155,7 @@ function openDoc(id) {
 }
 
 function analyzeDoc(id) {
-  showToast('Redirection vers l\'analyse de contrat…', '');
-  setTimeout(() => { window.location.href = 'analyse-contrat.html'; }, 600);
+  window.location.href = 'analyse-contrat.html?doc_id=' + id;
 }
 
 async function deleteDoc(id) {
