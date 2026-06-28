@@ -1309,19 +1309,40 @@ async function saveAnalysisToDatabase(analysisResult, selectedFile, extractedTex
     
     // ─────────────────────────────────────────────────────
     // ÉTAPE 3 : Vérifier l'existence du document
+    //   Priorité 1 : doc_id dans l'URL (document déjà importé)
+    //   Priorité 2 : recherche par content_hash (même contenu)
     // ─────────────────────────────────────────────────────
     
     let existingDoc = null;
-    try {
-      const { data } = await _sb
-        .from('documents')
-        .select('id, chunk_version')
-        .eq('organization_id', orgId)
-        .eq('content_hash', contentHash)
-        .single();
-      existingDoc = data;
-    } catch (e) {
-      // Pas d'erreur — c'est normal si le document n'existe pas
+    const urlDocId = new URLSearchParams(window.location.search).get('doc_id');
+
+    if (urlDocId) {
+      // On vient d'un document existant (importé ou déjà analysé)
+      try {
+        const { data } = await _sb
+          .from('documents')
+          .select('id, chunk_version')
+          .eq('id', urlDocId)
+          .single();
+        existingDoc = data;
+      } catch (e) {
+        // doc_id invalide → on retombe sur la recherche par hash
+      }
+    }
+
+    if (!existingDoc) {
+      // Recherche par content_hash (cas analyse directe sans doc_id)
+      try {
+        const { data } = await _sb
+          .from('documents')
+          .select('id, chunk_version')
+          .eq('organization_id', orgId)
+          .eq('content_hash', contentHash)
+          .maybeSingle();
+        existingDoc = data;
+      } catch (e) {
+        // Pas d'erreur — normal si le document n'existe pas
+      }
     }
     
     let docId;
@@ -1334,7 +1355,7 @@ async function saveAnalysisToDatabase(analysisResult, selectedFile, extractedTex
     // ─────────────────────────────────────────────────────
     
     if (isReanalysis) {
-      // Cas : Réanalyse du même document
+      // Cas : document existant (réanalyse OU première analyse d'un import)
       docId = existingDoc.id;
       newChunkVersion = (existingDoc.chunk_version || 0) + 1;
       
@@ -1343,12 +1364,13 @@ async function saveAnalysisToDatabase(analysisResult, selectedFile, extractedTex
         .update({
           status: 'analyzing',
           chunk_version: newChunkVersion,
+          content_hash: contentHash,
           updated_at: new Date().toISOString()
         })
         .eq('id', docId);
       
       if (updateError) throw updateError;
-      console.log(`✓ Document mise à jour (réanalyse) : ${docId}, chunk_version=${newChunkVersion}`);
+      console.log(`✓ Document mis à jour : ${docId}, chunk_version=${newChunkVersion}`);
       
     } else {
       // Cas : Nouveau document
