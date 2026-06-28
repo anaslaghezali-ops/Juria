@@ -269,17 +269,113 @@ var extractedText = null;
 var analysisResult = null;
 var contractParagraphs = []; // Contrat parsé en paragraphes {id, text}
 
-// Auth check
+// Auth check + pré-chargement éventuel
 async function init() {
   const { data: { session } } = await _sb.auth.getSession();
   if (!session) {
-    // Attendre un peu que Supabase charge la session depuis localStorage
     await new Promise(r => setTimeout(r, 800));
     const { data: { session: session2 } } = await _sb.auth.getSession();
     if (!session2) { window.location.href = 'auth.html'; return; }
   }
+
+  // Si on arrive avec ?doc_id=, pré-charger le document
+  await preloadDocument();
 }
-init();
+// NOTE: init() est appelé à la fin du script (voir tout en bas)
+
+// ══════════════════════════════════════════════
+//  PRÉ-CHARGEMENT DOCUMENT
+//  Stratégie : 1) document_content (texte déjà extrait → rapide)
+//              2) Storage (fallback : télécharge le fichier)
+// ══════════════════════════════════════════════
+async function preloadDocument() {
+  const docId = new URLSearchParams(window.location.search).get('doc_id');
+  if (!docId) return;
+
+  try {
+    setStep('Chargement du document…');
+    document.getElementById('loading').classList.add('show');
+
+    // 1. Charger les infos du document
+    const { data: doc, error: docErr } = await _sb
+      .from('documents')
+      .select('*')
+      .eq('id', docId)
+      .single();
+
+    if (docErr || !doc) {
+      console.error('Document introuvable:', docErr);
+      document.getElementById('loading').classList.remove('show');
+      return;
+    }
+
+    // ── STRATÉGIE 1 : Texte déjà extrait dans document_content ──
+    const { data: content } = await _sb
+      .from('document_content')
+      .select('extracted_text')
+      .eq('document_id', docId)
+      .maybeSingle();
+
+    if (content && content.extracted_text) {
+      extractedText = content.extracted_text;
+      selectedFile = { name: doc.name, size: doc.file_size || 0 };
+
+      const ext = (doc.file_type || doc.name.split('.').pop() || 'pdf').toLowerCase();
+      document.getElementById('fileName').textContent = doc.name;
+      document.getElementById('fileSize').textContent = ((doc.file_size || 0) / 1024).toFixed(0) + ' KB';
+      document.getElementById('fileIcon').textContent = ext === 'pdf' ? '📕' : '📘';
+      document.getElementById('fileSelected').classList.add('show');
+      document.getElementById('btnAnalyse').disabled = false;
+      document.getElementById('dropZone').style.display = 'none';
+      document.getElementById('loading').classList.remove('show');
+      console.log('✓ Texte pré-chargé depuis document_content');
+      return;
+    }
+
+    // ── STRATÉGIE 2 (fallback) : Télécharger le fichier depuis Storage ──
+    if (!doc.storage_path) {
+      console.warn('Ni document_content ni storage_path pour ce document');
+      document.getElementById('loading').classList.remove('show');
+      alert('Ce document n\'a pas de contenu enregistré. Veuillez le re-uploader manuellement.');
+      return;
+    }
+
+    const { data: signedData, error: signErr } = await _sb.storage
+      .from(doc.storage_bucket || 'juria-documents')
+      .createSignedUrl(doc.storage_path, 3600);
+
+    if (signErr || !signedData?.signedUrl) {
+      console.error('Erreur URL signée:', signErr);
+      document.getElementById('loading').classList.remove('show');
+      alert('Impossible d\'accéder au fichier stocké.');
+      return;
+    }
+
+    const response = await fetch(signedData.signedUrl);
+    if (!response.ok) throw new Error('Téléchargement échoué (' + response.status + ')');
+
+    const blob = await response.blob();
+    const ext = (doc.file_type || doc.name.split('.').pop() || 'pdf').toLowerCase();
+    const file = new File([blob], doc.name, { type: blob.type });
+
+    selectedFile = file;
+    document.getElementById('fileName').textContent = doc.name;
+    document.getElementById('fileSize').textContent = (file.size / 1024).toFixed(0) + ' KB';
+    document.getElementById('fileIcon').textContent = ext === 'pdf' ? '📕' : '📘';
+    document.getElementById('fileSelected').classList.add('show');
+    document.getElementById('btnAnalyse').disabled = false;
+    document.getElementById('dropZone').style.display = 'none';
+    document.getElementById('loading').classList.remove('show');
+    console.log('✓ Fichier pré-chargé depuis Storage');
+
+  } catch(e) {
+    console.error('Erreur pré-chargement:', e);
+    document.getElementById('loading').classList.remove('show');
+    alert('Erreur chargement du document : ' + e.message);
+  }
+}
+
+
 
 // Drag & Drop
 var dropZone = document.getElementById('dropZone');
@@ -328,12 +424,18 @@ async function startAnalysis() {
   document.getElementById('results').classList.remove('show');
 
   try {
-    setStep('Extraction du texte...');
-    var ext = selectedFile.name.split('.').pop().toLowerCase();
-    if (ext === 'pdf') {
-      extractedText = await extractPDFText(selectedFile);
+    // Si le texte a déjà été pré-chargé (depuis document_content) et qu'on
+    // n'a pas de vrai fichier, on saute l'extraction.
+    if (extractedText && extractedText.trim().length >= 50 && !(selectedFile instanceof File)) {
+      setStep('Texte déjà chargé...');
     } else {
-      extractedText = await extractDOCXText(selectedFile);
+      setStep('Extraction du texte...');
+      var ext = selectedFile.name.split('.').pop().toLowerCase();
+      if (ext === 'pdf') {
+        extractedText = await extractPDFText(selectedFile);
+      } else {
+        extractedText = await extractDOCXText(selectedFile);
+      }
     }
 
     if (!extractedText || extractedText.trim().length < 50) {
@@ -380,6 +482,21 @@ async function startAnalysis() {
     // NOUVEAU : Persister l'analyse en base de données
     setStep('Enregistrement de l\'analyse...');
     await saveAnalysisToDatabase(analysisResult, selectedFile, extractedText);
+
+    const currentDocId = new URLSearchParams(window.location.search).get('doc_id');
+
+    if(currentDocId){
+      const { error } = await _sb
+        .from('document_content')
+        .upsert({
+          document_id: currentDocId,
+          extracted_text: extractedText,
+          updated_at: new Date().toISOString()
+        });
+
+      console.log('document_content', error || 'OK');
+    }
+
 
   } catch(e) {
     alert('Erreur: ' + e.message);
@@ -1192,19 +1309,40 @@ async function saveAnalysisToDatabase(analysisResult, selectedFile, extractedTex
     
     // ─────────────────────────────────────────────────────
     // ÉTAPE 3 : Vérifier l'existence du document
+    //   Priorité 1 : doc_id dans l'URL (document déjà importé)
+    //   Priorité 2 : recherche par content_hash (même contenu)
     // ─────────────────────────────────────────────────────
     
     let existingDoc = null;
-    try {
-      const { data } = await _sb
-        .from('documents')
-        .select('id, chunk_version')
-        .eq('organization_id', orgId)
-        .eq('content_hash', contentHash)
-        .single();
-      existingDoc = data;
-    } catch (e) {
-      // Pas d'erreur — c'est normal si le document n'existe pas
+    const urlDocId = new URLSearchParams(window.location.search).get('doc_id');
+
+    if (urlDocId) {
+      // On vient d'un document existant (importé ou déjà analysé)
+      try {
+        const { data } = await _sb
+          .from('documents')
+          .select('id, chunk_version')
+          .eq('id', urlDocId)
+          .single();
+        existingDoc = data;
+      } catch (e) {
+        // doc_id invalide → on retombe sur la recherche par hash
+      }
+    }
+
+    if (!existingDoc) {
+      // Recherche par content_hash (cas analyse directe sans doc_id)
+      try {
+        const { data } = await _sb
+          .from('documents')
+          .select('id, chunk_version')
+          .eq('organization_id', orgId)
+          .eq('content_hash', contentHash)
+          .maybeSingle();
+        existingDoc = data;
+      } catch (e) {
+        // Pas d'erreur — normal si le document n'existe pas
+      }
     }
     
     let docId;
@@ -1217,7 +1355,7 @@ async function saveAnalysisToDatabase(analysisResult, selectedFile, extractedTex
     // ─────────────────────────────────────────────────────
     
     if (isReanalysis) {
-      // Cas : Réanalyse du même document
+      // Cas : document existant (réanalyse OU première analyse d'un import)
       docId = existingDoc.id;
       newChunkVersion = (existingDoc.chunk_version || 0) + 1;
       
@@ -1226,12 +1364,13 @@ async function saveAnalysisToDatabase(analysisResult, selectedFile, extractedTex
         .update({
           status: 'analyzing',
           chunk_version: newChunkVersion,
+          content_hash: contentHash,
           updated_at: new Date().toISOString()
         })
         .eq('id', docId);
       
       if (updateError) throw updateError;
-      console.log(`✓ Document mise à jour (réanalyse) : ${docId}, chunk_version=${newChunkVersion}`);
+      console.log(`✓ Document mis à jour : ${docId}, chunk_version=${newChunkVersion}`);
       
     } else {
       // Cas : Nouveau document
@@ -1245,6 +1384,7 @@ async function saveAnalysisToDatabase(analysisResult, selectedFile, extractedTex
           file_size: selectedFile.size,
           language: 'fr',
           governing_law: 'Droit marocain',
+          storage_bucket: 'juria-documents',
           content_hash: contentHash,
           chunk_version: 1,
           status: 'analyzing',
@@ -1256,6 +1396,28 @@ async function saveAnalysisToDatabase(analysisResult, selectedFile, extractedTex
       if (insertError) throw insertError;
       docId = newDoc.id;
       console.log(`✓ Document créé : ${docId}`);
+
+      // ── Upload du fichier dans Storage (pour réutilisation future) ──
+      // On n'uploade que si selectedFile est un vrai File (pas un pré-chargé)
+      if (selectedFile instanceof File) {
+        try {
+          const storagePath = `${orgId}/${docId}/${Date.now()}-${selectedFile.name}`;
+          const { error: uploadErr } = await _sb.storage
+            .from('juria-documents')
+            .upload(storagePath, selectedFile, { upsert: false });
+
+          if (uploadErr) {
+            console.warn('Upload Storage échoué (non bloquant):', uploadErr.message);
+          } else {
+            await _sb.from('documents')
+              .update({ storage_path: storagePath })
+              .eq('id', docId);
+            console.log(`✓ Fichier uploadé dans Storage : ${storagePath}`);
+          }
+        } catch (storageErr) {
+          console.warn('Erreur Storage (non bloquant):', storageErr);
+        }
+      }
     }
     
     
@@ -1410,6 +1572,18 @@ async function saveAnalysisToDatabase(analysisResult, selectedFile, extractedTex
       .eq('id', docId);
     
     if (finalUpdateError) throw finalUpdateError;
+
+    await _sb
+      .from('document_content')
+      .upsert({
+        document_id: docId,
+        extracted_text: extractedText,
+        updated_at: new Date().toISOString()
+      });
+
+    console.log('✓ document_content sauvegardé');
+    window.lastSavedDocumentId = docId;
+
     console.log(`✓ Document finalisé avec latest_analysis_id=${analysisId}`);
     
     
@@ -1546,6 +1720,16 @@ function showToast(message, type = 'info') {
 // ============================================================
 // FIN DU CODE À INTÉGRER
 // ============================================================
+
+
+// ══════════════════════════════════════════════
+//  DÉMARRAGE (après que tout est défini + DOM prêt)
+// ══════════════════════════════════════════════
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
 
 </script>
 </body>
