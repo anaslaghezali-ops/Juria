@@ -278,15 +278,17 @@ async function init() {
     if (!session2) { window.location.href = 'auth.html'; return; }
   }
 
-  // Si on arrive avec ?doc_id=, pré-charger le fichier depuis Storage
-  await preloadDocumentFromStorage();
+  // Si on arrive avec ?doc_id=, pré-charger le document
+  await preloadDocument();
 }
 // NOTE: init() est appelé à la fin du script (voir tout en bas)
 
 // ══════════════════════════════════════════════
-//  PRÉ-CHARGEMENT DOCUMENT (depuis Supabase Storage)
+//  PRÉ-CHARGEMENT DOCUMENT
+//  Stratégie : 1) document_content (texte déjà extrait → rapide)
+//              2) Storage (fallback : télécharge le fichier)
 // ══════════════════════════════════════════════
-async function preloadDocumentFromStorage() {
+async function preloadDocument() {
   const docId = new URLSearchParams(window.location.search).get('doc_id');
   if (!docId) return;
 
@@ -307,14 +309,37 @@ async function preloadDocumentFromStorage() {
       return;
     }
 
-    if (!doc.storage_path) {
-      console.warn('Pas de storage_path pour ce document');
+    // ── STRATÉGIE 1 : Texte déjà extrait dans document_content ──
+    const { data: content } = await _sb
+      .from('document_content')
+      .select('extracted_text')
+      .eq('document_id', docId)
+      .maybeSingle();
+
+    if (content && content.extracted_text) {
+      extractedText = content.extracted_text;
+      selectedFile = { name: doc.name, size: doc.file_size || 0 };
+
+      const ext = (doc.file_type || doc.name.split('.').pop() || 'pdf').toLowerCase();
+      document.getElementById('fileName').textContent = doc.name;
+      document.getElementById('fileSize').textContent = ((doc.file_size || 0) / 1024).toFixed(0) + ' KB';
+      document.getElementById('fileIcon').textContent = ext === 'pdf' ? '📕' : '📘';
+      document.getElementById('fileSelected').classList.add('show');
+      document.getElementById('btnAnalyse').disabled = false;
+      document.getElementById('dropZone').style.display = 'none';
       document.getElementById('loading').classList.remove('show');
-      alert('Ce fichier n\'a pas été stocké. Veuillez le re-uploader manuellement.');
+      console.log('✓ Texte pré-chargé depuis document_content');
       return;
     }
 
-    // 2. Générer une URL signée pour télécharger le fichier
+    // ── STRATÉGIE 2 (fallback) : Télécharger le fichier depuis Storage ──
+    if (!doc.storage_path) {
+      console.warn('Ni document_content ni storage_path pour ce document');
+      document.getElementById('loading').classList.remove('show');
+      alert('Ce document n\'a pas de contenu enregistré. Veuillez le re-uploader manuellement.');
+      return;
+    }
+
     const { data: signedData, error: signErr } = await _sb.storage
       .from(doc.storage_bucket || 'juria-documents')
       .createSignedUrl(doc.storage_path, 3600);
@@ -326,7 +351,6 @@ async function preloadDocumentFromStorage() {
       return;
     }
 
-    // 3. Télécharger le fichier
     const response = await fetch(signedData.signedUrl);
     if (!response.ok) throw new Error('Téléchargement échoué (' + response.status + ')');
 
@@ -334,7 +358,6 @@ async function preloadDocumentFromStorage() {
     const ext = (doc.file_type || doc.name.split('.').pop() || 'pdf').toLowerCase();
     const file = new File([blob], doc.name, { type: blob.type });
 
-    // 4. Simuler la sélection du fichier (comme handleFile)
     selectedFile = file;
     document.getElementById('fileName').textContent = doc.name;
     document.getElementById('fileSize').textContent = (file.size / 1024).toFixed(0) + ' KB';
@@ -342,8 +365,8 @@ async function preloadDocumentFromStorage() {
     document.getElementById('fileSelected').classList.add('show');
     document.getElementById('btnAnalyse').disabled = false;
     document.getElementById('dropZone').style.display = 'none';
-
     document.getElementById('loading').classList.remove('show');
+    console.log('✓ Fichier pré-chargé depuis Storage');
 
   } catch(e) {
     console.error('Erreur pré-chargement:', e);
@@ -401,12 +424,18 @@ async function startAnalysis() {
   document.getElementById('results').classList.remove('show');
 
   try {
-    setStep('Extraction du texte...');
-    var ext = selectedFile.name.split('.').pop().toLowerCase();
-    if (ext === 'pdf') {
-      extractedText = await extractPDFText(selectedFile);
+    // Si le texte a déjà été pré-chargé (depuis document_content) et qu'on
+    // n'a pas de vrai fichier, on saute l'extraction.
+    if (extractedText && extractedText.trim().length >= 50 && !(selectedFile instanceof File)) {
+      setStep('Texte déjà chargé...');
     } else {
-      extractedText = await extractDOCXText(selectedFile);
+      setStep('Extraction du texte...');
+      var ext = selectedFile.name.split('.').pop().toLowerCase();
+      if (ext === 'pdf') {
+        extractedText = await extractPDFText(selectedFile);
+      } else {
+        extractedText = await extractDOCXText(selectedFile);
+      }
     }
 
     if (!extractedText || extractedText.trim().length < 50) {
