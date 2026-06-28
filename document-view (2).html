@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Juria — Fiche Document</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --indigo: #4f46e5; --indigo-light: #6366f1; --indigo-dark: #3730a3;
+      --indigo-bg: #eef2ff; --indigo-text: #3730a3;
+      --slate-900: #0f1117; --slate-700: #374151; --slate-600: #4b5563;
+      --slate-500: #6b7280; --slate-400: #9ca3af; --slate-300: #d1d5db;
+      --slate-200: #e5e7eb; --slate-100: #f3f4f6; --slate-50: #f8f9fb;
+      --border: #e5e7eb; --white: #ffffff;
+      --green: #10b981; --green-bg: #ecfdf5; --green-text: #065f46;
+      --amber: #f59e0b; --amber-bg: #fffbeb; --amber-text: #92400e;
+      --red: #ef4444; --red-bg: #fef2f2; --red-text: #991b1b;
+      --orange: #f97316; --orange-bg: #fff7ed; --orange-text: #9a3412;
+      --blue: #3b82f6; --blue-bg: #eff6ff; --blue-text: #1d4ed8;
+      --font: 'Inter', sans-serif; --serif: 'DM Serif Display', Georgia, serif;
+      --sidebar-w: 240px;
+    }
+    html { font-size: 15px; }
+    body { font-family: var(--font); color: var(--slate-900); background: var(--slate-50); display: flex; height: 100vh; overflow: hidden; }
+
+    /* ─── SIDEBAR ─────────────────────────────────── */
+    .sidebar { width: var(--sidebar-w); background: var(--white); border-right: 1px solid var(--border); display: flex; flex-direction: column; height: 100vh; flex-shrink: 0; }
+    .sidebar-top { padding: 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; }
+    .sidebar-logo { display: flex; align-items: center; gap: 9px; text-decoration: none; }
+    .logo-mark { width: 28px; height: 28px; background: var(--indigo); color: #fff; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-family: var(--serif); font-size: 16px; }
+    .logo-name { font-family: var(--serif); font-size: 18px; color: var(--slate-900); }
+    .sidebar-nav { padding: 12px; flex: 1; overflow-y: auto; }
+    .sidebar-section { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--slate-400); padding: 12px 8px 6px; }
+    .nav-item { display: flex; align-items: center; gap: 9px; padding: 9px 10px; border-radius: 8px; border: none; background: none; width: 100%; text-align: left; font-family: var(--font); font-size: 13.5px; color: var(--slate-500); cursor: pointer; transition: all 0.15s; text-decoration: none; }
+    .nav-item:hover { background: var(--slate-100); color: var(--slate-900); }
+    .nav-item.active { background: var(--indigo-bg); color: var(--indigo-text); font-weight: 500; }
+    .sidebar-footer { padding: 14px; border-top: 1px solid var(--border); }
+    .user-row { display: flex; align-items: center; gap: 9px; }
+    .user-avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--indigo-bg); color: var(--indigo-text); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+    .user-info { flex: 1; min-width: 0; }
+    .user-name { font-size: 13px; font-weight: 500; color: var(--slate-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user-plan { font-size: 11px; color: var(--slate-400); }
+    .btn-icon { background: none; border: none; cursor: pointer; color: var(--slate-400); padding: 4px; border-radius: 6px; transition: all 0.15s; display: flex; }
+    .btn-icon:hover { background: var(--slate-100); color: var(--slate-700); }
+
+    /* ─── MAIN ─────────────────────────────────────── */
+    .main { flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; min-width: 0; }
+
+    /* ─── TOPBAR ────────────────────────────────────── */
+    .topbar { height: 54px; background: var(--white); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 24px; gap: 12px; flex-shrink: 0; }
+    .topbar-back { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--slate-500); text-decoration: none; padding: 6px 10px; border-radius: 8px; transition: all 0.15s; border: none; background: none; cursor: pointer; font-family: var(--font); }
+    .topbar-back:hover { background: var(--slate-100); color: var(--slate-900); }
+    .topbar-sep { color: var(--slate-300); font-size: 16px; }
+    .topbar-title { font-size: 14px; font-weight: 500; color: var(--slate-700); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .topbar-actions { display: flex; align-items: center; gap: 8px; }
+    .btn-reanalyze { display: flex; align-items: center; gap: 7px; padding: 8px 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--white); font-family: var(--font); font-size: 13px; font-weight: 500; color: var(--slate-700); cursor: pointer; transition: all 0.15s; }
+    .btn-reanalyze:hover { border-color: var(--indigo); color: var(--indigo); }
+    .btn-chat { display: flex; align-items: center; gap: 7px; padding: 8px 16px; background: var(--indigo); color: #fff; border: none; border-radius: 8px; font-family: var(--font); font-size: 13px; font-weight: 500; cursor: pointer; transition: background 0.15s; }
+    .btn-chat:hover { background: var(--indigo-light); }
+    .btn-logout { background: none; border: none; cursor: pointer; color: var(--slate-400); padding: 4px; border-radius: 6px; transition: all 0.15s; display: flex; }
+    .btn-logout:hover { background: var(--slate-100); color: var(--slate-700); }
+
+    /* ─── CONTENT ───────────────────────────────────── */
+    .content { flex: 1; overflow-y: auto; padding: 28px 32px; }
+
+    /* ─── LOADING / ERROR ───────────────────────────── */
+    .state-center { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; gap: 12px; }
+    .spinner { width: 36px; height: 36px; border: 3px solid var(--indigo-bg); border-top-color: var(--indigo); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .state-label { font-size: 14px; color: var(--slate-500); }
+
+    /* ─── DOCUMENT HEADER ───────────────────────────── */
+    .doc-header { background: var(--white); border: 1px solid var(--border); border-radius: 16px; padding: 28px; margin-bottom: 20px; }
+    .doc-header-top { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 20px; }
+    .doc-file-icon { width: 52px; height: 52px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
+    .doc-file-icon.pdf { background: var(--red-bg); }
+    .doc-file-icon.docx { background: var(--blue-bg); }
+    .doc-header-info { flex: 1; min-width: 0; }
+    .doc-title { font-family: var(--serif); font-size: 22px; color: var(--slate-900); margin-bottom: 6px; line-height: 1.2; }
+    .doc-meta-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .doc-meta-item { display: flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--slate-500); }
+    .doc-meta-item svg { color: var(--slate-400); }
+    .doc-header-scores { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .score-block { background: var(--slate-50); border-radius: 10px; padding: 14px 16px; }
+    .score-block-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--slate-400); margin-bottom: 8px; }
+    .score-block-value { font-size: 24px; font-weight: 700; font-family: var(--serif); color: var(--slate-900); line-height: 1; }
+    .score-block-sub { font-size: 12px; color: var(--slate-500); margin-top: 4px; }
+    .risk-badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 12px; border-radius: 99px; font-size: 12px; font-weight: 600; }
+    .risk-badge.critical { background: var(--red-bg); color: var(--red-text); }
+    .risk-badge.high { background: var(--orange-bg); color: var(--orange-text); }
+    .risk-badge.medium { background: var(--amber-bg); color: var(--amber-text); }
+    .risk-badge.low { background: var(--green-bg); color: var(--green-text); }
+
+    /* ─── SECTION CARDS ─────────────────────────────── */
+    .section-card { background: var(--white); border: 1px solid var(--border); border-radius: 16px; padding: 24px; margin-bottom: 16px; }
+    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .section-title { font-size: 14px; font-weight: 600; color: var(--slate-900); display: flex; align-items: center; gap: 8px; }
+    .section-count { font-size: 11px; font-weight: 600; background: var(--slate-100); color: var(--slate-500); padding: 2px 8px; border-radius: 99px; }
+    .section-empty { text-align: center; padding: 32px 16px; color: var(--slate-400); font-size: 13.5px; }
+
+    /* ─── RÉSUMÉ ────────────────────────────────────── */
+    .summary-text { font-size: 14px; color: var(--slate-600); line-height: 1.65; }
+
+    /* ─── RISQUES ───────────────────────────────────── */
+    .risk-item { padding: 14px 0; border-bottom: 1px solid var(--slate-100); }
+    .risk-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .risk-item:first-child { padding-top: 0; }
+    .risk-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+    .severity-badge { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 99px; text-transform: uppercase; letter-spacing: 0.04em; flex-shrink: 0; }
+    .severity-badge.critical { background: var(--red-bg); color: var(--red-text); }
+    .severity-badge.high { background: var(--orange-bg); color: var(--orange-text); }
+    .severity-badge.medium { background: var(--amber-bg); color: var(--amber-text); }
+    .severity-badge.low { background: var(--green-bg); color: var(--green-text); }
+    .risk-clause { font-size: 13px; font-weight: 500; color: var(--slate-700); }
+    .risk-problem { font-size: 13px; color: var(--slate-500); margin-bottom: 8px; line-height: 1.5; }
+    .risk-suggestion { font-size: 13px; color: var(--indigo-text); background: var(--indigo-bg); padding: 8px 12px; border-radius: 8px; line-height: 1.5; }
+    .risk-suggestion-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--indigo); margin-bottom: 3px; }
+
+    /* ─── CLAUSES MANQUANTES ────────────────────────── */
+    .clause-item { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--slate-100); }
+    .clause-item:last-child { border-bottom: none; }
+    .clause-item:first-child { padding-top: 0; }
+    .clause-icon { width: 28px; height: 28px; background: var(--amber-bg); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+    .clause-name { font-size: 13.5px; font-weight: 500; color: var(--slate-700); }
+
+    /* ─── HISTORIQUE ─────────────────────────────────── */
+    .history-item { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--slate-100); cursor: pointer; transition: background 0.1s; border-radius: 8px; }
+    .history-item:last-child { border-bottom: none; }
+    .history-item:first-child { padding-top: 0; }
+    .history-item:hover { background: var(--slate-50); padding-left: 8px; }
+    .history-num { width: 28px; height: 28px; background: var(--slate-100); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: var(--slate-500); flex-shrink: 0; }
+    .history-num.latest { background: var(--indigo-bg); color: var(--indigo-text); }
+    .history-info { flex: 1; }
+    .history-date { font-size: 13px; font-weight: 500; color: var(--slate-700); }
+    .history-meta { font-size: 12px; color: var(--slate-400); margin-top: 2px; }
+    .history-score { font-size: 13px; font-weight: 600; }
+    .history-score.high { color: var(--green-text); }
+    .history-score.med { color: var(--amber-text); }
+    .history-score.low { color: var(--red-text); }
+    .history-latest-tag { font-size: 10px; font-weight: 600; background: var(--indigo-bg); color: var(--indigo-text); padding: 2px 8px; border-radius: 99px; }
+
+    /* ─── TOAST ────────────────────────────────────── */
+    .toast-wrap { position: fixed; bottom: 24px; right: 24px; z-index: 2000; display: flex; flex-direction: column; gap: 8px; }
+    .toast { background: var(--slate-900); color: #e5e7eb; padding: 12px 18px; border-radius: 10px; font-size: 13.5px; display: flex; align-items: center; gap: 10px; animation: toastIn 0.25s ease; box-shadow: 0 4px 20px rgba(0,0,0,0.2); max-width: 320px; }
+    .toast.success { background: var(--green-text); }
+    .toast.error { background: #991b1b; }
+    @keyframes toastIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+    /* ─── MOBILE ─────────────────────────────────────── */
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .doc-header-scores { grid-template-columns: 1fr 1fr; }
+      .content { padding: 16px; }
+      .topbar-actions .btn-chat span { display: none; }
+    }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: var(--slate-300); border-radius: 10px; }
+  </style>
+</head>
+<body>
+
+<!-- ─── SIDEBAR ───────────────────────────────────────── -->
+<aside class="sidebar">
+  <div class="sidebar-top">
+    <a href="dashboard.html" class="sidebar-logo">
+      <div class="logo-mark">J</div>
+      <span class="logo-name">Juria</span>
+    </a>
+  </div>
+  <div class="sidebar-nav">
+    <div class="sidebar-section">Navigation</div>
+    <a href="dashboard.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Tableau de bord
+    </a>
+    <a href="documents.html" class="nav-item active">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Documents
+    </a>
+    <a href="chat.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Assistant Juridique
+    </a>
+    <a href="base-juridique.html" class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      Base Juridique
+    </a>
+  </div>
+  <div class="sidebar-footer">
+    <div class="user-row">
+      <div class="user-avatar" id="sidebarAvatar">A</div>
+      <div class="user-info">
+        <div class="user-name" id="sidebarName">—</div>
+        <div class="user-plan" id="sidebarPlan">Essai gratuit</div>
+      </div>
+      <button class="btn-logout" id="btnLogout" title="Déconnexion">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </div>
+  </div>
+</aside>
+
+<!-- ─── MAIN ──────────────────────────────────────────── -->
+<div class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <button class="topbar-back" onclick="window.location.href='documents.html'">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      Documents
+    </button>
+    <span class="topbar-sep">/</span>
+    <span class="topbar-title" id="topbarTitle">Chargement…</span>
+    <div class="topbar-actions">
+      <button class="btn-reanalyze" id="btnReanalyze" onclick="reanalyze()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        Réanalyser
+      </button>
+      <button class="btn-chat" id="btnChat" onclick="openChat()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span>Poser une question</span>
+      </button>
+      <button class="btn-logout" id="btnLogout2" title="Déconnexion">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content" id="content">
+    <!-- État initial : chargement -->
+    <div class="state-center" id="stateLoading">
+      <div class="spinner"></div>
+      <div class="state-label">Chargement du document…</div>
+    </div>
+
+    <!-- État erreur -->
+    <div class="state-center" id="stateError" style="display:none">
+      <div style="font-size:40px">⚠️</div>
+      <div style="font-size:16px;font-weight:600;color:var(--slate-900)">Document introuvable</div>
+      <div class="state-label">Ce document n'existe pas ou vous n'y avez pas accès.</div>
+      <a href="documents.html" style="margin-top:12px;padding:10px 20px;background:var(--indigo);color:#fff;border-radius:8px;text-decoration:none;font-size:13.5px;font-weight:500">← Retour aux documents</a>
+    </div>
+
+    <!-- Contenu principal (masqué jusqu'au chargement) -->
+    <div id="mainContent" style="display:none">
+
+      <!-- HEADER DOCUMENT -->
+      <div class="doc-header">
+        <div class="doc-header-top">
+          <div class="doc-file-icon" id="docFileIcon">📕</div>
+          <div class="doc-header-info">
+            <div class="doc-title" id="docTitle">—</div>
+            <div class="doc-meta-row">
+              <div class="doc-meta-item">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                <span id="docDate">—</span>
+              </div>
+              <div class="doc-meta-item">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+                <span id="docSize">—</span>
+              </div>
+              <div class="doc-meta-item">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span id="docAnalysisDate">—</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="doc-header-scores">
+          <div class="score-block">
+            <div class="score-block-label">Score de conformité</div>
+            <div class="score-block-value" id="docScore">—</div>
+            <div class="score-block-sub">/10</div>
+          </div>
+          <div class="score-block">
+            <div class="score-block-label">Niveau de risque</div>
+            <div id="docRiskLevel" style="margin-top:4px">—</div>
+          </div>
+          <div class="score-block">
+            <div class="score-block-label">Risques détectés</div>
+            <div class="score-block-value" id="docRisksCount">—</div>
+            <div class="score-block-sub" id="docRisksBreakdown">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RÉSUMÉ EXÉCUTIF -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            Résumé exécutif
+          </div>
+        </div>
+        <div class="summary-text" id="docSummary">Aucun résumé disponible.</div>
+      </div>
+
+      <!-- RISQUES DÉTECTÉS -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            Risques détectés
+            <span class="section-count" id="risksCount">0</span>
+          </div>
+        </div>
+        <div id="risksList">
+          <div class="section-empty">Aucun risque détecté pour cette analyse.</div>
+        </div>
+      </div>
+
+      <!-- CLAUSES MANQUANTES -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            Clauses manquantes
+            <span class="section-count" id="clausesCount">0</span>
+          </div>
+        </div>
+        <div id="clausesList">
+          <div class="section-empty">Aucune clause manquante détectée.</div>
+        </div>
+      </div>
+
+      <!-- HISTORIQUE DES ANALYSES -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Historique des analyses
+            <span class="section-count" id="historyCount">0</span>
+          </div>
+        </div>
+        <div id="historyList">
+          <div class="section-empty">Aucun historique disponible.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ─── TOAST ─────────────────────────────────────────── -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script>
+// ══════════════════════════════════════════════
+//  CONFIG & STATE
+// ══════════════════════════════════════════════
+const _sb = window.supabase.createClient(JURIA_CONFIG.SUPABASE_URL, JURIA_CONFIG.SUPABASE_ANON_KEY);
+
+let currentUser = null;
+let currentOrgId = null;
+let currentDoc = null;
+let currentAnalysis = null;
+let latestAnalysisId = null;
+
+// Récupérer l'ID du document depuis l'URL
+const docId = new URLSearchParams(window.location.search).get('id');
+
+// ══════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════
+async function init() {
+  // Auth check
+  const { data: { session } } = await _sb.auth.getSession();
+  if (!session) { window.location.href = 'auth.html'; return; }
+
+  currentUser = session.user;
+  const name = currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];
+  document.getElementById('sidebarAvatar').textContent = name.charAt(0).toUpperCase();
+  document.getElementById('sidebarName').textContent = name;
+
+  // Récupérer l'organisation
+  const { data: orgRow } = await _sb
+    .from('organization_users')
+    .select('organization_id')
+    .eq('user_id', currentUser.id)
+    .single();
+
+  if (orgRow) currentOrgId = orgRow.organization_id;
+
+  // Vérifier qu'un ID de document est fourni
+  if (!docId) { showError(); return; }
+
+  await loadDocument();
+}
+
+// ══════════════════════════════════════════════
+//  CHARGER LE DOCUMENT ET L'ANALYSE
+// ══════════════════════════════════════════════
+async function loadDocument() {
+  try {
+    // 1. Charger le document
+    const { data: doc, error: docErr } = await _sb
+      .from('documents')
+      .select('*')
+      .eq('id', docId)
+      .single();
+
+    if (docErr || !doc) { showError(); return; }
+    currentDoc = doc;
+    latestAnalysisId = doc.latest_analysis_id;
+
+    // 2. Charger la dernière analyse avec ses risques et clauses
+    if (latestAnalysisId) {
+      const [analysisRes, risksRes, clausesRes] = await Promise.all([
+        _sb.from('document_analyses').select('*').eq('id', latestAnalysisId).single(),
+        _sb.from('document_risks').select('*').eq('analysis_id', latestAnalysisId).order('position'),
+        _sb.from('document_clauses').select('*').eq('analysis_id', latestAnalysisId).eq('status', 'missing').order('position'),
+      ]);
+      currentAnalysis = analysisRes.data;
+      renderPage(doc, currentAnalysis, risksRes.data || [], clausesRes.data || []);
+    } else {
+      renderPage(doc, null, [], []);
+    }
+
+    // 3. Charger l'historique des analyses (toutes)
+    const { data: allAnalyses } = await _sb
+      .from('document_analyses')
+      .select('id, score, status, created_at, risks_count_critical, risks_count_high, risks_count_medium, risks_count_low')
+      .eq('document_id', docId)
+      .order('created_at', { ascending: false });
+
+    renderHistory(allAnalyses || [], latestAnalysisId);
+
+  } catch (e) {
+    console.error('Erreur chargement document:', e);
+    showError();
+  }
+}
+
+// ══════════════════════════════════════════════
+//  RENDER PAGE
+// ══════════════════════════════════════════════
+function renderPage(doc, analysis, risks, clauses) {
+  // Masquer le loading, afficher le contenu
+  document.getElementById('stateLoading').style.display = 'none';
+  document.getElementById('mainContent').style.display = 'block';
+
+  // ── Header ──────────────────────────────────
+  const ext = (doc.file_type || 'pdf').toLowerCase();
+  const icon = ext === 'pdf' ? '📕' : '📘';
+  const iconEl = document.getElementById('docFileIcon');
+  iconEl.textContent = icon;
+  iconEl.className = 'doc-file-icon ' + (ext === 'pdf' ? 'pdf' : 'docx');
+
+  document.getElementById('topbarTitle').textContent = doc.name;
+  document.getElementById('docTitle').textContent = doc.name;
+  document.getElementById('docDate').textContent = formatDate(doc.created_at);
+  document.getElementById('docSize').textContent = formatSize(doc.file_size);
+  document.getElementById('docAnalysisDate').textContent = analysis
+    ? 'Analysé ' + formatDate(analysis.created_at)
+    : 'Non analysé';
+
+  // Score
+  const score = doc.compliance_score;
+  const scoreEl = document.getElementById('docScore');
+  if (score !== null && score !== undefined) {
+    scoreEl.textContent = score;
+    scoreEl.style.color = score >= 7 ? 'var(--green-text)' : score >= 5 ? 'var(--amber-text)' : 'var(--red-text)';
+  } else {
+    scoreEl.textContent = '—';
+  }
+
+  // Risk level
+  const riskLevel = doc.risk_level;
+  const riskMap = {
+    critical: ['critical', '🔴 Critique'],
+    high:     ['high',     '🟠 Élevé'],
+    medium:   ['medium',   '🟡 Modéré'],
+    low:      ['low',      '🟢 Faible'],
+  };
+  const [riskCls, riskLabel] = riskMap[riskLevel] || ['medium', '—'];
+  document.getElementById('docRiskLevel').innerHTML = `<span class="risk-badge ${riskCls}">${riskLabel}</span>`;
+
+  // Comptage risques
+  const totalRisks = risks.length;
+  const critCount = risks.filter(r => normSev(r.severity) === 'critical').length;
+  const highCount = risks.filter(r => normSev(r.severity) === 'high').length;
+  document.getElementById('docRisksCount').textContent = totalRisks;
+  document.getElementById('docRisksBreakdown').textContent = totalRisks > 0
+    ? `${critCount} critique${critCount > 1 ? 's' : ''}, ${highCount} élevé${highCount > 1 ? 's' : ''}`
+    : 'Aucun risque';
+
+  // ── Résumé ──────────────────────────────────
+  document.getElementById('docSummary').textContent =
+    doc.executive_summary || analysis?.summary || 'Aucun résumé disponible.';
+
+  // ── Risques ─────────────────────────────────
+  renderRisks(risks);
+
+  // ── Clauses manquantes ───────────────────────
+  renderClauses(clauses);
+}
+
+// ══════════════════════════════════════════════
+//  RENDER RISQUES
+// ══════════════════════════════════════════════
+function renderRisks(risks) {
+  const el = document.getElementById('risksList');
+  const count = document.getElementById('risksCount');
+  count.textContent = risks.length;
+
+  if (!risks.length) {
+    el.innerHTML = '<div class="section-empty">✓ Aucun risque détecté pour cette analyse.</div>';
+    return;
+  }
+
+  // Trier : critical → high → medium → low
+  const order = { critical: 0, high: 1, medium: 2, low: 3 };
+  risks.sort((a, b) => (order[normSev(a.severity)] || 2) - (order[normSev(b.severity)] || 2));
+
+  el.innerHTML = risks.map(risk => {
+    const sev = normSev(risk.severity);
+    const sevLabels = { critical: 'Critique', high: 'Élevé', medium: 'Modéré', low: 'Faible' };
+    return `
+    <div class="risk-item">
+      <div class="risk-header">
+        <span class="severity-badge ${sev}">${sevLabels[sev] || sev}</span>
+        <span class="risk-clause">${escHtml(risk.clause_name || 'Clause non spécifiée')}</span>
+      </div>
+      <div class="risk-problem">${escHtml(risk.problem || '')}</div>
+      ${risk.suggestion ? `
+      <div class="risk-suggestion">
+        <div class="risk-suggestion-label">💡 Suggestion</div>
+        ${escHtml(risk.suggestion)}
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════
+//  RENDER CLAUSES MANQUANTES
+// ══════════════════════════════════════════════
+function renderClauses(clauses) {
+  const el = document.getElementById('clausesList');
+  const count = document.getElementById('clausesCount');
+  count.textContent = clauses.length;
+
+  if (!clauses.length) {
+    el.innerHTML = '<div class="section-empty">✓ Aucune clause manquante détectée.</div>';
+    return;
+  }
+
+  el.innerHTML = clauses.map(clause => `
+    <div class="clause-item">
+      <div class="clause-icon">⚠️</div>
+      <div class="clause-name">${escHtml(clause.name || 'Clause sans nom')}</div>
+    </div>
+  `).join('');
+}
+
+// ══════════════════════════════════════════════
+//  RENDER HISTORIQUE
+// ══════════════════════════════════════════════
+function renderHistory(analyses, latestId) {
+  const el = document.getElementById('historyList');
+  const count = document.getElementById('historyCount');
+  count.textContent = analyses.length;
+
+  if (!analyses.length) {
+    el.innerHTML = '<div class="section-empty">Aucun historique disponible.</div>';
+    return;
+  }
+
+  el.innerHTML = analyses.map((a, idx) => {
+    const isLatest = a.id === latestId;
+    const score = a.score;
+    const scoreClass = score >= 7 ? 'high' : score >= 5 ? 'med' : 'low';
+    const total = (a.risks_count_critical || 0) + (a.risks_count_high || 0) + (a.risks_count_medium || 0) + (a.risks_count_low || 0);
+    return `
+    <div class="history-item" onclick="loadAnalysisVersion('${a.id}')">
+      <div class="history-num ${isLatest ? 'latest' : ''}">${analyses.length - idx}</div>
+      <div class="history-info">
+        <div class="history-date">Analyse du ${formatDate(a.created_at)}</div>
+        <div class="history-meta">${total} risque${total > 1 ? 's' : ''} détecté${total > 1 ? 's' : ''}</div>
+      </div>
+      ${score !== null ? `<span class="history-score ${scoreClass}">${score}/10</span>` : ''}
+      ${isLatest ? '<span class="history-latest-tag">Actuelle</span>' : ''}
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════
+//  CHARGER UNE VERSION D'ANALYSE DE L'HISTORIQUE
+// ══════════════════════════════════════════════
+async function loadAnalysisVersion(analysisId) {
+  if (analysisId === latestAnalysisId) return; // Déjà affichée
+
+  try {
+    const [risksRes, clausesRes] = await Promise.all([
+      _sb.from('document_risks').select('*').eq('analysis_id', analysisId).order('position'),
+      _sb.from('document_clauses').select('*').eq('analysis_id', analysisId).eq('status', 'missing').order('position'),
+    ]);
+
+    const { data: analysis } = await _sb
+      .from('document_analyses')
+      .select('*')
+      .eq('id', analysisId)
+      .single();
+
+    renderRisks(risksRes.data || []);
+    renderClauses(clausesRes.data || []);
+
+    if (analysis) {
+      document.getElementById('docSummary').textContent = analysis.summary || '—';
+      const score = analysis.score;
+      const scoreEl = document.getElementById('docScore');
+      scoreEl.textContent = score !== null ? score : '—';
+      scoreEl.style.color = score >= 7 ? 'var(--green-text)' : score >= 5 ? 'var(--amber-text)' : 'var(--red-text)';
+    }
+
+    showToast(`Analyse du ${formatDate(analysis?.created_at)} chargée`, '');
+  } catch (e) {
+    showToast('Erreur chargement de la version', 'error');
+  }
+}
+
+// ══════════════════════════════════════════════
+//  ACTIONS
+// ══════════════════════════════════════════════
+function reanalyze() {
+  window.location.href = 'analyse-contrat.html?doc_id=' + docId;
+}
+
+function openChat() {
+  const docId = new URLSearchParams(window.location.search).get('id');
+  if (docId) window.location.href = 'chat.html?id=' + docId;
+}
+
+// ══════════════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════════════
+function normSev(s) {
+  if (!s) return 'medium';
+  const map = { 'critique':'critical','élevée':'high','haute':'high','moyenne':'medium','moyen':'medium','faible':'low','critical':'critical','high':'high','medium':'medium','low':'low' };
+  return map[String(s).toLowerCase().trim()] || 'medium';
+}
+
+function formatDate(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('fr-MA', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function formatSize(bytes) {
+  if (!bytes) return '—';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function escHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function showError() {
+  document.getElementById('stateLoading').style.display = 'none';
+  document.getElementById('stateError').style.display = 'flex';
+}
+
+function showToast(msg, type) {
+  const wrap = document.getElementById('toastWrap');
+  const toast = document.createElement('div');
+  toast.className = 'toast ' + (type || '');
+  toast.textContent = msg;
+  wrap.appendChild(toast);
+  setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.3s'; setTimeout(() => toast.remove(), 300); }, 3000);
+}
+
+// ══════════════════════════════════════════════
+//  EVENTS
+// ══════════════════════════════════════════════
+document.getElementById('btnLogout').addEventListener('click', async () => {
+  await _sb.auth.signOut(); window.location.href = 'auth.html';
+});
+document.getElementById('btnLogout2').addEventListener('click', async () => {
+  await _sb.auth.signOut(); window.location.href = 'auth.html';
+});
+
+// ══════════════════════════════════════════════
+//  START
+// ══════════════════════════════════════════════
+init();
+</script>
+</body>
+</html>
