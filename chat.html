@@ -1160,17 +1160,19 @@ function exportDeliverablePDF(title, content, citations) {
 // ================================================
 
 async function getEmbedding(text) {
-  const res = await fetch('https://api.openai.com/v1/embeddings', {
+  const sessionData = await _sb.auth.getSession();
+  const token = sessionData.data.session.access_token;
+  const res = await fetch(JURIA_CONFIG.SUPABASE_URL + '/functions/v1/get-embedding', {
     method: 'POST',
     headers: {
-      'Authorization': 'Bearer ' + JURIA_CONFIG.OPENAI_API_KEY,
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + token
     },
-    body: JSON.stringify({ model: 'text-embedding-3-small', input: text.slice(0, 8000) })
+    body: JSON.stringify({ text: text.slice(0, 8000) })
   });
   const data = await res.json();
-  if (!res.ok) throw new Error('Erreur embedding: ' + data.error?.message);
-  return data.data[0].embedding;
+  if (!res.ok) throw new Error('Erreur embedding: ' + data.error);
+  return data.embedding;
 }
 
 async function askDocumentRAG(question) {
