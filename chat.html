@@ -1175,8 +1175,8 @@ async function getEmbedding(text) {
   return data.embedding;
 }
 
-// ── CLASSIFIEUR HYBRIDE (heuristique locale + GPT si ambigu) ─
-function localClassify(question) {
+// ── CLASSIFIEUR 100% LOCAL (0 token, instantané) ────────────
+function classifyQuestion(question) {
   var q = question.toLowerCase();
   var globalPatterns = [
     'analyse', 'analysez', 'analyser', 'analys',
@@ -1185,11 +1185,12 @@ function localClassify(question) {
     'engagement', 'engagements',
     'responsabilit',
     'resume', 'résume', 'résumé', 'résumer',
-    'synthese', 'synthèse', 'synthetise',
-    'avis juridique', 'evaluation',
+    'synthese', 'synthèse', 'synthetis',
+    'avis juridique', 'evaluation', 'évaluation',
     'force', 'faiblesse', 'inconvenient', 'avantage',
     'desequilibr', 'recommandation', 'conseill',
-    'points critiques', 'clauses importantes'
+    'points critiques', 'clauses importantes',
+    'quels sont', 'quelles sont', 'identifie', 'liste'
   ];
   var ragPatterns = [
     'article ', 'clause ', 'section ',
@@ -1198,31 +1199,9 @@ function localClassify(question) {
     'durée', 'duree', 'délai', 'delai',
     'où est', 'ou est', 'dans quel'
   ];
-  // RAG évident
   if (ragPatterns.some(function(p) { return q.includes(p); })) return 'rag';
-  // GLOBAL évident
   if (globalPatterns.some(function(p) { return q.includes(p); })) return 'global';
-  // Ambigu → null (on appellera GPT)
-  return null;
-}
-
-async function classifyQuestion(question, token) {
-  // 1. Heuristique locale (0 token)
-  var local = localClassify(question);
-  if (local !== null) return local;
-
-  // 2. GPT classifier uniquement si ambigu (~5 tokens)
-  try {
-    var res = await fetch(JURIA_CONFIG.CHAT_DOC_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-      body: JSON.stringify({ mode: 'classifier', question: question })
-    });
-    var data = await res.json();
-    return (data.answer || 'RAG').trim().toUpperCase() === 'GLOBAL' ? 'global' : 'rag';
-  } catch(e) {
-    return 'rag'; // fallback sécurisé
-  }
+  return 'rag'; // défaut RAG si ambigu
 }
 
 // ── CHARGER TEXTE COMPLET DEPUIS document_content ────────────
@@ -1244,38 +1223,101 @@ async function summarizeSection(section, token) {
   return data.answer;
 }
 
+// ── CACHE : charger résumés depuis document_summaries ────────
+async function loadCachedSummaries(documentId) {
+  var result = await _sb
+    .from('document_summaries')
+    .select('section_index, section_total, summary')
+    .eq('document_id', documentId)
+    .order('section_index', { ascending: true });
+  if (result.error || !result.data || result.data.length === 0) return null;
+  return result.data;
+}
+
+// ── CACHE : sauvegarder résumés dans document_summaries ───────
+async function saveSummariesToCache(documentId, summaries, total) {
+  var rows = summaries.map(function(sum, idx) {
+    return {
+      document_id: documentId,
+      section_index: idx,
+      section_total: total,
+      summary: sum
+    };
+  });
+  // upsert : ne recrée pas si déjà présent
+  await _sb.from('document_summaries').upsert(rows, { onConflict: 'document_id,section_index' });
+}
+
+// ── PARALLÈLE avec concurrence limitée ────────────────────────
+async function parallelWithLimit(tasks, limit) {
+  var results = new Array(tasks.length);
+  var index = 0;
+  async function runNext() {
+    var i = index++;
+    if (i >= tasks.length) return;
+    results[i] = await tasks[i]();
+    await runNext();
+  }
+  var workers = [];
+  for (var w = 0; w < Math.min(limit, tasks.length); w++) {
+    workers.push(runNext());
+  }
+  await Promise.all(workers);
+  return results;
+}
+
 // ── ANALYSE GLOBALE ───────────────────────────────────────────
 async function handleGlobalAnalysis(question, token) {
-  // 1. Charger le texte complet depuis document_content
-  var fullText = await loadFullDocument(ragDocId);
-
-  if (!fullText || fullText.length === 0) {
-    throw new Error('Texte du document introuvable. Veuillez réanalyser le document.');
-  }
+  // 1. Afficher message immédiat
+  appendMsg('assistant', '⏳ Analyse du document en cours...', [], false, []);
 
   var context;
   var note = '';
 
-  if (fullText.length <= 48000) {
-    // Texte court : envoi direct
-    context = fullText;
+  // 2. Vérifier le cache d'abord
+  var cached = await loadCachedSummaries(ragDocId);
+
+  if (cached && cached.length > 0) {
+    // Cache HIT → instantané
+    context = cached.map(function(row) {
+      return '=== Section ' + (row.section_index+1) + '/' + row.section_total + ' ===\n' + row.summary;
+    }).join('\n\n');
+    note = '\n\n📋 Analyse complete : ' + cached.length + ' sections (cache).';
 
   } else {
-    // Texte long : résumé hiérarchique complet sur TOUT le document (pas de troncature)
-    var sections = [];
-    for (var i = 0; i < fullText.length; i += 12000) {
-      sections.push(fullText.slice(i, i + 12000));
+    // Cache MISS → générer les résumés
+    var fullText = await loadFullDocument(ragDocId);
+    if (!fullText || fullText.length === 0) {
+      throw new Error('Texte du document introuvable. Veuillez réanalyser le document.');
     }
-    var summaries = [];
-    for (var s = 0; s < sections.length; s++) {
-      var summary = await summarizeSection(sections[s], token);
-      summaries.push('=== Section ' + (s+1) + '/' + sections.length + ' ===\n' + summary);
+
+    if (fullText.length <= 48000) {
+      context = fullText;
+    } else {
+      var sections = [];
+      for (var i = 0; i < fullText.length; i += 12000) {
+        sections.push(fullText.slice(i, i + 12000));
+      }
+      // Parallèle avec max 4 simultanés
+      var tasks = sections.map(function(section) {
+        return function() { return summarizeSection(section, token); };
+      });
+      var rawSummaries = await parallelWithLimit(tasks, 4);
+      var formattedSummaries = rawSummaries.map(function(sum, idx) {
+        return '=== Section ' + (idx+1) + '/' + sections.length + ' ===\n' + sum;
+      });
+      context = formattedSummaries.join('\n\n');
+      note = '\n\n📋 Analyse complete : ' + sections.length + ' sections analysees.';
+
+      // Sauvegarder en cache (sans bloquer)
+      saveSummariesToCache(ragDocId, rawSummaries, sections.length).catch(function() {});
     }
-    context = summaries.join('\n\n');
-    note = '\n\n📋 Analyse complete : ' + sections.length + ' sections analysees sur ' + sections.length + '.';
   }
 
-  // 2. Appeler GPT en mode global
+  // 3. Supprimer le message "en cours"
+  removeLastMessage();
+
+  // 4. Appeler GPT en mode global
   var res = await fetch(JURIA_CONFIG.CHAT_DOC_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
@@ -1321,8 +1363,8 @@ async function askDocumentRAG(question) {
   var sessionData = await _sb.auth.getSession();
   var token = sessionData.data.session.access_token;
 
-  // 1. Classifier la question (coût ~5 tokens)
-  var type = await classifyQuestion(question, token);
+  // 1. Classifier localement (0 token, instantané)
+  var type = classifyQuestion(question);
 
   // 2. Router vers le bon handler
   if (type === 'global') {
