@@ -1268,8 +1268,8 @@ async function parallelWithLimit(tasks, limit) {
 
 // ── ANALYSE GLOBALE ───────────────────────────────────────────
 async function handleGlobalAnalysis(question, token) {
-  // 1. Afficher message immédiat
-  appendMsg('assistant', '⏳ Analyse du document en cours...', [], false, []);
+  // 1. Afficher indicateur de chargement
+  setLoading(true);
 
   var context;
   var note = '';
@@ -1314,8 +1314,8 @@ async function handleGlobalAnalysis(question, token) {
     }
   }
 
-  // 3. Supprimer le message "en cours"
-  removeLastMessage();
+  // 3. Supprimer l'indicateur de chargement
+  setLoading(false);
 
   // 4. Appeler GPT en mode global
   var res = await fetch(JURIA_CONFIG.CHAT_DOC_URL, {
