@@ -635,8 +635,8 @@ function reanalyze() {
 }
 
 function openChat() {
-  // Futur : chat.html?doc_id=...
-  showToast('Chat avec document — disponible prochainement', '');
+  const docId = new URLSearchParams(window.location.search).get('id');
+  if (docId) window.location.href = 'chat.html?id=' + docId;
 }
 
 // ══════════════════════════════════════════════
