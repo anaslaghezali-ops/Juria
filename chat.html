@@ -1260,8 +1260,8 @@ async function handleGlobalAnalysis(question, token) {
     // Texte court : envoi direct
     context = fullText;
 
-  } else if (fullText.length <= 100000) {
-    // Texte moyen : résumé hiérarchique par sections de 12 000 chars
+  } else {
+    // Texte long : résumé hiérarchique complet sur TOUT le document (pas de troncature)
     var sections = [];
     for (var i = 0; i < fullText.length; i += 12000) {
       sections.push(fullText.slice(i, i + 12000));
@@ -1269,25 +1269,10 @@ async function handleGlobalAnalysis(question, token) {
     var summaries = [];
     for (var s = 0; s < sections.length; s++) {
       var summary = await summarizeSection(sections[s], token);
-      summaries.push('=== Section ' + (s+1) + ' ===\n' + summary);
+      summaries.push('=== Section ' + (s+1) + '/' + sections.length + ' ===\n' + summary);
     }
     context = summaries.join('\n\n');
-    note = '\n\n📋 Analyse basee sur un resume hierarchique (' + sections.length + ' sections).';
-
-  } else {
-    // Texte très long (> 100k chars) : on résume les 80 000 premiers chars
-    var truncated = fullText.slice(0, 80000);
-    var sectionsLong = [];
-    for (var j = 0; j < truncated.length; j += 12000) {
-      sectionsLong.push(truncated.slice(j, j + 12000));
-    }
-    var summariesLong = [];
-    for (var k = 0; k < sectionsLong.length; k++) {
-      var sumLong = await summarizeSection(sectionsLong[k], token);
-      summariesLong.push('=== Section ' + (k+1) + ' ===\n' + sumLong);
-    }
-    context = summariesLong.join('\n\n');
-    note = '\n\n⚠️ Document tres long - analyse basee sur les ' + sectionsLong.length + ' premieres sections.';
+    note = '\n\n📋 Analyse complete : ' + sections.length + ' sections analysees sur ' + sections.length + '.';
   }
 
   // 2. Appeler GPT en mode global
