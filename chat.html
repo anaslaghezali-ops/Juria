@@ -89,6 +89,14 @@ let currentDocId = null;
 let currentMessages = [];
 
 async function init() {
+  // Vérifier la session
+  const { data: { session } } = await _sb.auth.getSession();
+  if (!session) {
+    await new Promise(r => setTimeout(r, 800));
+    const { data: { session: session2 } } = await _sb.auth.getSession();
+    if (!session2) { window.location.href = 'auth.html'; return; }
+  }
+
   const docId = new URLSearchParams(window.location.search).get('id');
   if (!docId) { alert('Document manquant'); return; }
   
