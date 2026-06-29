@@ -1227,9 +1227,9 @@ async function classifyQuestion(question, token) {
 
 // ── CHARGER TEXTE COMPLET DEPUIS document_content ────────────
 async function loadFullDocument(documentId) {
-  var result = await _sb.from('document_content').select('content').eq('document_id', documentId).single();
+  var result = await _sb.from('document_content').select('extracted_text').eq('document_id', documentId).single();
   if (result.error) throw new Error('Impossible de charger le document : ' + result.error.message);
-  return result.data.content || '';
+  return result.data.extracted_text || '';
 }
 
 // ── RÉSUMÉ D'UNE SECTION ─────────────────────────────────────
