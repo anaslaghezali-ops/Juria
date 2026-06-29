@@ -1315,7 +1315,7 @@ async function handleGlobalAnalysis(question, token) {
   }
 
   // 3. Supprimer le message "en cours"
-  removeLastMessage();
+  if (chatArea && chatArea.lastChild) chatArea.lastChild.remove();
 
   // 4. Appeler GPT en mode global
   var res = await fetch(JURIA_CONFIG.CHAT_DOC_URL, {
