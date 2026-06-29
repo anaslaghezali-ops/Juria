@@ -211,7 +211,7 @@ const JURIA_CONFIG = {
   SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRucnVkY3BhcWNxeXlicGJicnVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyODQwMjMsImV4cCI6MjA5Njg2MDAyM30.f6_byMzZBE2SQH2XjNmRQFQpRkRIfXE2OC0mNxQt5z4',
   EDGE_FUNCTION_URL: 'https://dnrudcpaqcqyybpbbrum.supabase.co/functions/v1/smart-endpoint',
   CHAT_DOC_URL:      'https://dnrudcpaqcqyybpbbrum.supabase.co/functions/v1/chat-with-doc',
-  OPENAI_API_KEY:    'sk-proj-KV7HvFhjV1OVqkHFEwKFU7jkI7jzfKjVKXiCN7EjPwM-j7tqLvD5xS3CJKnKMbDvDkVhbUdbP-T03BlbkFJ7pVGmLs_jkEu3bpEaIDYEJ6nDzVFvWc7lZyG-s-0n7sJJnBn_9xr9oeB5_02YDDY-95EnBxkA',
+  // OPENAI_API_KEY supprimée — vit uniquement dans Supabase Secrets
 };
 </script>
 
@@ -1175,45 +1175,161 @@ async function getEmbedding(text) {
   return data.embedding;
 }
 
-async function askDocumentRAG(question) {
-  // 1. Embedding de la question
-  const embedding = await getEmbedding(question);
+// ── CLASSIFIEUR HYBRIDE (heuristique locale + GPT si ambigu) ─
+function localClassify(question) {
+  var q = question.toLowerCase();
+  var globalPatterns = [
+    'analyse', 'analysez', 'analyser', 'analys',
+    'risque', 'risques',
+    'obligation', 'obligations',
+    'engagement', 'engagements',
+    'responsabilit',
+    'resume', 'résume', 'résumé', 'résumer',
+    'synthese', 'synthèse', 'synthetise',
+    'avis juridique', 'evaluation',
+    'force', 'faiblesse', 'inconvenient', 'avantage',
+    'desequilibr', 'recommandation', 'conseill',
+    'points critiques', 'clauses importantes'
+  ];
+  var ragPatterns = [
+    'article ', 'clause ', 'section ',
+    'quelle date', 'quel montant', 'combien',
+    'qui est ', 'qui sont ',
+    'durée', 'duree', 'délai', 'delai',
+    'où est', 'ou est', 'dans quel'
+  ];
+  // RAG évident
+  if (ragPatterns.some(function(p) { return q.includes(p); })) return 'rag';
+  // GLOBAL évident
+  if (globalPatterns.some(function(p) { return q.includes(p); })) return 'global';
+  // Ambigu → null (on appellera GPT)
+  return null;
+}
 
-  // 2. Recherche vectorielle
-  const { data: chunks, error } = await _sb.rpc('match_document_chunks', {
+async function classifyQuestion(question, token) {
+  // 1. Heuristique locale (0 token)
+  var local = localClassify(question);
+  if (local !== null) return local;
+
+  // 2. GPT classifier uniquement si ambigu (~5 tokens)
+  try {
+    var res = await fetch(JURIA_CONFIG.CHAT_DOC_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ mode: 'classifier', question: question })
+    });
+    var data = await res.json();
+    return (data.answer || 'RAG').trim().toUpperCase() === 'GLOBAL' ? 'global' : 'rag';
+  } catch(e) {
+    return 'rag'; // fallback sécurisé
+  }
+}
+
+// ── CHARGER TEXTE COMPLET DEPUIS document_content ────────────
+async function loadFullDocument(documentId) {
+  var result = await _sb.from('document_content').select('extracted_text').eq('document_id', documentId).single();
+  if (result.error) throw new Error('Impossible de charger le document : ' + result.error.message);
+  return result.data.extracted_text || '';
+}
+
+// ── RÉSUMÉ D'UNE SECTION ─────────────────────────────────────
+async function summarizeSection(section, token) {
+  var res = await fetch(JURIA_CONFIG.CHAT_DOC_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+    body: JSON.stringify({ mode: 'section-summary', context: section })
+  });
+  var data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Erreur résumé section');
+  return data.answer;
+}
+
+// ── ANALYSE GLOBALE ───────────────────────────────────────────
+async function handleGlobalAnalysis(question, token) {
+  // 1. Charger le texte complet depuis document_content
+  var fullText = await loadFullDocument(ragDocId);
+
+  if (!fullText || fullText.length === 0) {
+    throw new Error('Texte du document introuvable. Veuillez réanalyser le document.');
+  }
+
+  var context;
+  var note = '';
+
+  if (fullText.length <= 48000) {
+    // Texte court : envoi direct
+    context = fullText;
+
+  } else {
+    // Texte long : résumé hiérarchique complet sur TOUT le document (pas de troncature)
+    var sections = [];
+    for (var i = 0; i < fullText.length; i += 12000) {
+      sections.push(fullText.slice(i, i + 12000));
+    }
+    var summaries = [];
+    for (var s = 0; s < sections.length; s++) {
+      var summary = await summarizeSection(sections[s], token);
+      summaries.push('=== Section ' + (s+1) + '/' + sections.length + ' ===\n' + summary);
+    }
+    context = summaries.join('\n\n');
+    note = '\n\n📋 Analyse complete : ' + sections.length + ' sections analysees sur ' + sections.length + '.';
+  }
+
+  // 2. Appeler GPT en mode global
+  var res = await fetch(JURIA_CONFIG.CHAT_DOC_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+    body: JSON.stringify({ mode: 'global', question: question, context: context })
+  });
+  var data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Erreur Edge Function');
+  return data.answer + note;
+}
+
+// ── RAG : RECHERCHE VECTORIELLE ───────────────────────────────
+async function handleRagQuestion(question, token) {
+  var embedding = await getEmbedding(question);
+
+  var result = await _sb.rpc('match_document_chunks', {
     document_id: ragDocId,
     query_embedding: embedding,
     match_count: 5
   });
 
-  if (error) throw new Error('Erreur recherche: ' + error.message);
+  if (result.error) throw new Error('Erreur recherche: ' + result.error.message);
 
-  if (!chunks || chunks.length === 0) {
-    return '❌ Aucun passage pertinent trouvé dans ce document. Le document est peut-être en cours d\'indexation.';
+  if (!result.data || result.data.length === 0) {
+    return '❌ Aucun passage pertinent trouvé. Le document est peut-être en cours d\'indexation.';
   }
 
-  // 3. Construire le contexte
-  const context = chunks
+  var context = result.data
     .map(function(c, i) { return '[Passage ' + (i+1) + ' - Page ' + (c.page_number || '?') + ']\n' + c.content; })
     .join('\n\n---\n\n');
 
-  // 4. Appeler Claude via Edge Function chat-with-doc
-  const sessionData = await _sb.auth.getSession();
-  const token = sessionData.data.session.access_token;
-
-  const res = await fetch(JURIA_CONFIG.CHAT_DOC_URL, {
+  var res = await fetch(JURIA_CONFIG.CHAT_DOC_URL, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + token
-    },
-    body: JSON.stringify({ question: question, context: context })
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+    body: JSON.stringify({ mode: 'rag', question: question, context: context })
   });
-
-  const data = await res.json();
+  var data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Erreur Edge Function');
+  return data.answer + '\n\n📍 Basé sur ' + result.data.length + ' passage(s) du document.';
+}
 
-  return data.answer + '\n\n📍 Basé sur ' + chunks.length + ' passage(s) du document.';
+// ── ROUTER PRINCIPAL ──────────────────────────────────────────
+async function askDocumentRAG(question) {
+  var sessionData = await _sb.auth.getSession();
+  var token = sessionData.data.session.access_token;
+
+  // 1. Classifier la question (coût ~5 tokens)
+  var type = await classifyQuestion(question, token);
+
+  // 2. Router vers le bon handler
+  if (type === 'global') {
+    return await handleGlobalAnalysis(question, token);
+  } else {
+    return await handleRagQuestion(question, token);
+  }
 }
 
 // Afficher le nom du document si mode RAG
