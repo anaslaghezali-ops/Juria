@@ -336,6 +336,52 @@
     .cp-mini-name { flex: 1; font-size: 13px; font-weight: 600; color: var(--slate-700); }
     .cp-mini-risk { font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 99px; }
 
+
+    /* ── RISK SCORE ENGINE ── */
+    .score-gauge { display: flex; align-items: center; gap: 12px; }
+    .gauge-ring { position: relative; width: 64px; height: 64px; flex-shrink: 0; }
+    .gauge-ring svg { transform: rotate(-90deg); }
+    .gauge-ring-bg { fill: none; stroke: var(--slate-100); stroke-width: 7; }
+    .gauge-ring-fill { fill: none; stroke-width: 7; stroke-linecap: round; transition: stroke-dashoffset 0.6s ease; }
+    .gauge-center { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; }
+    .gauge-high .gauge-ring-fill { stroke: #ef4444; }
+    .gauge-high .gauge-center { color: #ef4444; }
+    .gauge-med .gauge-ring-fill { stroke: #f59e0b; }
+    .gauge-med .gauge-center { color: #f59e0b; }
+    .gauge-low .gauge-ring-fill { stroke: #10b981; }
+    .gauge-low .gauge-center { color: #10b981; }
+    .score-detail { flex: 1; }
+    .score-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--slate-400); }
+    .score-val { font-family: var(--serif); font-size: 28px; color: var(--slate-900); line-height: 1; }
+    .score-sub { font-size: 11px; color: var(--slate-400); margin-top: 2px; }
+    .score-factors { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+    .score-factor-row { display: flex; align-items: center; gap: 8px; }
+    .score-factor-label { font-size: 11px; color: var(--slate-600); width: 160px; flex-shrink: 0; }
+    .score-factor-bar { flex: 1; height: 5px; background: var(--slate-100); border-radius: 99px; overflow: hidden; }
+    .score-factor-fill { height: 100%; border-radius: 99px; }
+    .score-factor-pts { font-size: 11px; font-weight: 700; color: var(--slate-500); width: 32px; text-align: right; }
+    .cp-score-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 800; padding: 3px 10px; border-radius: 8px; }
+    .cp-score-high { background: #fef2f2; color: #991b1b; }
+    .cp-score-med { background: #fffbeb; color: #92400e; }
+    .cp-score-low { background: #ecfdf5; color: #065f46; }
+
+    /* ── TIMELINE ── */
+    .timeline { display: flex; flex-direction: column; gap: 0; position: relative; }
+    .timeline::before { content: ''; position: absolute; left: 18px; top: 8px; bottom: 8px; width: 2px; background: var(--border); }
+    .timeline-item { display: flex; gap: 16px; align-items: flex-start; padding: 10px 0; position: relative; }
+    .timeline-dot { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; position: relative; z-index: 1; }
+    .tl-import { background: #eff6ff; }
+    .tl-analyse { background: #ecfdf5; }
+    .tl-risk { background: #fef2f2; }
+    .tl-deadline { background: #fffbeb; }
+    .tl-comment { background: #f5f3ff; }
+    .tl-folder { background: var(--indigo-bg); }
+    .timeline-body { flex: 1; padding-top: 6px; }
+    .timeline-event { font-size: 13px; font-weight: 600; color: var(--slate-900); margin-bottom: 2px; }
+    .timeline-meta { font-size: 12px; color: var(--slate-400); display: flex; gap: 10px; flex-wrap: wrap; }
+    .timeline-tag { font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 99px; background: var(--slate-100); color: var(--slate-600); }
+    .timeline-filters { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+
     /* ── MOBILE ── */
     .btn-menu { display: none; background: none; border: none; cursor: pointer; padding: 8px; color: var(--slate-700); }
     @media (max-width: 768px) {
@@ -364,6 +410,10 @@
     <button class="nav-item" onclick="showPage('dashboard')">
       <span class="nav-icon">📊</span> Dashboard
     </button>
+    <button class="nav-item" onclick="showPage('contreparties')">
+      <span class="nav-icon">🏢</span> Contreparties
+      <span class="nav-count" id="navCpCount">—</span>
+    </button>
     <button class="nav-item" onclick="showPage('dossiers')">
       <span class="nav-icon">📁</span> Dossiers
       <span class="nav-count" id="navFolderCount">—</span>
@@ -379,14 +429,13 @@
       <span class="nav-count nav-badge-red" id="navRisksCount">—</span>
     </button>
     <button class="nav-item" onclick="showPage('portefeuille')">
-      <span class="nav-icon">📊</span> Portefeuille risques
+      <span class="nav-icon">📈</span> Portefeuille risques
     </button>
     <button class="nav-item" onclick="showPage('echeances')">
       <span class="nav-icon">📅</span> Échéances
     </button>
-    <button class="nav-item" onclick="showPage('contreparties')">
-      <span class="nav-icon">🏢</span> Contreparties
-      <span class="nav-count" id="navCpCount">—</span>
+    <button class="nav-item" onclick="showPage('timeline')">
+      <span class="nav-icon">🕐</span> Timeline
     </button>
 
     <div class="nav-section">Outils</div>
@@ -738,10 +787,12 @@
         <button class="tab-btn active" onclick="switchCpTab('dossiers')">Dossiers</button>
         <button class="tab-btn" onclick="switchCpTab('docs')">Documents</button>
         <button class="tab-btn" onclick="switchCpTab('risques')">Risques</button>
+        <button class="tab-btn" onclick="switchCpTab('score')">⚖️ Risk Score</button>
       </div>
       <div class="tab-panel active" id="cp-tab-dossiers"><div id="cpTabDossiers"></div></div>
       <div class="tab-panel" id="cp-tab-docs"><div id="cpTabDocs"></div></div>
       <div class="tab-panel" id="cp-tab-risques"><div id="cpTabRisques"></div></div>
+      <div class="tab-panel" id="cp-tab-score"><div id="cpTabScore"></div></div>
     </div>
 
     <!-- ══════════ PAGE: PORTEFEUILLE RISQUES ══════════ -->
@@ -781,6 +832,31 @@
           <thead><tr><th>Niveau</th><th>Type</th><th>Risque</th><th>Document</th><th>Contrepartie</th><th>Clause</th></tr></thead>
           <tbody id="portfolioBody"></tbody>
         </table>
+      </div>
+    </div>
+
+
+    <!-- ══════════ PAGE: TIMELINE ══════════ -->
+    <div class="page" id="page-timeline">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Timeline juridique</div>
+          <div class="page-sub">Historique chronologique de toutes les activités</div>
+        </div>
+      </div>
+      <div class="timeline-filters">
+        <button class="filter-pill active" onclick="filterTimeline('all',this)">Tout</button>
+        <button class="filter-pill" onclick="filterTimeline('import',this)">📄 Imports</button>
+        <button class="filter-pill" onclick="filterTimeline('analyse',this)">⚡ Analyses</button>
+        <button class="filter-pill" onclick="filterTimeline('risk',this)">⚠️ Risques</button>
+        <button class="filter-pill" onclick="filterTimeline('deadline',this)">📅 Échéances</button>
+        <button class="filter-pill" onclick="filterTimeline('folder',this)">📁 Dossiers</button>
+      </div>
+      <div class="timeline" id="timelineList"></div>
+      <div class="empty-state" id="emptyTimeline" style="display:none">
+        <div class="empty-icon">🕐</div>
+        <div class="empty-title">Aucune activité</div>
+        <div class="empty-sub">Les événements apparaissent ici au fur et à mesure.</div>
       </div>
     </div>
 
@@ -926,12 +1002,13 @@ let pendingFiles = [];
 // ── NAVIGATION ──────────────────────────────
 const PAGE_TITLES = {
   dashboard: 'Dashboard',
+  contreparties: 'Contreparties',
   dossiers: 'Dossiers',
   documents: 'Documents',
   risques: 'Risques',
   portefeuille: 'Portefeuille de risques',
   echeances: 'Échéances',
-  contreparties: 'Contreparties',
+  timeline: 'Timeline juridique',
   'cp-detail': 'Contrepartie',
   'dossier-detail': 'Dossier',
 };
@@ -949,9 +1026,10 @@ function showPage(name) {
   if (name === 'risques') renderRisks();
   if (name === 'portefeuille') renderPortfolio();
   if (name === 'echeances') renderDeadlines();
+  if (name === 'timeline') renderTimeline();
   if (name === 'documents') { filterDocs(); populateFolderFilter(); }
   if (name === 'dossiers') renderFolders();
-  if (name === 'contreparties') renderCounterparties();
+  if (name === 'contreparties') renderCounterpartiesWithScore();
 }
 
 // ── AUTH & INIT ──────────────────────────────
@@ -1081,11 +1159,16 @@ function renderDashboard() {
       const doc = allDocs.find(d => d.id === r.document_id);
       return doc && (doc.counterparty === cp.name);
     }).filter(r => r.severity === 'high' || r.severity === 'critical').length;
-    const riskCls = cpRisks > 0 ? 'lvl-high' : 'lvl-low';
+    const cpRisksArr = allRisks.filter(r => {
+      const doc = allDocs.find(d => d.id === r.document_id);
+      return doc && (doc.counterparty === cp.name);
+    });
+    const { score: cpScore } = computeRiskScore(cpRisksArr);
+    const scoreCls2 = getRiskScoreClass(cpScore);
     return `<div class="cp-mini-row" onclick="openCpDetail('${cp.id}')" style="cursor:pointer">
       <div class="cp-mini-avatar">${cp.name.charAt(0)}</div>
       <span class="cp-mini-name">${escHtml(cp.name)}</span>
-      <span class="cp-mini-risk ${riskCls}">${cpRisks > 0 ? cpRisks + ' risque(s)' : 'OK'}</span>
+      <span class="cp-score-badge cp-score-${scoreCls2}" style="font-size:11px">${cpScore}/100</span>
     </div>`;
   }).join('') || '<div style="font-size:13px;color:var(--slate-400);padding:8px 0">Aucune contrepartie.</div>';
 
@@ -1659,11 +1742,15 @@ function openCpDetail(cpId) {
   const cpFoldersList = allFolders.filter(f => f.counterparty === cp.name || f.counterparty_id === cp.id);
   const highR = cpRisks.filter(r => r.severity === 'high' || r.severity === 'critical').length;
   const cpDeadlines = getDemoDeadlines().filter(d => cpDocs.find(doc => doc.name === d.doc)).length;
+  const { score } = computeRiskScore(cpRisks);
+  const scoreCls = getRiskScoreClass(score);
 
   document.getElementById('cpDetailBreadcrumb').textContent = cp.name;
   document.getElementById('cpDetailAvatar').textContent = cp.name.charAt(0).toUpperCase();
   document.getElementById('cpDetailName').textContent = cp.name;
-  document.getElementById('cpDetailMeta').textContent = [cp.type, cp.sector, cp.country].filter(Boolean).join(' · ');
+  document.getElementById('cpDetailMeta').innerHTML = [cp.type, cp.sector, cp.country].filter(Boolean).join(' · ')
+    + ' &nbsp;<span class="cp-score-badge cp-score-' + scoreCls + '" style="font-size:13px">'
+    + score + '/100 · ' + getRiskScoreLabel(score) + '</span>';
   document.getElementById('cpKpiDocs').textContent = cpDocs.length;
   document.getElementById('cpKpiHighRisks').textContent = highR;
   document.getElementById('cpKpiFolders').textContent = cpFoldersList.length;
@@ -1689,11 +1776,14 @@ function openCpDetail(cpId) {
     ? renderRisksTable(cpRisks)
     : '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-title">Aucun risque</div></div>';
 
+  // Tab score
+  document.getElementById('cpTabScore').innerHTML = renderScoreTab(cpId);
+
   showPage('cp-detail');
 }
 
 function switchCpTab(name) {
-  const tabs = ['dossiers', 'docs', 'risques'];
+  const tabs = ['dossiers', 'docs', 'risques', 'score'];
   document.querySelectorAll('#page-cp-detail .tab-btn').forEach((b, i) => b.classList.toggle('active', tabs[i] === name));
   document.querySelectorAll('#page-cp-detail .tab-panel').forEach((p, i) => p.classList.toggle('active', tabs[i] === name));
 }
@@ -1815,6 +1905,262 @@ function getDemoCounterparties() {
     { id:'cp4', name:'Deloitte', type:'fournisseur', sector:'Conseil', country:'MA', risk_level:'low', notes:'Mission audit' },
     { id:'cp5', name:'Ciment Atlas', type:'autre', sector:'Industrie', country:'MA', risk_level:'medium', notes:'Cible acquisition' },
   ];
+}
+
+
+// ══════════════════════════════════════════════
+//  RISK SCORING ENGINE
+// ══════════════════════════════════════════════
+
+// Facteurs de risque avec poids (total 100)
+const RISK_FACTORS = [
+  { key: 'EVENT_OF_DEFAULT', label: 'Event of Default',      weight: 25, color: '#ef4444' },
+  { key: 'TERMINATION',      label: 'Résiliation',           weight: 15, color: '#f97316' },
+  { key: 'FUNDING',          label: 'Financement',           weight: 15, color: '#f59e0b' },
+  { key: 'CHANGE_OF_CONTROL',label: 'Changement de contrôle',weight: 15, color: '#ec4899' },
+  { key: 'DEADLOCK',         label: 'Blocage décisionnel',   weight: 10, color: '#8b5cf6' },
+  { key: 'GOVERNANCE',       label: 'Gouvernance',           weight: 8,  color: '#3b82f6' },
+  { key: 'COMPLIANCE',       label: 'Non-conformité',        weight: 7,  color: '#10b981' },
+  { key: 'OTHER',            label: 'Autres risques',        weight: 5,  color: '#6b7280' },
+];
+
+// Multiplicateurs de sévérité
+const SEV_MULT = { critical: 1.0, high: 0.8, medium: 0.4, low: 0.1 };
+
+function computeRiskScore(risks) {
+  if (!risks || !risks.length) return { score: 0, factors: [] };
+
+  const factorScores = {};
+  RISK_FACTORS.forEach(f => { factorScores[f.key] = 0; });
+
+  risks.forEach(r => {
+    const type = r.risk_type || 'OTHER';
+    const mult = SEV_MULT[r.severity] || 0.1;
+    const factor = RISK_FACTORS.find(f => f.key === type) || RISK_FACTORS[RISK_FACTORS.length - 1];
+    // Accumule jusqu'au poids max
+    factorScores[factor.key] = Math.min(factor.weight, (factorScores[factor.key] || 0) + factor.weight * mult);
+  });
+
+  const totalScore = Math.round(Object.values(factorScores).reduce((s, v) => s + v, 0));
+  const capped = Math.min(100, totalScore);
+
+  const factorDetails = RISK_FACTORS.map(f => ({
+    ...f,
+    scored: Math.round(factorScores[f.key] || 0),
+    pct: Math.round((factorScores[f.key] || 0) / f.weight * 100),
+  })).filter(f => f.scored > 0);
+
+  return { score: capped, factors: factorDetails };
+}
+
+function getRiskScoreClass(score) {
+  if (score >= 60) return 'high';
+  if (score >= 30) return 'med';
+  return 'low';
+}
+
+function getRiskScoreLabel(score) {
+  if (score >= 75) return 'Exposition critique';
+  if (score >= 60) return 'Exposition élevée';
+  if (score >= 40) return 'Exposition modérée';
+  if (score >= 20) return 'Exposition faible';
+  return 'Risque minimal';
+}
+
+function renderGauge(score, containerId) {
+  const cls = getRiskScoreClass(score);
+  const radius = 26;
+  const circ = 2 * Math.PI * radius;
+  const offset = circ - (score / 100) * circ;
+  return `<div class="score-gauge">
+    <div class="gauge-ring gauge-${cls}">
+      <svg width="64" height="64" viewBox="0 0 64 64">
+        <circle class="gauge-ring-bg" cx="32" cy="32" r="${radius}"/>
+        <circle class="gauge-ring-fill" cx="32" cy="32" r="${radius}"
+          stroke-dasharray="${circ.toFixed(1)}"
+          stroke-dashoffset="${offset.toFixed(1)}"/>
+      </svg>
+      <div class="gauge-center">${score}</div>
+    </div>
+    <div class="score-detail">
+      <div class="score-label">Legal Exposure Score</div>
+      <div class="score-val">${score}<span style="font-size:16px;font-family:var(--font);color:var(--slate-400)">/100</span></div>
+      <div class="score-sub">${getRiskScoreLabel(score)}</div>
+    </div>
+  </div>`;
+}
+
+function renderScoreTab(cpId) {
+  const cp = allCounterparties.find(c => c.id === cpId);
+  if (!cp) return '';
+  const cpDocs = allDocs.filter(d => d.counterparty === cp.name || d.counterparty_id === cp.id);
+  const cpRisks = allRisks.filter(r => cpDocs.find(d => d.id === r.document_id));
+  const { score, factors } = computeRiskScore(cpRisks);
+  const cls = getRiskScoreClass(score);
+
+  const factorRows = factors.length
+    ? factors.map(f => `
+      <div class="score-factor-row">
+        <div class="score-factor-label">${f.label}</div>
+        <div class="score-factor-bar"><div class="score-factor-fill" style="width:${f.pct}%;background:${f.color}"></div></div>
+        <div class="score-factor-pts">${f.scored}pts</div>
+      </div>`).join('')
+    : '<div style="font-size:13px;color:var(--slate-400);margin-top:8px">Aucun risque identifié pour cette contrepartie.</div>';
+
+  return `
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:4px">
+    <div class="dash-card">
+      <div class="dash-card-title">⚖️ Score d'exposition juridique</div>
+      ${renderGauge(score)}
+      <div style="margin-top:20px">
+        <div class="score-factors">${factorRows}</div>
+      </div>
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);font-size:12px;color:var(--slate-400)">
+        Basé sur ${cpRisks.length} risque(s) identifié(s) dans ${cpDocs.length} document(s).
+      </div>
+    </div>
+    <div class="dash-card">
+      <div class="dash-card-title">📊 Répartition par type</div>
+      <div class="risk-bars" style="margin-top:8px">
+        ${RISK_FACTORS.filter(f => cpRisks.some(r => (r.risk_type||'OTHER') === f.key)).map(f => {
+          const count = cpRisks.filter(r => (r.risk_type||'OTHER') === f.key).length;
+          const maxCount = Math.max(...RISK_FACTORS.map(ff => cpRisks.filter(r => (r.risk_type||'OTHER') === ff.key).length), 1);
+          return `<div class="risk-bar-row">
+            <div class="risk-bar-label">${f.label}</div>
+            <div class="risk-bar-track"><div class="risk-bar-fill" style="width:${Math.round(count/maxCount*100)}%;background:${f.color}"></div></div>
+            <div class="risk-bar-count">${count}</div>
+          </div>`;
+        }).join('') || '<div style="font-size:13px;color:var(--slate-400)">Aucun risque.</div>'}
+      </div>
+    </div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════
+//  RISK SCORE SUR LES CARDS CONTREPARTIES
+// ══════════════════════════════════════════════
+// Patch renderCounterparties pour afficher le score
+function renderCounterpartiesWithScore() {
+  const grid = document.getElementById('cpGrid');
+  const empty = document.getElementById('emptyCp');
+  document.getElementById('navCpCount').textContent = allCounterparties.length;
+
+  if (!allCounterparties.length) {
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  // Trier par score décroissant
+  const cpWithScores = allCounterparties.map(cp => {
+    const cpDocs = allDocs.filter(d => d.counterparty === cp.name || d.counterparty_id === cp.id);
+    const cpRisks = allRisks.filter(r => cpDocs.find(d => d.id === r.document_id));
+    const { score } = computeRiskScore(cpRisks);
+    const highR = cpRisks.filter(r => r.severity === 'high' || r.severity === 'critical').length;
+    const cpFolders = allFolders.filter(f => f.counterparty === cp.name || f.counterparty_id === cp.id).length;
+    return { cp, cpDocs, highR, cpFolders, score };
+  }).sort((a,b) => b.score - a.score);
+
+  const typeMap = { client:'Client', fournisseur:'Fournisseur', partenaire:'Partenaire', adversaire:'Adversaire', autre:'Autre' };
+
+  grid.innerHTML = cpWithScores.map(({ cp, cpDocs, highR, cpFolders, score }) => {
+    const cls = getRiskScoreClass(score);
+    const scoreCls = `cp-score-${cls}`;
+    return `<div class="cp-card" onclick="openCpDetail('${cp.id}')">
+      <div class="cp-card-top">
+        <div class="cp-avatar">${cp.name.charAt(0).toUpperCase()}</div>
+        <div style="flex:1">
+          <div class="cp-name">${escHtml(cp.name)}</div>
+          <div class="cp-type">${typeMap[cp.type] || 'Autre'}${cp.sector ? ' · ' + cp.sector : ''}${cp.country ? ' · ' + cp.country : ''}</div>
+        </div>
+        <span class="cp-score-badge ${scoreCls}">${score}/100</span>
+      </div>
+      <div class="cp-stats">
+        <div><div class="cp-stat-val">${cpDocs.length}</div><div class="cp-stat-label">Documents</div></div>
+        <div><div class="cp-stat-val ${highR > 0 ? 'red' : ''}">${highR}</div><div class="cp-stat-label">Risques élevés</div></div>
+        <div><div class="cp-stat-val">${cpFolders}</div><div class="cp-stat-label">Dossiers</div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════
+//  TIMELINE JURIDIQUE
+// ══════════════════════════════════════════════
+let activeTimelineFilter = 'all';
+
+function getDemoTimeline() {
+  const now = new Date();
+  const t = (offset, unit='day') => {
+    const ms = unit === 'hour' ? offset * 3600000 : offset * 86400000;
+    return new Date(now - ms);
+  };
+  return [
+    { type:'analyse', icon:'⚡', date:t(2,'hour'),  event:'SHA Fertinagro analysé',           detail:'5 risques identifiés · Score 6/10', tag:'OCP - JV Fertinagro', doc:'SHA Fertinagro - OCP.pdf' },
+    { type:'risk',    icon:'⚠️', date:t(3,'hour'),  event:'Risque ÉLEVÉ détecté',              detail:'EVENT_OF_DEFAULT · Clause 15.8',    tag:'SHA Fertinagro', doc:'SHA Fertinagro - OCP.pdf' },
+    { type:'risk',    icon:'⚠️', date:t(3,'hour'),  event:'Risque ÉLEVÉ détecté',              detail:'TERMINATION · Clause 2.5',          tag:'SHA Fertinagro', doc:'SHA Fertinagro - OCP.pdf' },
+    { type:'import',  icon:'📄', date:t(5,'hour'),  event:'SHA Fertinagro importé',            detail:'560 KB · PDF',                      tag:'OCP - JV Fertinagro', doc:'SHA Fertinagro - OCP.pdf' },
+    { type:'folder',  icon:'📁', date:t(1),         event:'Dossier créé',                      detail:'OCP - JV Fertinagro',               tag:'Client: OCP', doc:null },
+    { type:'analyse', icon:'⚡', date:t(3),         event:'Amendement SHA n°1 analysé',        detail:'2 risques identifiés · Score 7/10', tag:'OCP - JV Fertinagro', doc:'Amendement SHA n°1.pdf' },
+    { type:'import',  icon:'📄', date:t(3),         event:'Amendement SHA n°1 importé',        detail:'245 KB · PDF',                      tag:'OCP - JV Fertinagro', doc:'Amendement SHA n°1.pdf' },
+    { type:'analyse', icon:'⚡', date:t(5),         event:'NDA TotalEnergies analysé',         detail:'0 risque élevé · Score 8/10',       tag:'Client ABC - Acquisition', doc:'NDA bilatéral - TotalEnergies.pdf' },
+    { type:'import',  icon:'📄', date:t(5),         event:'NDA TotalEnergies importé',         detail:'128 KB · PDF',                      tag:'Client ABC - Acquisition', doc:'NDA bilatéral - TotalEnergies.pdf' },
+    { type:'folder',  icon:'📁', date:t(6),         event:'Dossier créé',                      detail:'Client ABC - Acquisition',          tag:'Client: Client ABC', doc:null },
+    { type:'deadline',icon:'📅', date:t(7),         event:'Échéance ajoutée',                  detail:'Préavis renouvellement — J-7',      tag:'SHA Fertinagro', doc:'SHA Fertinagro - OCP.pdf' },
+    { type:'import',  icon:'📄', date:t(7),         event:'SPA Acquisition Ciment Atlas importé','detail':'820 KB · PDF',                  tag:'Client ABC - Acquisition', doc:'SPA - Acquisition Ciment Atlas.pdf' },
+    { type:'import',  icon:'📄', date:t(10),        event:'Contrat EPC Projet solaire importé','detail':'310 KB · DOCX',                  tag:'Sans dossier', doc:'Contrat EPC - Projet solaire.docx' },
+    { type:'analyse', icon:'⚡', date:t(14),        event:'Contrat SaaS Oracle analysé',       detail:'1 risque moyen · Score 5/10',       tag:'Oracle', doc:'Contrat SaaS - Oracle.pdf' },
+    { type:'import',  icon:'📄', date:t(14),        event:'Contrat SaaS Oracle importé',       detail:'195 KB · PDF',                      tag:'Oracle', doc:'Contrat SaaS - Oracle.pdf' },
+  ].sort((a,b) => b.date - a.date);
+}
+
+function renderTimeline(filter) {
+  filter = filter || activeTimelineFilter;
+  const list = document.getElementById('timelineList');
+  const empty = document.getElementById('emptyTimeline');
+
+  let items = getDemoTimeline();
+  if (filter !== 'all') items = items.filter(i => i.type === filter);
+
+  if (!items.length) {
+    list.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  const dotCls = { import:'tl-import', analyse:'tl-analyse', risk:'tl-risk', deadline:'tl-deadline', comment:'tl-comment', folder:'tl-folder' };
+
+  list.innerHTML = items.map(item => {
+    const date = item.date;
+    const now = new Date();
+    const diffMs = now - date;
+    const diffH = Math.round(diffMs / 3600000);
+    const diffD = Math.round(diffMs / 86400000);
+    const timeLabel = diffH < 1 ? 'A l\'instant' : diffH < 24 ? 'Il y a ' + diffH + 'h' : diffD === 1 ? 'Hier' : 'Il y a ' + diffD + ' jours';
+    const dateStr = date.toLocaleDateString('fr-MA', { day:'numeric', month:'short', year:'numeric' });
+
+    return `<div class="timeline-item">
+      <div class="timeline-dot ${dotCls[item.type] || 'tl-import'}">${item.icon}</div>
+      <div class="timeline-body">
+        <div class="timeline-event">${escHtml(item.event)}</div>
+        <div class="timeline-meta">
+          <span>${timeLabel} · ${dateStr}</span>
+          ${item.detail ? `<span style="color:var(--slate-600)">${escHtml(item.detail)}</span>` : ''}
+          ${item.tag ? `<span class="timeline-tag">${escHtml(item.tag)}</span>` : ''}
+          ${item.doc ? `<span style="color:var(--indigo);cursor:pointer;font-size:11px" onclick="event.stopPropagation()">${escHtml(item.doc)}</span>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterTimeline(filter, btn) {
+  activeTimelineFilter = filter;
+  document.querySelectorAll('#page-timeline .filter-pill').forEach(p => p.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderTimeline(filter);
 }
 
 // ── TOAST ─────────────────────────────────────
