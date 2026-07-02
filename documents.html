@@ -430,6 +430,72 @@
     .tasks-section { margin-bottom: 24px; }
     .tasks-section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--slate-400); margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
 
+
+    /* ── RISK STATUS ── */
+    .risk-status { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 99px; white-space: nowrap; letter-spacing: 0.04em; }
+    .rs-open      { background: #fef2f2; color: #991b1b; }
+    .rs-review    { background: #fffbeb; color: #92400e; }
+    .rs-mitigated { background: #eff6ff; color: #1d4ed8; }
+    .rs-accepted  { background: #f5f3ff; color: #6d28d9; }
+    .rs-closed    { background: #ecfdf5; color: #065f46; }
+
+    /* ── RISK DETAIL PANEL ── */
+    .risk-panel-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 300; }
+    .risk-panel-overlay.open { display: flex; justify-content: flex-end; }
+    .risk-panel { width: 520px; max-width: 95vw; height: 100vh; background: var(--white); border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; animation: slideIn 0.22s ease; }
+    @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+    .risk-panel-header { padding: 20px 24px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .risk-panel-close { float: right; background: none; border: none; font-size: 20px; color: var(--slate-400); cursor: pointer; padding: 0 4px; line-height: 1; }
+    .risk-panel-close:hover { color: var(--slate-700); }
+    .risk-panel-type { font-size: 11px; font-weight: 700; color: var(--slate-400); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+    .risk-panel-title { font-size: 16px; font-weight: 700; color: var(--slate-900); line-height: 1.35; margin-bottom: 10px; }
+    .risk-panel-meta { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .risk-panel-body { flex: 1; overflow-y: auto; padding: 20px 24px; }
+    .risk-panel-section { margin-bottom: 24px; }
+    .risk-panel-section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--slate-400); margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+
+    /* Statut selector */
+    .status-selector { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
+    .status-btn { padding: 5px 12px; border-radius: 99px; border: 1px solid var(--border); font-size: 11px; font-weight: 700; cursor: pointer; background: var(--white); transition: all 0.15s; }
+    .status-btn.active-open      { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+    .status-btn.active-review    { background: #fffbeb; color: #92400e; border-color: #fde68a; }
+    .status-btn.active-mitigated { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+    .status-btn.active-accepted  { background: #f5f3ff; color: #6d28d9; border-color: #ddd6fe; }
+    .status-btn.active-closed    { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
+    .status-btn:hover:not(.active-open):not(.active-review):not(.active-mitigated):not(.active-accepted):not(.active-closed) { background: var(--slate-100); }
+
+    /* Commentaires */
+    .comment-item { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--slate-100); }
+    .comment-item:last-child { border-bottom: none; }
+    .comment-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--indigo-bg); color: var(--indigo-text); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+    .comment-body { flex: 1; }
+    .comment-author { font-size: 12px; font-weight: 700; color: var(--slate-900); }
+    .comment-time { font-size: 11px; color: var(--slate-400); margin-left: 6px; }
+    .comment-text { font-size: 13px; color: var(--slate-700); line-height: 1.5; margin-top: 3px; }
+    .comment-input-wrap { display: flex; gap: 8px; margin-top: 10px; }
+    .comment-input { flex: 1; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; font-family: var(--font); outline: none; resize: none; }
+    .comment-input:focus { border-color: var(--indigo); }
+    .comment-send-btn { padding: 8px 14px; background: var(--indigo); color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--font); }
+    .comment-send-btn:hover { background: var(--indigo-light); }
+
+    /* Historique */
+    .history-item { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--slate-100); align-items: flex-start; }
+    .history-item:last-child { border-bottom: none; }
+    .history-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--slate-300); flex-shrink: 0; margin-top: 5px; }
+    .history-dot.status { background: var(--indigo); }
+    .history-dot.task { background: var(--green); }
+    .history-dot.comment { background: var(--amber); }
+    .history-text { font-size: 12px; color: var(--slate-600); flex: 1; line-height: 1.4; }
+    .history-time { font-size: 11px; color: var(--slate-400); white-space: nowrap; }
+
+    /* Score dossier */
+    .folder-risk-score { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 8px; }
+
+    /* KPIs résolution dans dashboard */
+    .resolution-bar { height: 8px; border-radius: 99px; background: var(--slate-100); overflow: hidden; margin-top: 6px; }
+    .resolution-bar-fill { height: 100%; border-radius: 99px; background: var(--green); transition: width 0.5s ease; }
+    .resolution-rate { font-family: var(--serif); font-size: 28px; color: var(--slate-900); }
+
     /* ── MOBILE ── */
     .btn-menu { display: none; background: none; border: none; cursor: pointer; padding: 8px; color: var(--slate-700); }
     @media (max-width: 768px) {
@@ -609,14 +675,14 @@
         </div>
       </div>
 
-      <!-- Activité + Répartition risques -->
+      <!-- Résolution risques + Répartition -->
       <div class="dash-grid" style="margin-top:20px">
         <div class="dash-card">
-          <div class="dash-card-title">🕐 Activité récente</div>
-          <div id="dashActivity">
-            <div class="activity-row"><span class="activity-icon">📄</span><div class="activity-text">SHA Fertinagro analysé — 5 risques identifiés</div><span class="activity-time">Il y a 2h</span></div>
-            <div class="activity-row"><span class="activity-icon">📁</span><div class="activity-text">Dossier OCP - JV Fertinagro créé</div><span class="activity-time">Hier</span></div>
-            <div class="activity-row"><span class="activity-icon">⚠️</span><div class="activity-text">Pacte d'actionnaires — EVENT_OF_DEFAULT détecté</div><span class="activity-time">Il y a 3 jours</span></div>
+          <div class="dash-card-title">📈 Résolution des risques</div>
+          <div id="dashResolution"></div>
+          <div style="margin-top:12px">
+            <div style="font-size:11px;font-weight:700;color:var(--slate-400);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Score par dossier</div>
+            <div id="dashFolderScores"></div>
           </div>
         </div>
         <div class="dash-card">
@@ -758,24 +824,42 @@
       <div class="page-header">
         <div>
           <div class="page-title">Risques</div>
-          <div class="page-sub">Tous les risques identifiés dans vos documents analysés</div>
+          <div class="page-sub">Gérez le cycle de vie de chaque risque identifié</div>
         </div>
       </div>
-      <div class="risks-filters">
-        <button class="filter-pill active" onclick="filterRisks('all',this)">Tous</button>
-        <button class="filter-pill red" onclick="filterRisks('high',this)">⚠️ Élevés</button>
-        <button class="filter-pill amber" onclick="filterRisks('medium',this)">Moyens</button>
-        <button class="filter-pill" onclick="filterRisks('low',this)">Faibles</button>
+
+      <!-- KPIs résolution -->
+      <div class="kpi-grid" style="grid-template-columns:repeat(5,1fr);margin-bottom:20px" id="riskKpiGrid"></div>
+
+      <!-- Filtres sévérité + statut -->
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
+        <div class="risks-filters" style="margin-bottom:0">
+          <button class="filter-pill active" onclick="filterRisks('all',this)">Tous</button>
+          <button class="filter-pill red" onclick="filterRisks('high',this)">⚠️ Élevés</button>
+          <button class="filter-pill amber" onclick="filterRisks('medium',this)">Moyens</button>
+          <button class="filter-pill" onclick="filterRisks('low',this)">Faibles</button>
+        </div>
+        <div class="risks-filters" style="margin-bottom:0;margin-left:auto">
+          <button class="filter-pill active" id="rsFiltAll" onclick="filterRisksByStatus('all',this)">Tous statuts</button>
+          <button class="filter-pill" onclick="filterRisksByStatus('open',this)">🔴 Open</button>
+          <button class="filter-pill" onclick="filterRisksByStatus('review',this)">🟡 Under Review</button>
+          <button class="filter-pill" onclick="filterRisksByStatus('mitigated',this)">🔵 Mitigated</button>
+          <button class="filter-pill" onclick="filterRisksByStatus('accepted',this)">🟣 Accepted</button>
+          <button class="filter-pill" onclick="filterRisksByStatus('closed',this)">✅ Closed</button>
+        </div>
       </div>
+
       <table class="risks-table" id="risksTable">
         <thead>
           <tr>
             <th>Niveau</th>
+            <th>Statut</th>
             <th>Type</th>
             <th>Risque</th>
-            <th>Document</th>
-            <th>Dossier</th>
+            <th>Dossier / Document</th>
             <th>Clause</th>
+            <th>Responsable</th>
+            <th></th>
           </tr>
         </thead>
         <tbody id="risksBody"></tbody>
@@ -1184,6 +1268,58 @@
   </div>
 </div>
 
+<!-- RISK DETAIL PANEL -->
+<div class="risk-panel-overlay" id="riskPanelOverlay" onclick="closeRiskPanel(event)">
+  <div class="risk-panel" id="riskPanel">
+    <div class="risk-panel-header">
+      <button class="risk-panel-close" onclick="closeRiskPanel()">×</button>
+      <div class="risk-panel-type" id="riskPanelType">—</div>
+      <div class="risk-panel-title" id="riskPanelTitle">—</div>
+      <div class="risk-panel-meta" id="riskPanelMeta"></div>
+    </div>
+    <div class="risk-panel-body">
+
+      <!-- Statut -->
+      <div class="risk-panel-section">
+        <div class="risk-panel-section-title">Statut du risque</div>
+        <div class="status-selector" id="riskStatusSelector"></div>
+      </div>
+
+      <!-- Extrait -->
+      <div class="risk-panel-section" id="riskExtractSection" style="display:none">
+        <div class="risk-panel-section-title">Extrait de la clause</div>
+        <div id="riskExtract" style="font-size:13px;color:var(--slate-600);font-style:italic;line-height:1.6;background:var(--slate-50);border-left:3px solid var(--indigo);padding:10px 14px;border-radius:0 8px 8px 0"></div>
+      </div>
+
+      <!-- Tâches liées -->
+      <div class="risk-panel-section">
+        <div class="risk-panel-section-title" style="display:flex;align-items:center;justify-content:space-between">
+          Tâches liées
+          <button class="create-task-btn" onclick="openTaskModalFromPanel()" style="margin-bottom:0">+ Nouvelle action</button>
+        </div>
+        <div id="riskPanelTasks"></div>
+      </div>
+
+      <!-- Commentaires -->
+      <div class="risk-panel-section">
+        <div class="risk-panel-section-title">Commentaires</div>
+        <div id="riskPanelComments"></div>
+        <div class="comment-input-wrap">
+          <textarea class="comment-input" id="riskCommentInput" rows="2" placeholder="Ajouter un commentaire… Ex: Clause acceptable après validation DG."></textarea>
+          <button class="comment-send-btn" onclick="addRiskComment()">→</button>
+        </div>
+      </div>
+
+      <!-- Historique -->
+      <div class="risk-panel-section">
+        <div class="risk-panel-section-title">Historique</div>
+        <div id="riskPanelHistory"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div id="toastWrap"></div>
 
@@ -1301,6 +1437,7 @@ async function loadData() {
     allTasks = getDemoTasks();
   }
 
+  initRiskStatuses();
   updateNavCounts();
   renderDashboard();
   populateFolderSelect();
@@ -1336,6 +1473,19 @@ function renderDashboard() {
   document.getElementById('kpiCp').textContent = allCounterparties.length;
   document.getElementById('kpiDeadlines').textContent = deadlines30;
   renderDashTasks();
+  renderDashResolution();
+
+  // Scores par dossier
+  const folderScoresEl = document.getElementById('dashFolderScores');
+  if (folderScoresEl) {
+    folderScoresEl.innerHTML = allFolders.map(f => {
+      const score = computeFolderRiskScore(f.id);
+      return `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:13px;color:var(--slate-700);flex:1">${escHtml(f.name)}</span>
+        ${folderRiskScoreBadge(score)}
+      </div>`;
+    }).join('') || '<div style="font-size:13px;color:var(--slate-400)">Aucun dossier.</div>';
+  }
 
   // Risques élevés dans dashboard
   const highR = allRisks.filter(r => r.severity === 'high' || r.severity === 'critical').slice(0, 4);
@@ -1468,6 +1618,9 @@ function openFolder(folderId) {
   document.getElementById('detailDocCount').textContent = docsInFolder.length;
   document.getElementById('detailHighRisks').textContent = highR;
   document.getElementById('detailMedRisks').textContent = medR;
+  const folderScore = computeFolderRiskScore(folderId);
+  const scoreEl = document.getElementById('detailFolderRiskScore');
+  if (scoreEl) scoreEl.innerHTML = folderRiskScoreBadge(folderScore);
   document.getElementById('detailContreparties').textContent = folder.counterparty || '—';
   document.getElementById('detailTags').innerHTML = (folder.tags || []).map(t => `<span class="tag">${escHtml(t)}</span>`).join('');
 
@@ -1607,27 +1760,54 @@ function renderRisks(filter) {
   const table = document.getElementById('risksTable');
 
   let risks = allRisks;
+  // Filtre sévérité
   if (filter === 'high') risks = risks.filter(r => r.severity === 'high' || r.severity === 'critical');
   else if (filter === 'medium') risks = risks.filter(r => r.severity === 'medium');
   else if (filter === 'low') risks = risks.filter(r => r.severity === 'low');
+  // Filtre statut
+  if (activeRiskStatusFilter !== 'all') risks = risks.filter(r => (r.status || 'open') === activeRiskStatusFilter);
+
+  // Trier : open + élevés en premier
+  risks = risks.sort((a, b) => {
+    const statusOrder = { open:0, review:1, mitigated:2, accepted:3, closed:4 };
+    const sevOrder = { critical:0, high:1, medium:2, low:3 };
+    const sDiff = (statusOrder[a.status||'open']||0) - (statusOrder[b.status||'open']||0);
+    if (sDiff !== 0) return sDiff;
+    return (sevOrder[a.severity]||2) - (sevOrder[b.severity]||2);
+  });
+
+  renderRiskKPIs();
 
   if (!risks.length) {
-    table.style.display = 'none';
-    empty.style.display = 'block';
+    if (table) table.style.display = 'none';
+    if (empty) empty.style.display = 'block';
     return;
   }
-  table.style.display = '';
-  empty.style.display = 'none';
+  if (table) table.style.display = '';
+  if (empty) empty.style.display = 'none';
+
   body.innerHTML = risks.map(r => {
-    const lvlCls = r.severity === 'high' || r.severity === 'critical' ? 'lvl-high' : r.severity === 'medium' ? 'lvl-med' : 'lvl-low';
-    const lvlLabel = r.severity === 'high' || r.severity === 'critical' ? 'ÉLEVÉ' : r.severity === 'medium' ? 'MOYEN' : 'FAIBLE';
-    return `<tr>
+    const lvlCls  = r.severity === 'high' || r.severity === 'critical' ? 'lvl-high' : r.severity === 'medium' ? 'lvl-med' : 'lvl-low';
+    const lvlLabel= r.severity === 'high' || r.severity === 'critical' ? 'ÉLEVÉ' : r.severity === 'medium' ? 'MOYEN' : 'FAIBLE';
+    const taskCount = allTasks.filter(t => t.risk_id === r.id).length;
+    const commentCount = (riskComments[r.id] || []).length;
+    return `<tr style="cursor:pointer" onclick="openRiskPanel('${r.id}')">
       <td><span class="risk-level-badge ${lvlCls}">${lvlLabel}</span></td>
-      <td><span class="type-chip">${escHtml(r.risk_type || r.type || 'OTHER')}</span></td>
-      <td style="font-size:13px;font-weight:500;color:var(--slate-900);max-width:280px">${escHtml(r.title || r.name || '—')}</td>
-      <td style="font-size:12px;color:var(--slate-500)">${escHtml(r.docName)}</td>
-      <td style="font-size:12px;color:var(--slate-500)">${escHtml(r.folderName || '—')}</td>
-      <td><span class="clause-ref">${escHtml(r.clause_reference || r.clause || '—')}</span></td>
+      <td>${riskStatusBadge(r.status || 'open')}</td>
+      <td><span class="type-chip">${escHtml(r.risk_type || 'OTHER')}</span></td>
+      <td style="font-size:13px;font-weight:500;color:var(--slate-900);max-width:220px">
+        ${escHtml(r.title || '—')}
+        ${commentCount > 0 ? '<span style="font-size:11px;color:var(--slate-400);margin-left:4px">💬 ' + commentCount + '</span>' : ''}
+      </td>
+      <td style="font-size:12px;color:var(--slate-500)">
+        <div>${escHtml(r.folderName || '—')}</div>
+        <div style="color:var(--slate-300)">${escHtml(r.docName || '—')}</div>
+      </td>
+      <td><span class="clause-ref">${escHtml(r.clause_reference || '—')}</span></td>
+      <td style="font-size:12px;color:var(--slate-500)">${escHtml(r.assignee || '—')}</td>
+      <td>
+        ${taskCount > 0 ? '<span style="font-size:11px;color:var(--green);font-weight:700">✅ ' + taskCount + ' action(s)</span>' : '<button class="create-task-btn" onclick="event.stopPropagation();openTaskModal(null,\'' + r.id + '\')">+ Action</button>'}
+      </td>
     </tr>`;
   }).join('');
 }
@@ -1885,11 +2065,11 @@ function getDemoFolders() {
 }
 function getDemoRisks() {
   return [
-    { id:'r1', document_id:'1', severity:'critical', risk_type:'EVENT_OF_DEFAULT', title:'Suspension des droits de vote et de nomination', clause_reference:'Clauses 15.2, 15.8', docName:'SHA Fertinagro - OCP.pdf', folderName:'OCP - JV Fertinagro' },
-    { id:'r2', document_id:'1', severity:'high', risk_type:'TERMINATION', title:'Résiliation si conditions non satisfaites à la date butoir', clause_reference:'Clause 2.5', docName:'SHA Fertinagro - OCP.pdf', folderName:'OCP - JV Fertinagro' },
-    { id:'r3', document_id:'1', severity:'medium', risk_type:'DEADLOCK', title:'Blocage décisionnel entre actionnaires', clause_reference:'Clauses 14.3 – 14.6', docName:'SHA Fertinagro - OCP.pdf', folderName:'OCP - JV Fertinagro' },
-    { id:'r4', document_id:'2', severity:'medium', risk_type:'GOVERNANCE', title:'Contrôle limité sur les décisions du conseil', clause_reference:'Clause 7.1', docName:'Amendement SHA n°1.pdf', folderName:'OCP - JV Fertinagro' },
-    { id:'r5', document_id:'6', severity:'medium', risk_type:'CHANGE_OF_CONTROL', title:'Résiliation automatique en cas de changement de contrôle', clause_reference:'Clause 12.3', docName:'Contrat SaaS - Oracle.pdf', folderName:'—' },
+    { id:'r1', document_id:'1', severity:'critical', risk_type:'EVENT_OF_DEFAULT', title:'Suspension des droits de vote et de nomination', clause_reference:'Clauses 15.2, 15.8', docName:'SHA Fertinagro - OCP.pdf', folderName:'OCP - JV Fertinagro', status:'open', assignee:'Sarah Benali', extract:'"the voting rights of the Defaulting Party shall be suspended until the relevant Event of Default has been remedied or waived..."', created_at: new Date(Date.now()-2*86400000).toISOString() },
+    { id:'r2', document_id:'1', severity:'high', risk_type:'TERMINATION', title:'Résiliation si conditions non satisfaites à la date butoir', clause_reference:'Clause 2.5', docName:'SHA Fertinagro - OCP.pdf', folderName:'OCP - JV Fertinagro', status:'review', assignee:'Me Benali', extract:'"If the Conditions are not satisfied on or before the Long Stop Date, all provisions of this Agreement shall terminate..."', created_at: new Date(Date.now()-2*86400000).toISOString() },
+    { id:'r3', document_id:'1', severity:'medium', risk_type:'DEADLOCK', title:'Blocage décisionnel entre actionnaires', clause_reference:'Clauses 14.3 – 14.6', docName:'SHA Fertinagro - OCP.pdf', folderName:'OCP - JV Fertinagro', status:'mitigated', assignee:'Me Benali', extract:'"If the Deadlock Event is not resolved within forty-five (45) Business Days..."', created_at: new Date(Date.now()-5*86400000).toISOString() },
+    { id:'r4', document_id:'2', severity:'medium', risk_type:'GOVERNANCE', title:'Contrôle limité sur les décisions du conseil', clause_reference:'Clause 7.1', docName:'Amendement SHA n°1.pdf', folderName:'OCP - JV Fertinagro', status:'accepted', assignee:'Me Idrissi', created_at: new Date(Date.now()-7*86400000).toISOString() },
+    { id:'r5', document_id:'6', severity:'medium', risk_type:'CHANGE_OF_CONTROL', title:'Résiliation automatique en cas de changement de contrôle', clause_reference:'Clause 12.3', docName:'Contrat SaaS - Oracle.pdf', folderName:'—', status:'open', assignee:null, extract:'"In the event of a Change of Control of either Party, the other Party may terminate this Agreement upon written notice..."', created_at: new Date(Date.now()-10*86400000).toISOString() },
   ];
 }
 function getDemoDeadlines() {
@@ -2694,6 +2874,293 @@ function saveTask() {
     if (activePage.id === 'page-tasks') renderTasksPage();
     if (activePage.id === 'page-dashboard') renderDashboard();
   }
+}
+
+
+// ══════════════════════════════════════════════
+//  RISK WORKFLOW ENGINE
+// ══════════════════════════════════════════════
+
+const RISK_STATUSES = {
+  open:      { label: 'Open',         cls: 'rs-open',      dot: '🔴', activeCls: 'active-open' },
+  review:    { label: 'Under Review', cls: 'rs-review',    dot: '🟡', activeCls: 'active-review' },
+  mitigated: { label: 'Mitigated',    cls: 'rs-mitigated', dot: '🔵', activeCls: 'active-mitigated' },
+  accepted:  { label: 'Accepted',     cls: 'rs-accepted',  dot: '🟣', activeCls: 'active-accepted' },
+  closed:    { label: 'Closed',       cls: 'rs-closed',    dot: '✅', activeCls: 'active-closed' },
+};
+
+// Commentaires et historique — stockés par risk_id
+const riskComments = {};
+const riskHistory  = {};
+
+let activeRiskStatusFilter = 'all';
+let currentRiskPanelId = null;
+
+// ── Initialiser le statut des risques ────────
+function initRiskStatuses() {
+  allRisks.forEach(r => {
+    if (!r.status) r.status = 'open';
+    if (!r.assignee) r.assignee = null;
+    if (!riskComments[r.id]) riskComments[r.id] = [];
+    if (!riskHistory[r.id]) riskHistory[r.id] = [
+      { type:'created', text:'Risque identifié lors de l\'analyse du document', time: r.created_at || new Date().toISOString() }
+    ];
+  });
+}
+
+// ── Statut badge HTML ─────────────────────────
+function riskStatusBadge(status) {
+  const s = RISK_STATUSES[status] || RISK_STATUSES.open;
+  return `<span class="risk-status ${s.cls}">${s.dot} ${s.label}</span>`;
+}
+
+// ── KPIs résolution ───────────────────────────
+function renderRiskKPIs() {
+  const total = allRisks.length;
+  const byStatus = {};
+  Object.keys(RISK_STATUSES).forEach(k => { byStatus[k] = 0; });
+  allRisks.forEach(r => { byStatus[r.status || 'open']++; });
+  const resolved = (byStatus.mitigated || 0) + (byStatus.accepted || 0) + (byStatus.closed || 0);
+  const rate = total ? Math.round(resolved / total * 100) : 0;
+
+  const grid = document.getElementById('riskKpiGrid');
+  if (!grid) return;
+  grid.innerHTML = `
+    <div class="kpi-card" style="border-left:3px solid var(--red)">
+      <div class="kpi-label">Open</div>
+      <div class="kpi-val" style="color:var(--red)">${byStatus.open || 0}</div>
+      <div class="kpi-sub">non traités</div>
+    </div>
+    <div class="kpi-card" style="border-left:3px solid var(--amber)">
+      <div class="kpi-label">Under Review</div>
+      <div class="kpi-val" style="color:var(--amber)">${byStatus.review || 0}</div>
+      <div class="kpi-sub">en cours</div>
+    </div>
+    <div class="kpi-card" style="border-left:3px solid var(--blue)">
+      <div class="kpi-label">Mitigated</div>
+      <div class="kpi-val" style="color:var(--blue)">${byStatus.mitigated || 0}</div>
+      <div class="kpi-sub">atténués</div>
+    </div>
+    <div class="kpi-card" style="border-left:3px solid #8b5cf6">
+      <div class="kpi-label">Accepted / Closed</div>
+      <div class="kpi-val" style="color:#8b5cf6">${(byStatus.accepted||0) + (byStatus.closed||0)}</div>
+      <div class="kpi-sub">clôturés</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">Taux de résolution</div>
+      <div class="resolution-rate">${rate}%</div>
+      <div class="resolution-bar"><div class="resolution-bar-fill" style="width:${rate}%"></div></div>
+    </div>`;
+}
+
+// ── Filtre par statut ─────────────────────────
+function filterRisksByStatus(status, btn) {
+  activeRiskStatusFilter = status;
+  document.querySelectorAll('#page-risques .risks-filters:last-child .filter-pill').forEach(p => p.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderRisks();
+}
+
+// ── Score risque d'un dossier (0-100) ────────
+function computeFolderRiskScore(folderId) {
+  const docsInFolder = allDocs.filter(d => d.folder_id === folderId || d.folder === (allFolders.find(f=>f.id===folderId)||{}).name);
+  const risks = allRisks.filter(r => docsInFolder.find(d => d.id === r.document_id));
+  if (!risks.length) return 0;
+
+  const SEV = { critical:1.0, high:0.8, medium:0.4, low:0.1 };
+  const ST  = { open:1.0, review:0.6, mitigated:0.2, accepted:0.1, closed:0.0 };
+
+  const rawScore = risks.reduce((sum, r) => {
+    return sum + (SEV[r.severity] || 0.1) * (ST[r.status || 'open'] || 1.0) * 20;
+  }, 0);
+
+  return Math.min(100, Math.round(rawScore));
+}
+
+function folderRiskScoreBadge(score) {
+  const cls = score >= 60 ? 'cp-score-high' : score >= 30 ? 'cp-score-med' : 'cp-score-low';
+  return `<span class="folder-risk-score ${cls}">${score}/100</span>`;
+}
+
+// ── Dashboard KPIs résolution ─────────────────
+function renderDashResolution() {
+  const total = allRisks.length;
+  if (!total) return;
+  const open    = allRisks.filter(r => (r.status||'open') === 'open').length;
+  const review  = allRisks.filter(r => r.status === 'review').length;
+  const resolved= allRisks.filter(r => ['mitigated','accepted','closed'].includes(r.status||'')).length;
+  const rate    = Math.round(resolved / total * 100);
+
+  const el = document.getElementById('dashResolution');
+  if (!el) return;
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+      <div style="flex:1">
+        <div style="font-size:11px;color:var(--slate-400);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Taux de résolution</div>
+        <div class="resolution-rate">${rate}%</div>
+        <div class="resolution-bar"><div class="resolution-bar-fill" style="width:${rate}%"></div></div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-family:var(--serif);font-size:22px;color:var(--red)">${open}</div>
+        <div style="font-size:10px;color:var(--slate-400);text-transform:uppercase">Open</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-family:var(--serif);font-size:22px;color:var(--amber)">${review}</div>
+        <div style="font-size:10px;color:var(--slate-400);text-transform:uppercase">En cours</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-family:var(--serif);font-size:22px;color:var(--green)">${resolved}</div>
+        <div style="font-size:10px;color:var(--slate-400);text-transform:uppercase">Résolus</div>
+      </div>
+    </div>`;
+}
+
+// ── PANEL DÉTAIL RISQUE ───────────────────────
+function openRiskPanel(riskId) {
+  const r = allRisks.find(x => x.id === riskId);
+  if (!r) return;
+  currentRiskPanelId = riskId;
+
+  const s = RISK_STATUSES[r.status || 'open'];
+  const lvlCls  = r.severity === 'high' || r.severity === 'critical' ? 'lvl-high' : r.severity === 'medium' ? 'lvl-med' : 'lvl-low';
+  const lvlLabel= r.severity === 'high' || r.severity === 'critical' ? 'ÉLEVÉ' : r.severity === 'medium' ? 'MOYEN' : 'FAIBLE';
+
+  document.getElementById('riskPanelType').textContent = (r.risk_type || 'OTHER').replace(/_/g,' ');
+  document.getElementById('riskPanelTitle').textContent = r.title || '—';
+  document.getElementById('riskPanelMeta').innerHTML = `
+    <span class="risk-level-badge ${lvlCls}">${lvlLabel}</span>
+    ${riskStatusBadge(r.status || 'open')}
+    ${r.clause_reference ? '<span class="clause-ref">' + escHtml(r.clause_reference) + '</span>' : ''}
+    ${r.docName ? '<span style="font-size:12px;color:var(--slate-400)">' + escHtml(r.docName) + '</span>' : ''}`;
+
+  // Statut selector
+  document.getElementById('riskStatusSelector').innerHTML = Object.entries(RISK_STATUSES).map(([key, val]) =>
+    `<button class="status-btn ${(r.status||'open') === key ? val.activeCls : ''}"
+      onclick="setRiskStatus('${riskId}','${key}')">${val.dot} ${val.label}</button>`
+  ).join('');
+
+  // Extrait clause
+  if (r.extract) {
+    document.getElementById('riskExtractSection').style.display = '';
+    document.getElementById('riskExtract').textContent = r.extract;
+  } else {
+    document.getElementById('riskExtractSection').style.display = 'none';
+  }
+
+  // Tâches liées
+  const tasks = allTasks.filter(t => t.risk_id === riskId);
+  document.getElementById('riskPanelTasks').innerHTML = tasks.length
+    ? tasks.map(t => renderTaskItem(t, true)).join('')
+    : '<div style="font-size:13px;color:var(--slate-400);padding:6px 0">Aucune action — créez une tâche pour traiter ce risque.</div>';
+
+  // Commentaires
+  renderRiskComments(riskId);
+
+  // Historique
+  renderRiskHistory(riskId);
+
+  document.getElementById('riskPanelOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeRiskPanel(e) {
+  if (e && e.target !== document.getElementById('riskPanelOverlay')) return;
+  document.getElementById('riskPanelOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+  currentRiskPanelId = null;
+}
+
+function setRiskStatus(riskId, status) {
+  const r = allRisks.find(x => x.id === riskId);
+  if (!r) return;
+  const old = r.status || 'open';
+  r.status = status;
+
+  // Historique
+  if (!riskHistory[riskId]) riskHistory[riskId] = [];
+  riskHistory[riskId].unshift({
+    type: 'status',
+    text: 'Statut changé : ' + (RISK_STATUSES[old]?.label||old) + ' → ' + (RISK_STATUSES[status]?.label||status),
+    time: new Date().toISOString()
+  });
+
+  // Rafraîchir le panel
+  document.getElementById('riskStatusSelector').innerHTML = Object.entries(RISK_STATUSES).map(([key, val]) =>
+    `<button class="status-btn ${status === key ? val.activeCls : ''}"
+      onclick="setRiskStatus('${riskId}','${key}')">${val.dot} ${val.label}</button>`
+  ).join('');
+  document.getElementById('riskPanelMeta').querySelector('.risk-status').outerHTML !== undefined &&
+    renderRisks();
+
+  renderRiskHistory(riskId);
+  renderRisks();
+  renderRiskKPIs();
+  renderDashResolution();
+  showToast('Statut mis à jour : ' + RISK_STATUSES[status].label, 'success');
+}
+
+function addRiskComment() {
+  const input = document.getElementById('riskCommentInput');
+  const text = input.value.trim();
+  if (!text || !currentRiskPanelId) return;
+
+  if (!riskComments[currentRiskPanelId]) riskComments[currentRiskPanelId] = [];
+  riskComments[currentRiskPanelId].unshift({
+    id: 'c-' + Date.now(),
+    author: 'Vous',
+    text,
+    time: new Date().toISOString()
+  });
+
+  if (!riskHistory[currentRiskPanelId]) riskHistory[currentRiskPanelId] = [];
+  riskHistory[currentRiskPanelId].unshift({
+    type: 'comment',
+    text: 'Commentaire ajouté : "' + text.slice(0, 60) + (text.length > 60 ? '...' : '') + '"',
+    time: new Date().toISOString()
+  });
+
+  input.value = '';
+  renderRiskComments(currentRiskPanelId);
+  renderRiskHistory(currentRiskPanelId);
+}
+
+function renderRiskComments(riskId) {
+  const comments = riskComments[riskId] || [];
+  const el = document.getElementById('riskPanelComments');
+  if (!el) return;
+  el.innerHTML = comments.length
+    ? comments.map(c => {
+        const d = new Date(c.time);
+        const label = d.toLocaleDateString('fr-MA',{day:'numeric',month:'short'}) + ' ' + d.toLocaleTimeString('fr-MA',{hour:'2-digit',minute:'2-digit'});
+        return `<div class="comment-item">
+          <div class="comment-avatar">${c.author.charAt(0).toUpperCase()}</div>
+          <div class="comment-body">
+            <div><span class="comment-author">${escHtml(c.author)}</span><span class="comment-time">${label}</span></div>
+            <div class="comment-text">${escHtml(c.text)}</div>
+          </div>
+        </div>`;
+      }).join('')
+    : '<div style="font-size:13px;color:var(--slate-400);padding:6px 0">Aucun commentaire.</div>';
+}
+
+function renderRiskHistory(riskId) {
+  const history = riskHistory[riskId] || [];
+  const el = document.getElementById('riskPanelHistory');
+  if (!el) return;
+  el.innerHTML = history.map(h => {
+    const d = new Date(h.time);
+    const label = d.toLocaleDateString('fr-MA',{day:'numeric',month:'short'}) + ' ' + d.toLocaleTimeString('fr-MA',{hour:'2-digit',minute:'2-digit'});
+    return `<div class="history-item">
+      <div class="history-dot ${h.type}"></div>
+      <div class="history-text">${escHtml(h.text)}</div>
+      <div class="history-time">${label}</div>
+    </div>`;
+  }).join('') || '<div style="font-size:13px;color:var(--slate-400)">Aucun historique.</div>';
+}
+
+function openTaskModalFromPanel() {
+  if (!currentRiskPanelId) return;
+  openTaskModal(null, currentRiskPanelId);
 }
 
 // ── TOAST ─────────────────────────────────────
