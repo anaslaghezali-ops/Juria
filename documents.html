@@ -382,6 +382,54 @@
     .timeline-tag { font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 99px; background: var(--slate-100); color: var(--slate-600); }
     .timeline-filters { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
 
+
+    /* ── TASKS ── */
+    .task-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .task-item:last-child { border-bottom: none; }
+    .task-check { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; margin-top: 1px; transition: all 0.15s; }
+    .task-check:hover { border-color: var(--green); }
+    .task-check.done { background: var(--green); border-color: var(--green); color: #fff; font-size: 11px; }
+    .task-body { flex: 1; min-width: 0; }
+    .task-title { font-size: 13px; font-weight: 600; color: var(--slate-900); margin-bottom: 3px; }
+    .task-title.done { text-decoration: line-through; color: var(--slate-400); }
+    .task-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .task-assignee { font-size: 11px; color: var(--slate-500); }
+    .task-due { font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 4px; }
+    .task-due.overdue { background: var(--red-bg); color: var(--red-text); }
+    .task-due.soon { background: var(--amber-bg); color: var(--amber-text); }
+    .task-due.ok { background: var(--slate-100); color: var(--slate-500); }
+    .task-link { font-size: 11px; color: var(--indigo); cursor: pointer; }
+    .task-prio { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; margin-top: 6px; }
+    .task-prio.high { background: var(--red); }
+    .task-prio.medium { background: var(--amber); }
+    .task-prio.low { background: var(--green); }
+    .task-actions-btn { background: none; border: 1px solid var(--border); border-radius: 6px; padding: 3px 8px; font-size: 11px; color: var(--slate-500); cursor: pointer; flex-shrink: 0; }
+    .task-actions-btn:hover { background: var(--slate-100); }
+
+    /* Task KPI mini */
+    .task-kpi-row { display: flex; gap: 12px; margin-bottom: 12px; }
+    .task-kpi-mini { flex: 1; text-align: center; padding: 10px 8px; border-radius: 8px; }
+    .task-kpi-mini.open { background: var(--indigo-bg); }
+    .task-kpi-mini.overdue { background: var(--red-bg); }
+    .task-kpi-mini.done { background: var(--green-bg); }
+    .task-kpi-mini-val { font-size: 20px; font-weight: 800; }
+    .task-kpi-mini.open .task-kpi-mini-val { color: var(--indigo-text); }
+    .task-kpi-mini.overdue .task-kpi-mini-val { color: var(--red-text); }
+    .task-kpi-mini.done .task-kpi-mini-val { color: var(--green-text); }
+    .task-kpi-mini-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+    .task-kpi-mini.open .task-kpi-mini-label { color: var(--indigo-text); }
+    .task-kpi-mini.overdue .task-kpi-mini-label { color: var(--red-text); }
+    .task-kpi-mini.done .task-kpi-mini-label { color: var(--green-text); }
+
+    /* Create task inline */
+    .create-task-btn { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--indigo); border: 1px dashed #c7d2fe; background: var(--indigo-bg); border-radius: 6px; padding: 4px 10px; cursor: pointer; transition: all 0.15s; }
+    .create-task-btn:hover { background: #e0e7ff; }
+
+    /* Tasks page filters */
+    .tasks-toolbar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+    .tasks-section { margin-bottom: 24px; }
+    .tasks-section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--slate-400); margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+
     /* ── MOBILE ── */
     .btn-menu { display: none; background: none; border: none; cursor: pointer; padding: 8px; color: var(--slate-700); }
     @media (max-width: 768px) {
@@ -438,6 +486,11 @@
       <span class="nav-icon">🕐</span> Timeline
     </button>
 
+    <button class="nav-item" onclick="showPage('tasks')">
+      <span class="nav-icon">✅</span> Tâches
+      <span class="nav-count nav-badge-red" id="navTasksCount">—</span>
+    </button>
+
     <div class="nav-section">Outils</div>
     <a href="chat.html" class="nav-item">
       <span class="nav-icon">💬</span> Assistant IA
@@ -486,8 +539,8 @@
         <button class="btn-primary" onclick="openUploadModal()">+ Importer un document</button>
       </div>
 
-      <!-- KPIs ligne 1 : 6 cartes -->
-      <div class="kpi-grid" style="grid-template-columns:repeat(6,1fr);margin-bottom:20px">
+      <!-- KPIs ligne 1 : 8 cartes (6 + 2 tasks) -->
+      <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:12px">
         <div class="kpi-card indigo">
           <div class="kpi-label">Documents</div>
           <div class="kpi-val" id="kpiTotal">—</div>
@@ -508,6 +561,8 @@
           <div class="kpi-val" id="kpiAvgScore">—</div>
           <div class="kpi-sub">conformité /10</div>
         </div>
+      </div>
+      <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">
         <div class="kpi-card" style="border-left:3px solid var(--blue)">
           <div class="kpi-label">Contreparties</div>
           <div class="kpi-val" id="kpiCp">—</div>
@@ -517,6 +572,16 @@
           <div class="kpi-label">Échéances 30j</div>
           <div class="kpi-val" id="kpiDeadlines">—</div>
           <div class="kpi-sub">à venir</div>
+        </div>
+        <div class="kpi-card" style="border-left:3px solid var(--indigo)">
+          <div class="kpi-label">Tâches ouvertes</div>
+          <div class="kpi-val" id="kpiDashTasksOpen">—</div>
+          <div class="kpi-sub">en cours</div>
+        </div>
+        <div class="kpi-card red">
+          <div class="kpi-label">Tâches en retard</div>
+          <div class="kpi-val" id="kpiDashTasksOverdue">—</div>
+          <div class="kpi-sub">action requise</div>
         </div>
       </div>
 
@@ -529,11 +594,11 @@
           <button class="btn-secondary" onclick="showPage('risques')" style="font-size:12px;margin-top:12px;width:100%">Voir tous les risques →</button>
         </div>
 
-        <!-- Échéances imminentes -->
+        <!-- Tâches urgentes -->
         <div class="dash-card">
-          <div class="dash-card-title">📅 Échéances à venir</div>
-          <div id="dashDeadlines"></div>
-          <button class="btn-secondary" onclick="showPage('echeances')" style="font-size:12px;margin-top:12px;width:100%">Voir toutes les échéances →</button>
+          <div class="dash-card-title">✅ Tâches prioritaires</div>
+          <div id="dashTasks"></div>
+          <button class="btn-secondary" onclick="showPage('tasks')" style="font-size:12px;margin-top:12px;width:100%">Voir toutes les tâches →</button>
         </div>
 
         <!-- Contreparties à risque -->
@@ -614,6 +679,7 @@
         <button class="tab-btn active" onclick="switchTab('docs')">Documents</button>
         <button class="tab-btn" onclick="switchTab('risks')">Risques</button>
         <button class="tab-btn" onclick="switchTab('deadlines')">Échéances</button>
+        <button class="tab-btn" onclick="switchTab('tasks')">✅ Tâches</button>
       </div>
       <div class="tab-panel active" id="tab-docs">
         <div class="docs-toolbar">
@@ -626,6 +692,12 @@
       </div>
       <div class="tab-panel" id="tab-deadlines">
         <div id="detailDeadlinesList"></div>
+      </div>
+      <div class="tab-panel" id="tab-tasks">
+        <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+          <button class="btn-primary" style="font-size:12px" onclick="openTaskModal(null,null,currentDetailFolderId)">+ Nouvelle tâche</button>
+        </div>
+        <div id="detailTasksList"></div>
       </div>
     </div>
 
@@ -788,11 +860,13 @@
         <button class="tab-btn" onclick="switchCpTab('docs')">Documents</button>
         <button class="tab-btn" onclick="switchCpTab('risques')">Risques</button>
         <button class="tab-btn" onclick="switchCpTab('score')">⚖️ Risk Score</button>
+        <button class="tab-btn" onclick="switchCpTab('tasks')">✅ Tâches</button>
       </div>
       <div class="tab-panel active" id="cp-tab-dossiers"><div id="cpTabDossiers"></div></div>
       <div class="tab-panel" id="cp-tab-docs"><div id="cpTabDocs"></div></div>
       <div class="tab-panel" id="cp-tab-risques"><div id="cpTabRisques"></div></div>
       <div class="tab-panel" id="cp-tab-score"><div id="cpTabScore"></div></div>
+      <div class="tab-panel" id="cp-tab-tasks"><div id="cpTabTasks"></div></div>
     </div>
 
     <!-- ══════════ PAGE: PORTEFEUILLE RISQUES ══════════ -->
@@ -858,6 +932,65 @@
         <div class="empty-title">Aucune activité</div>
         <div class="empty-sub">Les événements apparaissent ici au fur et à mesure.</div>
       </div>
+    </div>
+
+
+    <!-- ══════════ PAGE: TÂCHES ══════════ -->
+    <div class="page" id="page-tasks">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Tâches</div>
+          <div class="page-sub">Actions liées à vos risques, dossiers et contreparties</div>
+        </div>
+        <button class="btn-primary" onclick="openTaskModal()">+ Nouvelle tâche</button>
+      </div>
+
+      <!-- KPIs tâches -->
+      <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">
+        <div class="kpi-card" style="border-left:3px solid var(--indigo)">
+          <div class="kpi-label">Tâches ouvertes</div>
+          <div class="kpi-val" id="kpiTasksOpen">—</div>
+          <div class="kpi-sub">à traiter</div>
+        </div>
+        <div class="kpi-card red">
+          <div class="kpi-label">En retard</div>
+          <div class="kpi-val" id="kpiTasksOverdue">—</div>
+          <div class="kpi-sub">échéance dépassée</div>
+        </div>
+        <div class="kpi-card amber">
+          <div class="kpi-label">Échéance 7 jours</div>
+          <div class="kpi-val" id="kpiTasksSoon">—</div>
+          <div class="kpi-sub">à venir</div>
+        </div>
+        <div class="kpi-card green">
+          <div class="kpi-label">Terminées ce mois</div>
+          <div class="kpi-val" id="kpiTasksDone">—</div>
+          <div class="kpi-sub">complétées</div>
+        </div>
+      </div>
+
+      <!-- Filtres -->
+      <div class="tasks-toolbar">
+        <div class="risks-filters" style="margin-bottom:0">
+          <button class="filter-pill active" onclick="filterTasks('all',this)">Toutes</button>
+          <button class="filter-pill red" onclick="filterTasks('overdue',this)">⚠️ En retard</button>
+          <button class="filter-pill" onclick="filterTasks('todo',this)">À faire</button>
+          <button class="filter-pill" onclick="filterTasks('in_progress',this)">En cours</button>
+          <button class="filter-pill" onclick="filterTasks('done',this)">✓ Terminées</button>
+        </div>
+        <select class="filter-select" id="taskFilterCp" onchange="renderTasksPage()" style="margin-left:auto">
+          <option value="">Toutes les contreparties</option>
+        </select>
+        <select class="filter-select" id="taskFilterPrio" onchange="renderTasksPage()">
+          <option value="">Toutes les priorités</option>
+          <option value="high">🔴 Haute</option>
+          <option value="medium">🟡 Moyenne</option>
+          <option value="low">🟢 Faible</option>
+        </select>
+      </div>
+
+      <!-- Liste tâches groupées -->
+      <div id="tasksPageList"></div>
     </div>
 
   </div><!-- /content -->
@@ -938,6 +1071,76 @@
   </div>
 </div>
 
+<!-- MODAL: TÂCHE -->
+<div class="modal-overlay" id="taskModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeTaskModal()">×</button>
+    <div class="modal-title" id="taskModalTitle">Nouvelle tâche</div>
+    <div class="modal-sub">Liez cette tâche à un risque, un dossier ou une contrepartie</div>
+    <input type="hidden" id="taskEditId"/>
+    <div class="form-group">
+      <label class="form-label">Titre *</label>
+      <input class="form-input" type="text" id="taskTitle" placeholder="Ex: Renégocier clause 14.2"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Description</label>
+      <input class="form-input" type="text" id="taskDesc" placeholder="Détails optionnels"/>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Priorité</label>
+        <select class="form-input" id="taskPriority">
+          <option value="high">🔴 Haute</option>
+          <option value="medium" selected>🟡 Moyenne</option>
+          <option value="low">🟢 Faible</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Statut</label>
+        <select class="form-input" id="taskStatus">
+          <option value="todo">À faire</option>
+          <option value="in_progress">En cours</option>
+          <option value="done">Terminé</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Assigné à</label>
+        <input class="form-input" type="text" id="taskAssignee" placeholder="Nom du responsable"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Échéance</label>
+        <input class="form-input" type="date" id="taskDueDate"/>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Contrepartie liée</label>
+        <select class="form-input" id="taskCpId">
+          <option value="">— Aucune —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Dossier lié</label>
+        <select class="form-input" id="taskFolderId">
+          <option value="">— Aucun —</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Risque lié</label>
+      <select class="form-input" id="taskRiskId">
+        <option value="">— Aucun risque —</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeTaskModal()">Annuler</button>
+      <button class="btn-confirm" onclick="saveTask()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: CONTREPARTIE -->
 <div class="modal-overlay" id="cpModal">
   <div class="modal">
@@ -994,7 +1197,7 @@
 const _sb = window.supabase.createClient(JURIA_CONFIG.SUPABASE_URL, JURIA_CONFIG.SUPABASE_ANON_KEY);
 
 let currentUser = null, currentOrgId = null, userProfile = null;
-let allDocs = [], filteredDocs = [], allFolders = [], allRisks = [], allCounterparties = [];
+let allDocs = [], filteredDocs = [], allFolders = [], allRisks = [], allCounterparties = [], allTasks = [];
 let sortCol = 'date', sortDir = 'desc';
 let activeRiskFilter = 'all';
 let pendingFiles = [];
@@ -1009,6 +1212,7 @@ const PAGE_TITLES = {
   portefeuille: 'Portefeuille de risques',
   echeances: 'Échéances',
   timeline: 'Timeline juridique',
+  tasks: 'Tâches',
   'cp-detail': 'Contrepartie',
   'dossier-detail': 'Dossier',
 };
@@ -1027,6 +1231,7 @@ function showPage(name) {
   if (name === 'portefeuille') renderPortfolio();
   if (name === 'echeances') renderDeadlines();
   if (name === 'timeline') renderTimeline();
+  if (name === 'tasks') renderTasksPage();
   if (name === 'documents') { filterDocs(); populateFolderFilter(); }
   if (name === 'dossiers') renderFolders();
   if (name === 'contreparties') renderCounterpartiesWithScore();
@@ -1093,6 +1298,7 @@ async function loadData() {
     allRisks = getDemoRisks();
     allFolders = getDemoFolders();
     allCounterparties = getDemoCounterparties();
+    allTasks = getDemoTasks();
   }
 
   updateNavCounts();
@@ -1106,6 +1312,8 @@ function updateNavCounts() {
   const highRisks = allRisks.filter(r => r.severity === 'high' || r.severity === 'critical').length;
   document.getElementById('navRisksCount').textContent = highRisks || 0;
   document.getElementById('navCpCount').textContent = allCounterparties.length;
+  const openTasks = getTasksStats(allTasks).open;
+  document.getElementById('navTasksCount').textContent = openTasks;
 }
 
 // ── DASHBOARD ────────────────────────────────
@@ -1127,6 +1335,7 @@ function renderDashboard() {
   document.getElementById('kpiAvgScore').textContent = avgScore;
   document.getElementById('kpiCp').textContent = allCounterparties.length;
   document.getElementById('kpiDeadlines').textContent = deadlines30;
+  renderDashTasks();
 
   // Risques élevés dans dashboard
   const highR = allRisks.filter(r => r.severity === 'high' || r.severity === 'critical').slice(0, 4);
@@ -1248,6 +1457,7 @@ function renderFolders() {
 function openFolder(folderId) {
   const folder = allFolders.find(f => f.id === folderId);
   if (!folder) return;
+  currentDetailFolderId = folderId;
   const docsInFolder = allDocs.filter(d => d.folder_id === folderId || d.folder === folder.name);
   const highR = allRisks.filter(r => docsInFolder.find(d => d.id === r.document_id) && (r.severity === 'high' || r.severity === 'critical')).length;
   const medR = allRisks.filter(r => docsInFolder.find(d => d.id === r.document_id) && r.severity === 'medium').length;
@@ -1271,6 +1481,8 @@ function openFolder(folderId) {
   document.getElementById('detailRisksList').innerHTML = folderRisks.length
     ? renderRisksTable(folderRisks)
     : '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-title">Aucun risque</div></div>';
+
+  document.getElementById('detailTasksList').innerHTML = renderFolderTasks(folderId);
 
   showPage('dossier-detail');
 }
@@ -1737,6 +1949,7 @@ function renderCounterparties() {
 function openCpDetail(cpId) {
   const cp = allCounterparties.find(c => c.id === cpId);
   if (!cp) return;
+  currentDetailCpId = cpId;
   const cpDocs = allDocs.filter(d => d.counterparty === cp.name || d.counterparty_id === cp.id);
   const cpRisks = allRisks.filter(r => cpDocs.find(d => d.id === r.document_id));
   const cpFoldersList = allFolders.filter(f => f.counterparty === cp.name || f.counterparty_id === cp.id);
@@ -1779,11 +1992,17 @@ function openCpDetail(cpId) {
   // Tab score
   document.getElementById('cpTabScore').innerHTML = renderScoreTab(cpId);
 
+  // Tab tasks
+  document.getElementById('cpTabTasks').innerHTML = `
+    <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+      <button class="btn-primary" style="font-size:12px" onclick="openTaskModal(null,null,null,'${cpId}')">+ Nouvelle tâche</button>
+    </div>` + renderCpTasks(cpId);
+
   showPage('cp-detail');
 }
 
 function switchCpTab(name) {
-  const tabs = ['dossiers', 'docs', 'risques', 'score'];
+  const tabs = ['dossiers', 'docs', 'risques', 'score', 'tasks'];
   document.querySelectorAll('#page-cp-detail .tab-btn').forEach((b, i) => b.classList.toggle('active', tabs[i] === name));
   document.querySelectorAll('#page-cp-detail .tab-panel').forEach((p, i) => p.classList.toggle('active', tabs[i] === name));
 }
@@ -2163,6 +2382,320 @@ function filterTimeline(filter, btn) {
   renderTimeline(filter);
 }
 
+
+// ══════════════════════════════════════════════
+//  TASKS ENGINE
+// ══════════════════════════════════════════════
+
+let activeTaskFilter = 'all';
+let currentDetailFolderId = null;
+let currentDetailCpId = null;
+
+function getDemoTasks() {
+  const now = new Date();
+  const d = (offset) => new Date(now.getTime() + offset * 86400000).toISOString();
+  const p = (offset) => new Date(now.getTime() - offset * 86400000).toISOString();
+  return [
+    { id:'t1', title:'Renégocier clause Event of Default (15.8)', description:'Proposer une version moins restrictive à Fertinagro', status:'in_progress', priority:'high', assignee:'Sarah Benali', due_date:d(5), counterparty_id:'cp1', folder_id:'f1', risk_id:'r1', created_at:p(2) },
+    { id:'t2', title:'Vérifier conditions préalables Long Stop Date', description:'S\'assurer que toutes les conditions sont remplies avant la date butoir', status:'todo', priority:'high', assignee:'Me Benali', due_date:d(10), counterparty_id:'cp1', folder_id:'f1', risk_id:'r2', created_at:p(1) },
+    { id:'t3', title:'Préparer mémorandum de désaccord Deadlock', description:'Rédiger le document selon Clause 14.4', status:'todo', priority:'medium', assignee:'Me Idrissi', due_date:d(15), counterparty_id:'cp1', folder_id:'f1', risk_id:'r3', created_at:p(1) },
+    { id:'t4', title:'Revoir clause Change of Control Oracle', description:'Négocier une exception pour restructurations internes', status:'in_progress', priority:'medium', assignee:'Sarah Benali', due_date:d(20), counterparty_id:'cp2', folder_id:null, risk_id:'r5', created_at:p(5) },
+    { id:'t5', title:'Valider SPA Acquisition Ciment Atlas', description:'Revue complète avant signature', status:'todo', priority:'high', assignee:'Me Idrissi', due_date:p(2), counterparty_id:'cp5', folder_id:'f2', risk_id:null, created_at:p(8) },
+    { id:'t6', title:'Renouveler NDA TotalEnergies', description:'Contacter l\'équipe juridique TotalEnergies avant expiration', status:'done', priority:'low', assignee:'Sarah Benali', due_date:p(3), counterparty_id:'cp3', folder_id:'f2', risk_id:null, created_at:p(15), completed_at:p(1) },
+  ];
+}
+
+function getTaskDueClass(dueDate, status) {
+  if (status === 'done') return 'ok';
+  if (!dueDate) return 'ok';
+  const now = new Date();
+  const due = new Date(dueDate);
+  const diff = (due - now) / 86400000;
+  if (diff < 0) return 'overdue';
+  if (diff <= 7) return 'soon';
+  return 'ok';
+}
+
+function getTaskDueLabel(dueDate, status) {
+  if (!dueDate) return null;
+  const now = new Date();
+  const due = new Date(dueDate);
+  const diff = Math.round((due - now) / 86400000);
+  if (status === 'done') return null;
+  if (diff < 0) return 'En retard de ' + Math.abs(diff) + 'j';
+  if (diff === 0) return 'Aujourd\'hui';
+  if (diff === 1) return 'Demain';
+  if (diff <= 7) return 'Dans ' + diff + 'j';
+  return due.toLocaleDateString('fr-MA', { day:'numeric', month:'short' });
+}
+
+function getTasksStats(tasks) {
+  const now = new Date();
+  const open = tasks.filter(t => t.status !== 'done').length;
+  const overdue = tasks.filter(t => t.status !== 'done' && t.due_date && new Date(t.due_date) < now).length;
+  const soon = tasks.filter(t => {
+    if (t.status === 'done' || !t.due_date) return false;
+    const diff = (new Date(t.due_date) - now) / 86400000;
+    return diff >= 0 && diff <= 7;
+  }).length;
+  const thisMonth = tasks.filter(t => {
+    if (t.status !== 'done' || !t.completed_at) return false;
+    const c = new Date(t.completed_at);
+    return c.getMonth() === now.getMonth() && c.getFullYear() === now.getFullYear();
+  }).length;
+  return { open, overdue, soon, done: thisMonth };
+}
+
+function renderTaskItem(task, compact) {
+  const dueClass = getTaskDueClass(task.due_date, task.status);
+  const dueLabel = getTaskDueLabel(task.due_date, task.status);
+  const isDone = task.status === 'done';
+  const cp = allCounterparties.find(c => c.id === task.counterparty_id);
+  const folder = allFolders.find(f => f.id === task.folder_id);
+  const risk = allRisks.find(r => r.id === task.risk_id);
+  const prioMap = { high:'Haute', medium:'Moyenne', low:'Faible' };
+
+  return `<div class="task-item" id="task-${task.id}">
+    <div class="task-prio ${task.priority}"></div>
+    <div class="task-check ${isDone ? 'done' : ''}" onclick="toggleTaskDone('${task.id}')">${isDone ? '✓' : ''}</div>
+    <div class="task-body">
+      <div class="task-title ${isDone ? 'done' : ''}">${escHtml(task.title)}</div>
+      <div class="task-meta">
+        ${task.assignee ? `<span class="task-assignee">👤 ${escHtml(task.assignee)}</span>` : ''}
+        ${dueLabel ? `<span class="task-due ${dueClass}">${dueLabel}</span>` : ''}
+        ${cp ? `<span class="timeline-tag" style="cursor:pointer" onclick="openCpDetail('${cp.id}')">${escHtml(cp.name)}</span>` : ''}
+        ${folder ? `<span class="timeline-tag" style="cursor:pointer" onclick="openFolder('${folder.id}')">${escHtml(folder.name)}</span>` : ''}
+        ${risk && !compact ? `<span class="task-link" onclick="showPage('risques')" title="${escHtml(risk.title||'')}">⚠️ ${escHtml((risk.risk_type||'').replace(/_/g,' '))}</span>` : ''}
+      </div>
+    </div>
+    <button class="task-actions-btn" onclick="openTaskModal('${task.id}')">✏️</button>
+  </div>`;
+}
+
+function renderTasksPage() {
+  const cpFilter = document.getElementById('taskFilterCp')?.value || '';
+  const prioFilter = document.getElementById('taskFilterPrio')?.value || '';
+  const now = new Date();
+
+  let tasks = allTasks;
+  if (activeTaskFilter === 'overdue') tasks = tasks.filter(t => t.status !== 'done' && t.due_date && new Date(t.due_date) < now);
+  else if (activeTaskFilter === 'todo') tasks = tasks.filter(t => t.status === 'todo');
+  else if (activeTaskFilter === 'in_progress') tasks = tasks.filter(t => t.status === 'in_progress');
+  else if (activeTaskFilter === 'done') tasks = tasks.filter(t => t.status === 'done');
+  if (cpFilter) tasks = tasks.filter(t => t.counterparty_id === cpFilter);
+  if (prioFilter) tasks = tasks.filter(t => t.priority === prioFilter);
+
+  // Stats
+  const stats = getTasksStats(allTasks);
+  ['kpiTasksOpen','kpiTasksOverdue','kpiTasksSoon','kpiTasksDone'].forEach((id, i) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = [stats.open, stats.overdue, stats.soon, stats.done][i];
+  });
+
+  // Mettre à jour nav count
+  document.getElementById('navTasksCount').textContent = stats.open;
+
+  // Grouper : En retard / En cours / À faire / Terminées
+  const overdue = tasks.filter(t => t.status !== 'done' && t.due_date && new Date(t.due_date) < now);
+  const inProg = tasks.filter(t => t.status === 'in_progress' && !(t.due_date && new Date(t.due_date) < now));
+  const todo = tasks.filter(t => t.status === 'todo' && !(t.due_date && new Date(t.due_date) < now));
+  const done = tasks.filter(t => t.status === 'done');
+
+  const container = document.getElementById('tasksPageList');
+  if (!container) return;
+
+  let html = '';
+  const renderSection = (title, items, cls) => {
+    if (!items.length) return '';
+    return `<div class="tasks-section">
+      <div class="tasks-section-title ${cls||''}">${title} (${items.length})</div>
+      ${items.map(t => renderTaskItem(t, false)).join('')}
+    </div>`;
+  };
+
+  if (activeTaskFilter === 'all' || !tasks.length) {
+    html = renderSection('⚠️ En retard', overdue, 'style="color:var(--red)"')
+         + renderSection('🔵 En cours', inProg, '')
+         + renderSection('📋 À faire', todo, '')
+         + renderSection('✓ Terminées', done, '');
+  } else {
+    html = tasks.map(t => renderTaskItem(t, false)).join('');
+  }
+
+  container.innerHTML = html || '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-title">Aucune tâche</div><div class="empty-sub">Créez votre première tâche depuis un risque ou un dossier.</div></div>';
+
+  // Populate filtres contreparties
+  const cpSel = document.getElementById('taskFilterCp');
+  if (cpSel && cpSel.options.length <= 1) {
+    allCounterparties.forEach(cp => {
+      const opt = document.createElement('option');
+      opt.value = cp.id; opt.textContent = cp.name;
+      cpSel.appendChild(opt);
+    });
+  }
+}
+
+function filterTasks(filter, btn) {
+  activeTaskFilter = filter;
+  document.querySelectorAll('#page-tasks .filter-pill').forEach(p => p.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderTasksPage();
+}
+
+function toggleTaskDone(taskId) {
+  const task = allTasks.find(t => t.id === taskId);
+  if (!task) return;
+  task.status = task.status === 'done' ? 'todo' : 'done';
+  task.completed_at = task.status === 'done' ? new Date().toISOString() : null;
+  renderTasksPage();
+  // Rafraîchir dashboard si visible
+  const dashPage = document.getElementById('page-dashboard');
+  if (dashPage && dashPage.classList.contains('active')) renderDashboard();
+  showToast(task.status === 'done' ? 'Tâche terminée ✓' : 'Tâche réouverte', task.status === 'done' ? 'success' : '');
+}
+
+// Tâches dans le contexte dossier
+function renderFolderTasks(folderId) {
+  const tasks = allTasks.filter(t => t.folder_id === folderId);
+  if (!tasks.length) return '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-title">Aucune tâche</div><div class="empty-sub">Créez une tâche liée à ce dossier.</div></div>';
+  const stats = getTasksStats(tasks);
+  return `<div class="task-kpi-row">
+    <div class="task-kpi-mini open"><div class="task-kpi-mini-val">${stats.open}</div><div class="task-kpi-mini-label">Ouvertes</div></div>
+    <div class="task-kpi-mini overdue"><div class="task-kpi-mini-val">${stats.overdue}</div><div class="task-kpi-mini-label">En retard</div></div>
+    <div class="task-kpi-mini done"><div class="task-kpi-mini-val">${stats.done}</div><div class="task-kpi-mini-label">Terminées</div></div>
+  </div>
+  ${tasks.map(t => renderTaskItem(t, true)).join('')}`;
+}
+
+// Tâches dans le contexte contrepartie
+function renderCpTasks(cpId) {
+  const tasks = allTasks.filter(t => t.counterparty_id === cpId);
+  if (!tasks.length) return '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-title">Aucune tâche</div><div class="empty-sub">Créez une tâche liée à cette contrepartie.</div></div>';
+  const stats = getTasksStats(tasks);
+  return `<div class="task-kpi-row">
+    <div class="task-kpi-mini open"><div class="task-kpi-mini-val">${stats.open}</div><div class="task-kpi-mini-label">Ouvertes</div></div>
+    <div class="task-kpi-mini overdue"><div class="task-kpi-mini-val">${stats.overdue}</div><div class="task-kpi-mini-label">En retard</div></div>
+    <div class="task-kpi-mini done"><div class="task-kpi-mini-val">${stats.done}</div><div class="task-kpi-mini-label">Terminées</div></div>
+  </div>
+  ${tasks.map(t => renderTaskItem(t, true)).join('')}`;
+}
+
+// Widget dashboard tasks
+function renderDashTasks() {
+  const now = new Date();
+  const urgent = allTasks
+    .filter(t => t.status !== 'done')
+    .sort((a,b) => {
+      // En retard d'abord, puis par date
+      const aOver = a.due_date && new Date(a.due_date) < now;
+      const bOver = b.due_date && new Date(b.due_date) < now;
+      if (aOver && !bOver) return -1;
+      if (!aOver && bOver) return 1;
+      return new Date(a.due_date||'9999') - new Date(b.due_date||'9999');
+    })
+    .slice(0, 4);
+
+  const el = document.getElementById('dashTasks');
+  if (!el) return;
+
+  const stats = getTasksStats(allTasks);
+  document.getElementById('kpiDashTasksOpen').textContent = stats.open;
+  document.getElementById('kpiDashTasksOverdue').textContent = stats.overdue;
+
+  el.innerHTML = urgent.length
+    ? urgent.map(t => renderTaskItem(t, true)).join('')
+    : '<div style="font-size:13px;color:var(--slate-400);padding:8px 0">Aucune tâche en cours.</div>';
+}
+
+// ── MODAL TASK ──────────────────────────────
+function openTaskModal(taskId, riskId, folderId, cpId) {
+  const modal = document.getElementById('taskModal');
+  const titleEl = document.getElementById('taskModalTitle');
+  const editIdEl = document.getElementById('taskEditId');
+
+  // Peupler les selects
+  const riskSel = document.getElementById('taskRiskId');
+  riskSel.innerHTML = '<option value="">— Aucun risque —</option>'
+    + allRisks.map(r => `<option value="${r.id}">${escHtml((r.risk_type||'').replace(/_/g,' ') + ' · ' + (r.title||'').slice(0,40))}</option>`).join('');
+
+  const cpSel = document.getElementById('taskCpId');
+  cpSel.innerHTML = '<option value="">— Aucune —</option>'
+    + allCounterparties.map(c => `<option value="${c.id}">${escHtml(c.name)}</option>`).join('');
+
+  const folderSel = document.getElementById('taskFolderId');
+  folderSel.innerHTML = '<option value="">— Aucun —</option>'
+    + allFolders.map(f => `<option value="${f.id}">${escHtml(f.name)}</option>`).join('');
+
+  if (taskId) {
+    // Mode édition
+    const task = allTasks.find(t => t.id === taskId);
+    if (!task) return;
+    titleEl.textContent = 'Modifier la tâche';
+    editIdEl.value = taskId;
+    document.getElementById('taskTitle').value = task.title;
+    document.getElementById('taskDesc').value = task.description || '';
+    document.getElementById('taskPriority').value = task.priority;
+    document.getElementById('taskStatus').value = task.status;
+    document.getElementById('taskAssignee').value = task.assignee || '';
+    document.getElementById('taskDueDate').value = task.due_date ? task.due_date.slice(0,10) : '';
+    document.getElementById('taskCpId').value = task.counterparty_id || '';
+    document.getElementById('taskFolderId').value = task.folder_id || '';
+    document.getElementById('taskRiskId').value = task.risk_id || '';
+  } else {
+    // Mode création
+    titleEl.textContent = 'Nouvelle tâche';
+    editIdEl.value = '';
+    ['taskTitle','taskDesc','taskAssignee','taskDueDate'].forEach(id => { document.getElementById(id).value = ''; });
+    document.getElementById('taskPriority').value = 'medium';
+    document.getElementById('taskStatus').value = 'todo';
+    if (riskId) document.getElementById('taskRiskId').value = riskId;
+    if (folderId) document.getElementById('taskFolderId').value = folderId;
+    if (cpId) document.getElementById('taskCpId').value = cpId;
+  }
+
+  modal.classList.add('show');
+}
+
+function closeTaskModal() {
+  document.getElementById('taskModal').classList.remove('show');
+}
+
+function saveTask() {
+  const title = document.getElementById('taskTitle').value.trim();
+  if (!title) { showToast('Le titre est requis.', 'error'); return; }
+  const editId = document.getElementById('taskEditId').value;
+  const taskData = {
+    title,
+    description: document.getElementById('taskDesc').value.trim(),
+    priority: document.getElementById('taskPriority').value,
+    status: document.getElementById('taskStatus').value,
+    assignee: document.getElementById('taskAssignee').value.trim(),
+    due_date: document.getElementById('taskDueDate').value ? document.getElementById('taskDueDate').value + 'T00:00:00.000Z' : null,
+    counterparty_id: document.getElementById('taskCpId').value || null,
+    folder_id: document.getElementById('taskFolderId').value || null,
+    risk_id: document.getElementById('taskRiskId').value || null,
+  };
+
+  if (editId) {
+    const idx = allTasks.findIndex(t => t.id === editId);
+    if (idx !== -1) allTasks[idx] = { ...allTasks[idx], ...taskData };
+    showToast('Tâche mise à jour.', 'success');
+  } else {
+    allTasks.unshift({ id: 't-' + Date.now(), ...taskData, created_at: new Date().toISOString() });
+    showToast('Tâche créée.', 'success');
+  }
+
+  closeTaskModal();
+  document.getElementById('navTasksCount').textContent = getTasksStats(allTasks).open;
+
+  // Rafraîchir la page active
+  const activePage = document.querySelector('.page.active');
+  if (activePage) {
+    if (activePage.id === 'page-tasks') renderTasksPage();
+    if (activePage.id === 'page-dashboard') renderDashboard();
+  }
+}
+
 // ── TOAST ─────────────────────────────────────
 function showToast(msg, type) {
   const wrap = document.getElementById('toastWrap');
@@ -2178,7 +2711,7 @@ document.getElementById('btnMenu').addEventListener('click', () => document.getE
 document.getElementById('btnLogout').addEventListener('click', async () => { await _sb.auth.signOut(); window.location.href = 'auth.html'; });
 
 // Fermer modals en cliquant hors
-['uploadModal','folderModal','cpModal'].forEach(id => {
+['uploadModal','folderModal','cpModal','taskModal'].forEach(id => {
   document.getElementById(id).addEventListener('click', function(e) { if (e.target === this) this.classList.remove('show'); });
 });
 
