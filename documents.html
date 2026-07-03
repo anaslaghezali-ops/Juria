@@ -1393,14 +1393,16 @@ async function init() {
   document.getElementById('sidebarAvatar').textContent = name.charAt(0).toUpperCase();
   document.getElementById('sidebarName').textContent = name;
 
-  // Charger le profil + organisation (table peut varier selon le projet)
+  // Charger le profil — table centralisée dans PROFILE_TABLE (bootstrap.js)
   let profile = null;
-  const profileTables = ['user_profiles', 'profiles'];
-  for (const tbl of profileTables) {
-    const { data, error } = await _sb.from(tbl)
-      .select('plan, organization_id').eq('id', currentUser.id).single();
-    if (!error && data) { profile = data; break; }
-  }
+  const _profileTable = (typeof PROFILE_TABLE !== 'undefined') ? PROFILE_TABLE : 'user_profiles_compat';
+  const { data: _profileData, error: _profileErr } = await _sb
+    .from(_profileTable)
+    .select('plan, organization_id')
+    .eq('id', currentUser.id)
+    .single();
+  if (!_profileErr && _profileData) profile = _profileData;
+  else console.warn('[init] Profil non trouvé dans', _profileTable, ':', _profileErr?.message);
   if (profile) {
     const planMap = { trial:'Essai gratuit', essential:'Essentiel', pro:'Pro', cabinet:'Cabinet' };
     document.getElementById('sidebarPlan').textContent = planMap[profile.plan] || 'Essai gratuit';
@@ -1505,6 +1507,12 @@ function updateNavCounts() {
 }
 
 // ── DASHBOARD ────────────────────────────────
+function _safeSet(id, prop, value) {
+  const el = document.getElementById(id);
+  if (!el) { console.warn('[Dashboard] Élément manquant:', id); return; }
+  el[prop] = value;
+}
+
 function renderDashboard() {
   const total = allDocs.length;
   const analysed = allDocs.filter(d => d.status === 'analysé').length;
@@ -1519,13 +1527,13 @@ function renderDashboard() {
     : (typeof getDemoDeadlines !== 'undefined' ? getDemoDeadlines() : []);
   const deadlines30 = _deadlines.filter(d => new Date(d.date) <= in30).length;
 
-  document.getElementById('kpiTotal').textContent = total;
-  document.getElementById('kpiAnalysed').textContent = analysed;
-  document.getElementById('kpiHighRisks').textContent = highRisks;
-  document.getElementById('kpiFolders').textContent = allFolders.length;
-  document.getElementById('kpiAvgScore').textContent = avgScore;
-  document.getElementById('kpiCp').textContent = allCounterparties.length;
-  document.getElementById('kpiDeadlines').textContent = deadlines30;
+  _safeSet('kpiTotal', 'textContent', total);
+  _safeSet('kpiAnalysed', 'textContent', analysed);
+  _safeSet('kpiHighRisks', 'textContent', highRisks);
+  _safeSet('kpiFolders', 'textContent', allFolders.length);
+  _safeSet('kpiAvgScore', 'textContent', avgScore);
+  _safeSet('kpiCp', 'textContent', allCounterparties.length);
+  _safeSet('kpiDeadlines', 'textContent', deadlines30);
   renderDashTasks();
   if (typeof renderDashResolution === 'function') renderDashResolution();
 
@@ -1543,7 +1551,7 @@ function renderDashboard() {
 
   // Risques élevés dans dashboard
   const highR = allRisks.filter(r => r.severity === 'high' || r.severity === 'critical').slice(0, 4);
-  document.getElementById('dashRisks').innerHTML = highR.length
+  ((document.getElementById('dashRisks') || {})['innerHTML']) = highR.length
     ? highR.map(r => `<div class="risk-row">
         <span class="risk-level-badge lvl-high">ÉLEVÉ</span>
         <span class="risk-name">${escHtml(r.title || '—')}</span>
@@ -1553,7 +1561,7 @@ function renderDashboard() {
 
   // Échéances dans dashboard
   const dl = getDemoDeadlines().slice(0, 4);
-  document.getElementById('dashDeadlines').innerHTML = dl.map(d => {
+  ((document.getElementById('dashDeadlines') || {})['innerHTML']) = dl.map(d => {
     const date = new Date(d.date);
     const diff = Math.round((date - now) / 86400000);
     const label = diff <= 7 ? `<span style="color:var(--red);font-weight:700">J-${diff}</span>` : `J-${diff}`;
@@ -1566,7 +1574,7 @@ function renderDashboard() {
   // Contreparties critiques
   const critCp = allCounterparties.filter(cp => cp.risk_level === 'high').slice(0, 4);
   const allCpShow = critCp.length ? critCp : allCounterparties.slice(0, 4);
-  document.getElementById('dashCp').innerHTML = allCpShow.map(cp => {
+  ((document.getElementById('dashCp') || {})['innerHTML']) = allCpShow.map(cp => {
     const cpDocs = allDocs.filter(d => d.counterparty === cp.name || d.counterparty_id === cp.id).length;
     const cpRisks = allRisks.filter(r => {
       const doc = allDocs.find(d => d.id === r.document_id);
@@ -1591,7 +1599,7 @@ function renderDashboard() {
   const sorted = Object.entries(types).sort((a,b) => b[1]-a[1]).slice(0, 5);
   const maxVal = sorted[0]?.[1] || 1;
   const colors = { EVENT_OF_DEFAULT:'#ef4444', TERMINATION:'#f97316', FUNDING:'#f59e0b', DEADLOCK:'#8b5cf6', GOVERNANCE:'#3b82f6', DEFAULT:'#6b7280' };
-  document.getElementById('dashRiskPortfolio').innerHTML = `
+  ((document.getElementById('dashRiskPortfolio') || {})['innerHTML']) = `
     <div class="risk-levels" style="margin-bottom:14px">
       <div class="risk-level-card high" style="flex:1">
         <div class="risk-level-num">${allRisks.filter(r=>r.severity==='high'||r.severity==='critical').length}</div>
@@ -2879,8 +2887,8 @@ function renderDashTasks() {
   if (!el) return;
 
   const stats = getTasksStats(allTasks);
-  document.getElementById('kpiDashTasksOpen').textContent = stats.open;
-  document.getElementById('kpiDashTasksOverdue').textContent = stats.overdue;
+  _safeSet('kpiDashTasksOpen', 'textContent', stats.open);
+  _safeSet('kpiDashTasksOverdue', 'textContent', stats.overdue);
 
   el.innerHTML = urgent.length
     ? urgent.map(t => renderTaskItem(t, true)).join('')
