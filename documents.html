@@ -1343,7 +1343,7 @@ const _sb = window.supabase.createClient(JURIA_CONFIG.SUPABASE_URL, JURIA_CONFIG
 let currentUser = null, currentOrgId = null, userProfile = null;
 // Alias vers le Store — maintenus par _syncGlobalAliases() après chaque mutation
 let allDocs = [], filteredDocs = [], allFolders = [], allRisks = [], allCounterparties = [], allTasks = [];
-let Services = null; // initialisé dans init()
+// Services est déclaré dans bootstrap.js — ne pas redéclarer ici
 let sortCol = 'date', sortDir = 'desc';
 let activeRiskFilter = 'all';
 let pendingFiles = [];
