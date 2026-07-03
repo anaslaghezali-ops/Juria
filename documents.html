@@ -1937,14 +1937,11 @@ async function createFolder() {
   const name = document.getElementById('folderName').value.trim();
   if (!name) { showToast('Le nom du dossier est requis.', 'error'); return; }
   const tags = document.getElementById('folderTags').value.split(',').map(t => t.trim()).filter(Boolean);
+  // Colonnes réelles folders : name, description, counterparty_id
   const payload = {
     name,
-    client:          document.getElementById('folderClient').value.trim(),
-    project:         document.getElementById('folderProject').value.trim(),
-    owner:           document.getElementById('folderOwner').value.trim(),
-    counterparty_id: null, // sera lié via le champ texte si besoin
-    description:     document.getElementById('folderDesc').value.trim(),
-    tags,
+    description: document.getElementById('folderDesc').value.trim() || null,
+    counterparty_id: null,
   };
 
   let folder;
@@ -2952,17 +2949,18 @@ async function saveTask() {
   const title = document.getElementById('taskTitle').value.trim();
   if (!title) { showToast('Le titre est requis.', 'error'); return; }
   const editId = document.getElementById('taskEditId').value;
+  // Colonnes réelles tasks : title, status, priority, assigned_to,
+  // folder_id, document_id, risk_id, due_date
   const payload = {
     title,
-    description:     document.getElementById('taskDesc').value.trim(),
-    priority:        document.getElementById('taskPriority').value,
-    status:          document.getElementById('taskStatus').value,
-    assignee:        document.getElementById('taskAssignee').value.trim(),
-    due_date:        document.getElementById('taskDueDate').value
-                       ? document.getElementById('taskDueDate').value + 'T00:00:00.000Z' : null,
-    counterparty_id: document.getElementById('taskCpId').value || null,
-    folder_id:       document.getElementById('taskFolderId').value || null,
-    risk_id:         document.getElementById('taskRiskId').value || null,
+    priority:    document.getElementById('taskPriority').value,
+    status:      document.getElementById('taskStatus').value,
+    assigned_to: document.getElementById('taskAssignee').value.trim() || null,
+    assignee:    document.getElementById('taskAssignee').value.trim() || null, // alias UI
+    due_date:    document.getElementById('taskDueDate').value
+                   ? document.getElementById('taskDueDate').value + 'T00:00:00.000Z' : null,
+    folder_id:   document.getElementById('taskFolderId').value || null,
+    risk_id:     document.getElementById('taskRiskId').value   || null,
   };
 
   if (Services?.tasks) {
