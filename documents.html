@@ -1326,6 +1326,14 @@
 <!-- SUPABASE -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
+<script src="store/store.js"></script>
+<script src="services/base-service.js"></script>
+<script src="services/risk-service.js"></script>
+<script src="services/task-service.js"></script>
+<script src="services/counterparty-service.js"></script>
+<script src="services/folder-service.js"></script>
+<script src="services/document-service.js"></script>
+<script src="bootstrap.js"></script>
 <script>
 // ══════════════════════════════════════════════
 //  INIT
@@ -1333,7 +1341,9 @@
 const _sb = window.supabase.createClient(JURIA_CONFIG.SUPABASE_URL, JURIA_CONFIG.SUPABASE_ANON_KEY);
 
 let currentUser = null, currentOrgId = null, userProfile = null;
+// Alias vers le Store — maintenus par _syncGlobalAliases() après chaque mutation
 let allDocs = [], filteredDocs = [], allFolders = [], allRisks = [], allCounterparties = [], allTasks = [];
+let Services = null; // initialisé dans init()
 let sortCol = 'date', sortDir = 'desc';
 let activeRiskFilter = 'all';
 let pendingFiles = [];
@@ -1383,58 +1393,90 @@ async function init() {
   document.getElementById('sidebarAvatar').textContent = name.charAt(0).toUpperCase();
   document.getElementById('sidebarName').textContent = name;
 
+  // Charger le profil + organisation
   const { data: profile } = await _sb.from('user_profiles')
-    .select('plan').eq('id', currentUser.id).single();
+    .select('plan, organization_id').eq('id', currentUser.id).single();
   if (profile) {
     const planMap = { trial:'Essai gratuit', essential:'Essentiel', pro:'Pro', cabinet:'Cabinet' };
     document.getElementById('sidebarPlan').textContent = planMap[profile.plan] || 'Essai gratuit';
   }
 
+  // Récupérer l'orgId
+  let orgId = profile?.organization_id || null;
+  if (!orgId) {
+    const { data: orgRow } = await _sb.from('organization_users')
+      .select('organization_id').eq('user_id', currentUser.id).single();
+    orgId = orgRow?.organization_id || null;
+  }
+  currentOrgId = orgId;
+
+  // Initialiser Store + Services
+  if (typeof Store !== 'undefined') {
+    Store.setCurrentUser(currentUser, orgId);
+    Services = initServices(_sb);
+  }
+
+  // Charger les données (Supabase si orgId disponible, sinon démo)
   await loadData();
   showPage('dashboard');
 }
 
 // ── LOAD DATA ────────────────────────────────
 async function loadData() {
-  try {
-    const { data: orgRow } = await _sb.from('organization_users')
-      .select('organization_id').eq('user_id', currentUser.id).single();
-    if (!orgRow) throw new Error('Aucune organisation');
-    currentOrgId = orgRow.organization_id;
+  // Si Services est initialisé (Store disponible), utiliser l'architecture Service
+  if (Services && typeof loadAllData !== 'undefined') {
+    await loadAllData(currentOrgId, { useDemoData: !currentOrgId });
+  } else {
+    // Fallback : chargement direct Supabase (compatibilité)
+    try {
+      if (!currentOrgId) throw new Error('Aucune organisation');
 
-    const { data: docs } = await _sb.from('documents')
-      .select('id, name, file_type, file_size, document_type, status, compliance_score, risk_level, created_at, updated_at, latest_analysis_id, tags, is_starred, is_archived, folder_id')
-      .eq('organization_id', currentOrgId).eq('is_archived', false)
-      .order('created_at', { ascending: false });
+      const [foldersRes, cpRes] = await Promise.all([
+        _sb.from('folders').select('*').eq('organization_id', currentOrgId).order('created_at', { ascending: false }),
+        _sb.from('counterparties').select('*').eq('organization_id', currentOrgId).order('name'),
+      ]);
+      allFolders        = foldersRes.data        || [];
+      allCounterparties = cpRes.data             || [];
 
-    allDocs = (docs || []).map(d => ({
-      ...d,
-      score: d.compliance_score,
-      folder: d.folder_id ? (allFolders.find(f => f.id === d.folder_id)?.name || '—') : '—',
-      parties: '—',
-      status: normalizeStatus(d.status),
-    }));
+      const { data: docs } = await _sb.from('documents')
+        .select('id, name, file_type, file_size, document_type, status, compliance_score, risk_level, created_at, updated_at, latest_analysis_id, tags, is_starred, is_archived, folder_id, counterparty_id')
+        .eq('organization_id', currentOrgId).eq('is_archived', false)
+        .order('created_at', { ascending: false });
 
-    // Charger les risques
-    const docIds = allDocs.filter(d => d.latest_analysis_id).map(d => d.id);
-    if (docIds.length > 0) {
-      const { data: risks } = await _sb.from('document_risks')
-        .select('id, document_id, severity, risk_type, title, clause_reference, created_at')
-        .in('document_id', docIds).order('created_at', { ascending: false });
-      allRisks = (risks || []).map(r => ({
-        ...r,
-        docName: allDocs.find(d => d.id === r.document_id)?.name || '—',
-        folderName: '—',
+      allDocs = (docs || []).map(d => ({
+        ...d,
+        score: d.compliance_score,
+        folder: d.folder_id ? (allFolders.find(f => f.id === d.folder_id)?.name || '—') : '—',
+        parties: '—',
+        status: normalizeStatus(d.status),
       }));
-    }
 
-  } catch(e) {
-    console.warn('Fallback démo:', e.message);
-    allDocs = getDemoData();
-    allRisks = getDemoRisks();
-    allFolders = getDemoFolders();
-    allCounterparties = getDemoCounterparties();
-    allTasks = getDemoTasks();
+      const docIds = allDocs.filter(d => d.latest_analysis_id).map(d => d.id);
+      if (docIds.length > 0) {
+        const { data: risks } = await _sb.from('document_risks')
+          .select('id, document_id, severity, risk_type, title, clause_reference, status, assignee, extract, created_at')
+          .in('document_id', docIds).order('created_at', { ascending: false });
+        allRisks = (risks || []).map(r => ({
+          ...r,
+          status: r.status || 'open',
+          docName: allDocs.find(d => d.id === r.document_id)?.name || '—',
+          folderName: allDocs.find(d => d.id === r.document_id)?.folder || '—',
+        }));
+      }
+
+      const { data: tasks } = await _sb.from('tasks')
+        .select('*').eq('organization_id', currentOrgId)
+        .order('created_at', { ascending: false });
+      allTasks = tasks || [];
+
+    } catch(e) {
+      console.warn('Fallback démo:', e.message);
+      allDocs            = getDemoData();
+      allRisks           = getDemoRisks();
+      allFolders         = getDemoFolders();
+      allCounterparties  = getDemoCounterparties();
+      allTasks           = getDemoTasks();
+    }
   }
 
   initRiskStatuses();
@@ -1871,22 +1913,30 @@ function renderDeadlines() {
 function openFolderModal() { document.getElementById('folderModal').classList.add('show'); }
 function closeFolderModal() { document.getElementById('folderModal').classList.remove('show'); }
 
-function createFolder() {
+async function createFolder() {
   const name = document.getElementById('folderName').value.trim();
   if (!name) { showToast('Le nom du dossier est requis.', 'error'); return; }
   const tags = document.getElementById('folderTags').value.split(',').map(t => t.trim()).filter(Boolean);
-  const folder = {
-    id: 'f-' + Date.now(),
+  const payload = {
     name,
-    client: document.getElementById('folderClient').value.trim(),
-    project: document.getElementById('folderProject').value.trim(),
-    owner: document.getElementById('folderOwner').value.trim(),
-    counterparty: document.getElementById('folderCounterparty').value.trim(),
-    description: document.getElementById('folderDesc').value.trim(),
+    client:          document.getElementById('folderClient').value.trim(),
+    project:         document.getElementById('folderProject').value.trim(),
+    owner:           document.getElementById('folderOwner').value.trim(),
+    counterparty_id: null, // sera lié via le champ texte si besoin
+    description:     document.getElementById('folderDesc').value.trim(),
     tags,
-    created_at: new Date().toISOString(),
   };
-  allFolders.unshift(folder);
+
+  let folder;
+  if (Services?.folders) {
+    folder = await Services.folders.createFolder(payload, currentOrgId, currentUser?.id);
+    if (!folder) { showToast('Erreur lors de la création du dossier.', 'error'); return; }
+    allFolders = Store.state.folders;
+  } else {
+    folder = { id: 'f-' + Date.now(), ...payload, created_at: new Date().toISOString() };
+    allFolders.unshift(folder);
+  }
+
   closeFolderModal();
   populateFolderSelect();
   updateNavCounts();
@@ -1945,40 +1995,65 @@ async function confirmUpload() {
   btn.disabled = true;
   document.getElementById('btnUploadText').textContent = 'Importation…';
   const folderId = document.getElementById('folderSelect')?.value || null;
-  const folderName = folderId ? (allFolders.find(f => f.id === folderId)?.name || '—') : '—';
 
-  for (let i = 0; i < pendingFiles.length; i++) {
-    const file = pendingFiles[i];
-    const progressWrap = document.getElementById('file-progress-' + i);
-    const progressBar = document.getElementById('file-bar-' + i);
-    progressWrap.classList.add('show');
-    try {
-      const docData = {
-        organization_id: currentOrgId, uploaded_by: currentUser.id,
-        name: file.name, file_type: file.name.split('.').pop().toLowerCase(),
-        file_size: file.size, document_type: 'autre', language: 'fr',
-        governing_law: 'Droit marocain', storage_bucket: 'juria-documents',
-        currency: 'MAD', chunk_version: 0, status: 'imported',
-        is_starred: false, is_archived: false,
-        folder_id: folderId || null,
-        created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
-      };
-      progressBar.style.width = '20%';
-      const { data: inserted, error: insertErr } = await _sb.from('documents').insert(docData).select().single();
-      if (insertErr || !inserted) throw insertErr || new Error('Insertion échouée');
-      progressBar.style.width = '40%';
-      const storagePath = `${currentOrgId}/${inserted.id}/${Date.now()}-${file.name}`;
-      const { error: uploadErr } = await _sb.storage.from('juria-documents').upload(storagePath, file, { upsert: false });
-      if (uploadErr) { await _sb.from('documents').delete().eq('id', inserted.id); throw uploadErr; }
-      progressBar.style.width = '75%';
-      const { data: updated } = await _sb.from('documents').update({ storage_path: storagePath }).eq('id', inserted.id).select().single();
-      progressBar.style.width = '100%';
-      allDocs.unshift({ ...updated, score: null, folder: folderName, parties: '—', status: 'importé' });
-      await new Promise(r => setTimeout(r, 200));
-    } catch(e) {
-      showToast('Erreur import ' + file.name + ' : ' + e.message, 'error');
+  // Si DocumentService disponible, l'utiliser
+  if (Services?.documents) {
+    for (let i = 0; i < pendingFiles.length; i++) {
+      const file = pendingFiles[i];
+      const progressWrap = document.getElementById('file-progress-' + i);
+      const progressBar  = document.getElementById('file-bar-' + i);
+      progressWrap.classList.add('show');
+      try {
+        await Services.documents.importFile(
+          file, currentOrgId, currentUser.id,
+          { folder_id: folderId || null },
+          (pct) => { progressBar.style.width = pct + '%'; }
+        );
+        await new Promise(r => setTimeout(r, 200));
+      } catch(e) {
+        showToast('Erreur import ' + file.name + ' : ' + e.message, 'error');
+      }
+    }
+    // Synchroniser les alias globaux
+    allDocs = Store.state.documents;
+
+  } else {
+    // Fallback direct Supabase
+    const folderName = folderId ? (allFolders.find(f => f.id === folderId)?.name || '—') : '—';
+    for (let i = 0; i < pendingFiles.length; i++) {
+      const file = pendingFiles[i];
+      const progressWrap = document.getElementById('file-progress-' + i);
+      const progressBar  = document.getElementById('file-bar-' + i);
+      progressWrap.classList.add('show');
+      try {
+        const docData = {
+          organization_id: currentOrgId, uploaded_by: currentUser.id,
+          name: file.name, file_type: file.name.split('.').pop().toLowerCase(),
+          file_size: file.size, document_type: 'autre', language: 'fr',
+          governing_law: 'Droit marocain', storage_bucket: 'juria-documents',
+          currency: 'MAD', chunk_version: 0, status: 'imported',
+          is_starred: false, is_archived: false,
+          folder_id: folderId || null,
+          created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+        };
+        progressBar.style.width = '20%';
+        const { data: inserted, error: insertErr } = await _sb.from('documents').insert(docData).select().single();
+        if (insertErr || !inserted) throw insertErr || new Error('Insertion échouée');
+        progressBar.style.width = '40%';
+        const storagePath = `${currentOrgId}/${inserted.id}/${Date.now()}-${file.name}`;
+        const { error: uploadErr } = await _sb.storage.from('juria-documents').upload(storagePath, file, { upsert: false });
+        if (uploadErr) { await _sb.from('documents').delete().eq('id', inserted.id); throw uploadErr; }
+        progressBar.style.width = '75%';
+        const { data: updated } = await _sb.from('documents').update({ storage_path: storagePath }).eq('id', inserted.id).select().single();
+        progressBar.style.width = '100%';
+        allDocs.unshift({ ...updated, score: null, folder: folderName, parties: '—', status: 'importé' });
+        await new Promise(r => setTimeout(r, 200));
+      } catch(e) {
+        showToast('Erreur import ' + file.name + ' : ' + e.message, 'error');
+      }
     }
   }
+
   closeUploadModal();
   updateNavCounts();
   filterDocs();
@@ -2012,8 +2087,14 @@ function analyzeDoc(id) { window.location.href = 'analyse-contrat.html?doc_id=' 
 async function deleteDoc(id) {
   const doc = allDocs.find(d => d.id === id);
   if (!doc || !confirm('Supprimer « ' + doc.name + ' » ?')) return;
-  try { await _sb.from('documents').delete().eq('id', id).eq('organization_id', currentOrgId); } catch(e) {}
-  allDocs = allDocs.filter(d => d.id !== id);
+
+  if (Services?.documents) {
+    const ok = await Services.documents.archiveDocument(id, currentOrgId, true);
+    if (ok) allDocs = Store.state.documents;
+  } else {
+    try { await _sb.from('documents').delete().eq('id', id).eq('organization_id', currentOrgId); } catch(e) {}
+    allDocs = allDocs.filter(d => d.id !== id);
+  }
   updateNavCounts();
   filterDocs();
   showToast('Document supprimé.', '');
@@ -2722,16 +2803,23 @@ function filterTasks(filter, btn) {
   renderTasksPage();
 }
 
-function toggleTaskDone(taskId) {
+async function toggleTaskDone(taskId) {
   const task = allTasks.find(t => t.id === taskId);
   if (!task) return;
-  task.status = task.status === 'done' ? 'todo' : 'done';
-  task.completed_at = task.status === 'done' ? new Date().toISOString() : null;
+  const newDone = task.status !== 'done';
+
+  if (Services?.tasks) {
+    await Services.tasks.setDone(taskId, newDone, currentUser?.id);
+    allTasks = Store.state.tasks;
+  } else {
+    task.status       = newDone ? 'done' : 'todo';
+    task.completed_at = newDone ? new Date().toISOString() : null;
+  }
+
   renderTasksPage();
-  // Rafraîchir dashboard si visible
   const dashPage = document.getElementById('page-dashboard');
   if (dashPage && dashPage.classList.contains('active')) renderDashboard();
-  showToast(task.status === 'done' ? 'Tâche terminée ✓' : 'Tâche réouverte', task.status === 'done' ? 'success' : '');
+  showToast(newDone ? 'Tâche terminée ✓' : 'Tâche réouverte', newDone ? 'success' : '');
 }
 
 // Tâches dans le contexte dossier
@@ -2840,35 +2928,46 @@ function closeTaskModal() {
   document.getElementById('taskModal').classList.remove('show');
 }
 
-function saveTask() {
+async function saveTask() {
   const title = document.getElementById('taskTitle').value.trim();
   if (!title) { showToast('Le titre est requis.', 'error'); return; }
   const editId = document.getElementById('taskEditId').value;
-  const taskData = {
+  const payload = {
     title,
-    description: document.getElementById('taskDesc').value.trim(),
-    priority: document.getElementById('taskPriority').value,
-    status: document.getElementById('taskStatus').value,
-    assignee: document.getElementById('taskAssignee').value.trim(),
-    due_date: document.getElementById('taskDueDate').value ? document.getElementById('taskDueDate').value + 'T00:00:00.000Z' : null,
+    description:     document.getElementById('taskDesc').value.trim(),
+    priority:        document.getElementById('taskPriority').value,
+    status:          document.getElementById('taskStatus').value,
+    assignee:        document.getElementById('taskAssignee').value.trim(),
+    due_date:        document.getElementById('taskDueDate').value
+                       ? document.getElementById('taskDueDate').value + 'T00:00:00.000Z' : null,
     counterparty_id: document.getElementById('taskCpId').value || null,
-    folder_id: document.getElementById('taskFolderId').value || null,
-    risk_id: document.getElementById('taskRiskId').value || null,
+    folder_id:       document.getElementById('taskFolderId').value || null,
+    risk_id:         document.getElementById('taskRiskId').value || null,
   };
 
-  if (editId) {
-    const idx = allTasks.findIndex(t => t.id === editId);
-    if (idx !== -1) allTasks[idx] = { ...allTasks[idx], ...taskData };
-    showToast('Tâche mise à jour.', 'success');
+  if (Services?.tasks) {
+    if (editId) {
+      await Services.tasks.updateTask(editId, payload, currentUser?.id);
+      showToast('Tâche mise à jour.', 'success');
+    } else {
+      await Services.tasks.createTask(payload, currentOrgId, currentUser?.id);
+      showToast('Tâche créée.', 'success');
+    }
+    allTasks = Store.state.tasks;
   } else {
-    allTasks.unshift({ id: 't-' + Date.now(), ...taskData, created_at: new Date().toISOString() });
-    showToast('Tâche créée.', 'success');
+    // Fallback local
+    if (editId) {
+      const idx = allTasks.findIndex(t => t.id === editId);
+      if (idx !== -1) allTasks[idx] = { ...allTasks[idx], ...payload };
+      showToast('Tâche mise à jour.', 'success');
+    } else {
+      allTasks.unshift({ id: 't-' + Date.now(), ...payload, created_at: new Date().toISOString() });
+      showToast('Tâche créée.', 'success');
+    }
   }
 
   closeTaskModal();
   document.getElementById('navTasksCount').textContent = getTasksStats(allTasks).open;
-
-  // Rafraîchir la page active
   const activePage = document.querySelector('.page.active');
   if (activePage) {
     if (activePage.id === 'page-tasks') renderTasksPage();
@@ -3070,27 +3169,29 @@ function closeRiskPanel(e) {
   currentRiskPanelId = null;
 }
 
-function setRiskStatus(riskId, status) {
-  const r = allRisks.find(x => x.id === riskId);
-  if (!r) return;
-  const old = r.status || 'open';
-  r.status = status;
-
-  // Historique
-  if (!riskHistory[riskId]) riskHistory[riskId] = [];
-  riskHistory[riskId].unshift({
-    type: 'status',
-    text: 'Statut changé : ' + (RISK_STATUSES[old]?.label||old) + ' → ' + (RISK_STATUSES[status]?.label||status),
-    time: new Date().toISOString()
-  });
+async function setRiskStatus(riskId, status) {
+  if (Services?.risks) {
+    await Services.risks.updateRiskStatus(riskId, status, currentUser?.id);
+    allRisks = Store.state.risks;
+  } else {
+    // Fallback local
+    const r = allRisks.find(x => x.id === riskId);
+    if (!r) return;
+    const old = r.status || 'open';
+    r.status = status;
+    if (!riskHistory[riskId]) riskHistory[riskId] = [];
+    riskHistory[riskId].unshift({
+      type: 'status',
+      text: 'Statut changé : ' + (RISK_STATUSES[old]?.label||old) + ' → ' + (RISK_STATUSES[status]?.label||status),
+      time: new Date().toISOString()
+    });
+  }
 
   // Rafraîchir le panel
   document.getElementById('riskStatusSelector').innerHTML = Object.entries(RISK_STATUSES).map(([key, val]) =>
     `<button class="status-btn ${status === key ? val.activeCls : ''}"
       onclick="setRiskStatus('${riskId}','${key}')">${val.dot} ${val.label}</button>`
   ).join('');
-  document.getElementById('riskPanelMeta').querySelector('.risk-status').outerHTML !== undefined &&
-    renderRisks();
 
   renderRiskHistory(riskId);
   renderRisks();
@@ -3099,25 +3200,27 @@ function setRiskStatus(riskId, status) {
   showToast('Statut mis à jour : ' + RISK_STATUSES[status].label, 'success');
 }
 
-function addRiskComment() {
+async function addRiskComment() {
   const input = document.getElementById('riskCommentInput');
   const text = input.value.trim();
   if (!text || !currentRiskPanelId) return;
 
-  if (!riskComments[currentRiskPanelId]) riskComments[currentRiskPanelId] = [];
-  riskComments[currentRiskPanelId].unshift({
-    id: 'c-' + Date.now(),
-    author: 'Vous',
-    text,
-    time: new Date().toISOString()
-  });
-
-  if (!riskHistory[currentRiskPanelId]) riskHistory[currentRiskPanelId] = [];
-  riskHistory[currentRiskPanelId].unshift({
-    type: 'comment',
-    text: 'Commentaire ajouté : "' + text.slice(0, 60) + (text.length > 60 ? '...' : '') + '"',
-    time: new Date().toISOString()
-  });
+  if (Services?.risks) {
+    const authorName = currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || 'Vous';
+    await Services.risks.addComment(currentRiskPanelId, text, currentOrgId, currentUser?.id, authorName);
+    // Store déjà mis à jour par le service
+  } else {
+    if (!riskComments[currentRiskPanelId]) riskComments[currentRiskPanelId] = [];
+    riskComments[currentRiskPanelId].unshift({
+      id: 'c-' + Date.now(), author: 'Vous', text, time: new Date().toISOString()
+    });
+    if (!riskHistory[currentRiskPanelId]) riskHistory[currentRiskPanelId] = [];
+    riskHistory[currentRiskPanelId].unshift({
+      type: 'comment',
+      text: 'Commentaire ajouté : "' + text.slice(0, 60) + (text.length > 60 ? '...' : '') + '"',
+      time: new Date().toISOString()
+    });
+  }
 
   input.value = '';
   renderRiskComments(currentRiskPanelId);
@@ -3171,6 +3274,19 @@ function showToast(msg, type) {
   toast.textContent = msg;
   wrap.appendChild(toast);
   setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.3s'; setTimeout(() => toast.remove(), 300); }, 3000);
+}
+
+// ── SYNC ALIASES (appelé par bootstrap.js après chaque chargement) ──
+function _syncGlobalAliases() {
+  if (typeof Store === 'undefined') return;
+  allDocs           = Store.state.documents;
+  allRisks          = Store.state.risks;
+  allTasks          = Store.state.tasks;
+  allFolders        = Store.state.folders;
+  allCounterparties = Store.state.counterparties;
+  // Synchroniser commentaires + historique
+  Object.assign(riskComments, Store.state.comments);
+  Object.assign(riskHistory,  Store.state.history);
 }
 
 // ── EVENTS ────────────────────────────────────
