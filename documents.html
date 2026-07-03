@@ -1393,9 +1393,14 @@ async function init() {
   document.getElementById('sidebarAvatar').textContent = name.charAt(0).toUpperCase();
   document.getElementById('sidebarName').textContent = name;
 
-  // Charger le profil + organisation
-  const { data: profile } = await _sb.from('user_profiles')
-    .select('plan, organization_id').eq('id', currentUser.id).single();
+  // Charger le profil + organisation (table peut varier selon le projet)
+  let profile = null;
+  const profileTables = ['user_profiles', 'profiles'];
+  for (const tbl of profileTables) {
+    const { data, error } = await _sb.from(tbl)
+      .select('plan, organization_id').eq('id', currentUser.id).single();
+    if (!error && data) { profile = data; break; }
+  }
   if (profile) {
     const planMap = { trial:'Essai gratuit', essential:'Essentiel', pro:'Pro', cabinet:'Cabinet' };
     document.getElementById('sidebarPlan').textContent = planMap[profile.plan] || 'Essai gratuit';
@@ -1454,12 +1459,16 @@ async function loadData() {
       const docIds = allDocs.filter(d => d.latest_analysis_id).map(d => d.id);
       if (docIds.length > 0) {
         const { data: risks } = await _sb.from('document_risks')
-          .select('id, document_id, severity, risk_type, title, clause_reference, status, assignee, extract, created_at')
+          .select('id, document_id, organization_id, severity, category, clause_name, clause_ref, problem, suggestion, legal_reference, is_resolved, status, assignee, extract, created_at')
           .in('document_id', docIds).order('created_at', { ascending: false });
         allRisks = (risks || []).map(r => ({
           ...r,
-          status: r.status || 'open',
-          docName: allDocs.find(d => d.id === r.document_id)?.name || '—',
+          // Aliases UI pour compatibilité avec le code de rendu
+          title:            r.problem    || r.clause_name || '—',
+          risk_type:        r.category   || 'OTHER',
+          clause_reference: r.clause_ref || r.legal_reference || '—',
+          status:           r.status     || (r.is_resolved ? 'closed' : 'open'),
+          docName:    allDocs.find(d => d.id === r.document_id)?.name   || '—',
           folderName: allDocs.find(d => d.id === r.document_id)?.folder || '—',
         }));
       }
@@ -1505,7 +1514,10 @@ function renderDashboard() {
     : '—';
   const now = new Date();
   const in30 = new Date(now.getTime() + 30 * 86400000);
-  const deadlines30 = getDemoDeadlines().filter(d => new Date(d.date) <= in30).length;
+  const _deadlines = (typeof Store !== 'undefined' && Store.state.deadlines.length)
+    ? Store.state.deadlines
+    : (typeof getDemoDeadlines !== 'undefined' ? getDemoDeadlines() : []);
+  const deadlines30 = _deadlines.filter(d => new Date(d.date) <= in30).length;
 
   document.getElementById('kpiTotal').textContent = total;
   document.getElementById('kpiAnalysed').textContent = analysed;
@@ -1515,11 +1527,11 @@ function renderDashboard() {
   document.getElementById('kpiCp').textContent = allCounterparties.length;
   document.getElementById('kpiDeadlines').textContent = deadlines30;
   renderDashTasks();
-  renderDashResolution();
+  if (typeof renderDashResolution === 'function') renderDashResolution();
 
   // Scores par dossier
   const folderScoresEl = document.getElementById('dashFolderScores');
-  if (folderScoresEl) {
+  if (folderScoresEl && typeof computeFolderRiskScore !== 'undefined') {
     folderScoresEl.innerHTML = allFolders.map(f => {
       const score = computeFolderRiskScore(f.id);
       return `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border)">
