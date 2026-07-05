@@ -209,7 +209,7 @@ class TaskService extends BaseService {
     }
 
     if (assignee) {
-      tasks = tasks.filter(t => t.assignee === assignee);
+      tasks = tasks.filter(t => t.assigned_to === assignee);
     }
 
     // Tri : en retard → haute priorité → date d'échéance
