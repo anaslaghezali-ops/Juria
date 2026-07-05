@@ -1343,6 +1343,35 @@
   </div>
 </div>
 
+<!-- MODAL: ÉDITER TYPE DE RISQUE -->
+<div class="modal-overlay" id="riskTypeModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeRiskTypeModal()">×</button>
+    <div class="modal-title">Éditer le type de risque</div>
+    <div class="modal-sub" id="riskTypeModalSub">—</div>
+    <div class="form-group">
+      <label class="form-label">Type de risque</label>
+      <select class="form-input" id="riskTypeSelect">
+        <option value="EVENT_OF_DEFAULT">🔴 Événement de défaut (Event of Default)</option>
+        <option value="TERMINATION">⚠️ Résiliation automatique (Termination)</option>
+        <option value="DEADLOCK">🔒 Blocage décisionnel (Deadlock)</option>
+        <option value="GOVERNANCE">👥 Gouvernance (Governance)</option>
+        <option value="CHANGE_OF_CONTROL">🔄 Changement de contrôle (Change of Control)</option>
+        <option value="LIABILITY">⚖️ Responsabilité (Liability)</option>
+        <option value="CONFIDENTIALITY">🔐 Confidentialité (Confidentiality)</option>
+        <option value="INDEMNITY">💰 Indemnité (Indemnity)</option>
+        <option value="WARRANTY">✓ Garantie (Warranty)</option>
+        <option value="PAYMENT">💳 Paiement (Payment)</option>
+        <option value="AUTRE">❓ Autre</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeRiskTypeModal()">Annuler</button>
+      <button class="btn-confirm" onclick="saveRiskType()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
 <!-- RISK DETAIL PANEL -->
 <div class="risk-panel-overlay" id="riskPanelOverlay" onclick="closeRiskPanel(event)">
   <div class="risk-panel" id="riskPanel">
@@ -2049,7 +2078,7 @@ function renderRisks(filter) {
     return `<tr style="cursor:pointer" onclick="openRiskPanel('${r.id}')">
       <td><span class="risk-level-badge ${lvlCls}">${lvlLabel}</span></td>
       <td>${riskStatusBadge(r.status || 'open')}</td>
-      <td><span class="type-chip">${escHtml(r.risk_type || 'OTHER')}</span></td>
+      <td><span class="type-chip" onclick="event.stopPropagation();openRiskTypeModal('${r.id}','${(r.risk_type || 'AUTRE').replace(/'/g, "\\'")}','${escHtml(r.title || '—').replace(/'/g, "\\'")}')" style="cursor:pointer;transition:opacity 0.15s" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">${escHtml(r.risk_type || 'AUTRE')}</span></td>
       <td style="font-size:13px;font-weight:500;color:var(--slate-900);max-width:220px">
         ${escHtml(r.title || '—')}
         ${commentCount > 0 ? '<span style="font-size:11px;color:var(--slate-400);margin-left:4px">💬 ' + commentCount + '</span>' : ''}
@@ -3005,6 +3034,55 @@ function switchCpTab(name) {
 
 function openCpModal() { document.getElementById('cpModal').classList.add('show'); }
 function closeCpModal() { document.getElementById('cpModal').classList.remove('show'); }
+
+/**
+ * Ouvre le modal pour éditer le type d'un risque.
+ */
+let editingRiskId = null;
+let editingRiskTitle = null;
+function openRiskTypeModal(riskId, currentType, riskTitle) {
+  editingRiskId = riskId;
+  editingRiskTitle = riskTitle;
+  document.getElementById('riskTypeSelect').value = currentType || 'AUTRE';
+  document.getElementById('riskTypeModalSub').textContent = `Risque : ${escHtml(riskTitle || '—')}`;
+  document.getElementById('riskTypeModal').classList.add('show');
+}
+
+function closeRiskTypeModal() {
+  editingRiskId = null;
+  editingRiskTitle = null;
+  document.getElementById('riskTypeModal').classList.remove('show');
+}
+
+/**
+ * Sauvegarde le type de risque en base de données.
+ */
+async function saveRiskType() {
+  if (!editingRiskId) return;
+  const newType = document.getElementById('riskTypeSelect').value;
+  
+  try {
+    // Mise à jour Supabase
+    if (_sb) {
+      const { error } = await _sb
+        .from('risks')
+        .update({ risk_type: newType })
+        .eq('id', editingRiskId);
+      if (error) throw error;
+    }
+
+    // Mise à jour du state local
+    const risk = allRisks.find(r => r.id === editingRiskId);
+    if (risk) risk.risk_type = newType;
+
+    showToast('Type de risque mis à jour.', 'success');
+    closeRiskTypeModal();
+    renderRisks();  // Actualiser le tableau
+  } catch (err) {
+    console.error('[saveRiskType]', err);
+    showToast('Erreur lors de la mise à jour: ' + (err.message || err), 'error');
+  }
+}
 async function createCounterparty() {
   const name = document.getElementById('cpName').value.trim();
   if (!name) { showToast('Le nom est requis.', 'error'); return; }
