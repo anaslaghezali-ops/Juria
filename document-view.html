@@ -199,7 +199,7 @@
         <div class="user-plan" id="sidebarPlan">Essai gratuit</div>
       </div>
       <button class="btn-logout" id="btnLogout" title="Déconnexion">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        🚪 Déconnexion
       </button>
     </div>
   </div>
@@ -226,7 +226,7 @@
         <span>Poser une question</span>
       </button>
       <button class="btn-logout" id="btnLogout2" title="Déconnexion">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        🚪 Déconnexion
       </button>
     </div>
   </div>
@@ -353,11 +353,13 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
+<script src="init-common.js"></script>
+<script src="fetch-safe.js"></script>
 <script>
 // ══════════════════════════════════════════════
 //  CONFIG & STATE
 // ══════════════════════════════════════════════
-const _sb = window.supabase.createClient(JURIA_CONFIG.SUPABASE_URL, JURIA_CONFIG.SUPABASE_ANON_KEY);
+// _sb now available globally from init-common.js
 
 let currentUser = null;
 let currentOrgId = null;
@@ -365,8 +367,19 @@ let currentDoc = null;
 let currentAnalysis = null;
 let latestAnalysisId = null;
 
-// Récupérer l'ID du document depuis l'URL
-const docId = new URLSearchParams(window.location.search).get('id');
+// ✅ Fix #14: Validate UUID format
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isValidUUID(str) {
+  return str && UUID_REGEX.test(str);
+}
+
+// Récupérer l'ID du document depuis l'URL avec validation
+let docId = new URLSearchParams(window.location.search).get('id');
+if (!isValidUUID(docId)) {
+  console.error('[document-view] Invalid docId:', docId);
+  docId = null;
+}
 
 // ══════════════════════════════════════════════
 //  INIT
@@ -631,12 +644,21 @@ async function loadAnalysisVersion(analysisId) {
 //  ACTIONS
 // ══════════════════════════════════════════════
 function reanalyze() {
-  window.location.href = 'analyse-contrat.html?doc_id=' + docId;
+  // ✅ Fix #14: Validate docId before redirect
+  if (!isValidUUID(docId)) {
+    console.error('Invalid docId');
+    return;
+  }
+  window.location.href = 'analyse-contrat.html?doc_id=' + encodeURIComponent(docId);
 }
 
 function openChat() {
-  const docId = new URLSearchParams(window.location.search).get('id');
-  if (docId) window.location.href = 'chat.html?id=' + docId;
+  // ✅ Fix #14: Validate docId before redirect
+  if (!isValidUUID(docId)) {
+    console.error('Invalid docId');
+    return;
+  }
+  window.location.href = 'chat.html?id=' + encodeURIComponent(docId);
 }
 
 // ══════════════════════════════════════════════

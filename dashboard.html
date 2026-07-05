@@ -119,7 +119,7 @@
       <div class="user-avatar" id="userInitial">?</div>
       <span id="userEmail" style="font-size:13px;color:var(--slate-500)"></span>
     </div>
-    <button class="btn-logout" id="btnLogout">Déconnexion</button>
+    <button class="btn-logout" id="btnLogout">🚪 Déconnexion</button>
   </div>
 </nav>
 
@@ -210,11 +210,10 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="init-common.js"></script>
 <script>
-const _sb = supabase.createClient(
-  'https://dnrudcpaqcqyybpbbrum.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRucnVkY3BhcWNxeXlicGJicnVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyODQwMjMsImV4cCI6MjA5Njg2MDAyM30.f6_byMzZBE2SQH2XjNmRQFQpRkRIfXE2OC0mNxQt5z4'
-);
+// _sb and JURIA_CONFIG now available globally
 
 async function init() {
   const { data: { session } } = await _sb.auth.getSession();

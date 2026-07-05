@@ -61,8 +61,8 @@ class FolderService extends BaseService {
       created_by:      userId || null,
       counterparty_id: payload.counterparty_id || null,
       parent_id:       payload.parent_id || null,
-      color:           payload.color || null,
-      icon:            payload.icon || null,
+      color:           payload.color || '#6366f1',  // Couleur par défaut (indigo)
+      icon:            payload.icon || '📁',        // Icon par défaut
     };
 
     const created = await this.create(folderData);

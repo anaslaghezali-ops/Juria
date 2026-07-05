@@ -56,6 +56,13 @@ async function loadAllData(orgId, options = {}) {
     return;
   }
 
+  // ✅ FIX #3: Vérifier que l'utilisateur a accès à cette org
+  const currentOrgId = Store.state.currentOrgId;
+  if (!orgId || !currentOrgId || orgId !== currentOrgId) {
+    console.error('[Bootstrap] Unauthorized org access attempt:', orgId);
+    throw new Error('Unauthorized organization access');
+  }
+
   // Promise.allSettled : jamais bloquant — chaque table peut échouer indépendamment
   const [foldersResult, cpResult] = await Promise.allSettled([
     Services.folders.loadFolders(orgId),
@@ -173,29 +180,50 @@ function _loadDemoData() {
 
 /**
  * Charge les deadlines depuis Supabase (table document_obligations).
+ * Filtre d'abord les documents de l'org, puis récupère leurs obligations.
  */
 async function _loadDeadlines(orgId) {
   try {
+    // 1. Récupérer les IDs des documents de cette organisation
+    const { data: docsData, error: docsError } = await window._sb
+      .from('documents')
+      .select('id')
+      .eq('organization_id', orgId);
+
+    if (docsError || !docsData || docsData.length === 0) {
+      console.log('[Bootstrap] Pas de documents, pas d\'obligations');
+      return;
+    }
+
+    const docIds = docsData.map(d => d.id);
+
+    // 2. Récupérer les obligations de ces documents
     const { data, error } = await window._sb
       .from('document_obligations')
-      .select('id, title, due_date, priority, document_id, documents(name, folder_id)')
-      .eq('documents.organization_id', orgId)
+      .select('id, description, due_date, is_critical, document_id, documents(name, folder_id)')
+      .in('document_id', docIds)
       .order('due_date', { ascending: true });
 
-    if (error || !data) return;
+    if (error || !data) {
+      console.warn('[Bootstrap] deadlines query error:', error?.message);
+      return;
+    }
 
     const deadlines = (data || []).map(o => ({
       date:   o.due_date,
-      event:  o.title,
+      event:  o.description || '—',
       doc:    o.documents?.name || '—',
       folder: o.documents?.folder_id
         ? (Store.indexes.foldersById[o.documents.folder_id]?.name || '—')
         : '—',
-      priority: o.priority || 'medium',
+      priority: o.is_critical ? 'high' : 'medium',
     }));
 
     Store.setDeadlines(deadlines);
-  } catch { /* table optionnelle */ }
+    console.log('[Bootstrap] Deadlines chargées:', deadlines.length);
+  } catch (err) { 
+    console.warn('[Bootstrap] deadlines exception:', err?.message);
+  }
 }
 
 /**

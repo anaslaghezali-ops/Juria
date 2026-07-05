@@ -255,28 +255,24 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./assets/libs/docx.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
+  <script src="config.js"></script>
+  <script src="init-common.js"></script>
+  <script src="fetch-safe.js"></script>
+  <script src="auth-guard.js"></script>
 
 <script>
-const _sb = supabase.createClient(
-  'https://dnrudcpaqcqyybpbbrum.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRucnVkY3BhcWNxeXlicGJicnVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyODQwMjMsImV4cCI6MjA5Njg2MDAyM30.f6_byMzZBE2SQH2XjNmRQFQpRkRIfXE2OC0mNxQt5z4'
-);
-
-const EDGE_URL = 'https://dnrudcpaqcqyybpbbrum.supabase.co/functions/v1/smart-endpoint';
+// _sb and JURIA_CONFIG now available globally
+const EDGE_URL = JURIA_CONFIG.EDGE_FUNCTION_URL;
 
 var selectedFile = null;
 var extractedText = null;
 var analysisResult = null;
 var contractParagraphs = []; // Contrat parsé en paragraphes {id, text}
 
-// Auth check + pré-chargement éventuel
+// ✅ Fix #18: Auth check + pré-chargement éventuel
 async function init() {
-  const { data: { session } } = await _sb.auth.getSession();
-  if (!session) {
-    await new Promise(r => setTimeout(r, 800));
-    const { data: { session: session2 } } = await _sb.auth.getSession();
-    if (!session2) { window.location.href = 'auth.html'; return; }
-  }
+  const session = await requireAuth();
+  if (!session) return;
 
   // Si on arrive avec ?doc_id=, pré-charger le document
   await preloadDocument();
@@ -522,13 +518,14 @@ function showResults(result) {
 
   document.getElementById('scoreSummary').textContent = result.summary || 'Analyse complète';
 
+  // ✅ Fix #13: Escape HTML to prevent XSS
   // Issues avec checkboxes
   if (result.issues && result.issues.length > 0) {
     document.getElementById('issuesCard').style.display = 'block';
     document.getElementById('issuesList').innerHTML = result.issues.map(function(issue, i) {
       var sev = issue.severity || 'medium';
       var sevLabel = sev === 'high' ? 'Critique' : sev === 'medium' ? 'Important' : 'Mineur';
-      return '<div class="issue-item"><div class="issue-header"><input type="checkbox" class="issue-checkbox" data-index="' + i + '" data-type="issue" style="width:16px;height:16px;cursor:pointer;accent-color:#4f46e5"/><span class="severity-badge severity-' + sev + '">' + sevLabel + '</span><span class="issue-clause">' + (issue.clause || '') + '</span></div><div class="issue-problem">' + (issue.problem || '') + '</div>' + (issue.suggestion ? '<div class="issue-suggestion">💡 ' + issue.suggestion + '</div>' : '') + '</div>';
+      return '<div class="issue-item"><div class="issue-header"><input type="checkbox" class="issue-checkbox" data-index="' + i + '" data-type="issue" style="width:16px;height:16px;cursor:pointer;accent-color:#4f46e5"/><span class="severity-badge severity-' + sev + '">' + sevLabel + '</span><span class="issue-clause">' + escapeHTML(issue.clause || '') + '</span></div><div class="issue-problem">' + escapeHTML(issue.problem || '') + '</div>' + (issue.suggestion ? '<div class="issue-suggestion">💡 ' + escapeHTML(issue.suggestion) + '</div>' : '') + '</div>';
     }).join('');
   }
 
@@ -538,7 +535,7 @@ function showResults(result) {
     document.getElementById('missingList').innerHTML = result.missing_clauses.map(function(c, i) {
       // Handle both string and object formats
       var text = typeof c === 'string' ? c : (c.clause || c.name || c.description || JSON.stringify(c));
-      return '<div class="missing-item"><input type="checkbox" class="issue-checkbox" data-index="' + i + '" data-type="missing" style="width:16px;height:16px;cursor:pointer;accent-color:#4f46e5;flex-shrink:0"/>' + text + '</div>';
+      return '<div class="missing-item"><input type="checkbox" class="issue-checkbox" data-index="' + i + '" data-type="missing" style="width:16px;height:16px;cursor:pointer;accent-color:#4f46e5;flex-shrink:0"/>' + escapeHTML(text) + '</div>';
     }).join('');
   }
 

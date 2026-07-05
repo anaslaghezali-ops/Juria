@@ -141,7 +141,7 @@
         <div class="user-plan" id="sidebarPlan">Essai gratuit</div>
       </div>
       <button class="btn-icon" id="btnLogout" title="Déconnexion">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        🚪 Déconnexion
       </button>
     </div>
   </div>
@@ -205,22 +205,20 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
-<script>
-const JURIA_CONFIG = {
-  SUPABASE_URL:      'https://dnrudcpaqcqyybpbbrum.supabase.co',
-  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRucnVkY3BhcWNxeXlicGJicnVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyODQwMjMsImV4cCI6MjA5Njg2MDAyM30.f6_byMzZBE2SQH2XjNmRQFQpRkRIfXE2OC0mNxQt5z4',
-  EDGE_FUNCTION_URL: 'https://dnrudcpaqcqyybpbbrum.supabase.co/functions/v1/smart-endpoint',
-  CHAT_DOC_URL:      'https://dnrudcpaqcqyybpbbrum.supabase.co/functions/v1/chat-with-doc',
-  // OPENAI_API_KEY supprimée — vit uniquement dans Supabase Secrets
-};
-</script>
-
+<script src="config.js"></script>
+<script src="init-common.js"></script>
+<script src="fetch-safe.js"></script>
+<script src="auth-guard.js"></script>
+<script src="rate-limit.js"></script>
 <script>
 // ================================================
 // JURIA CHAT — script unique, zéro duplicate
 // ================================================
 
-const _sb = window.supabase.createClient(JURIA_CONFIG.SUPABASE_URL, JURIA_CONFIG.SUPABASE_ANON_KEY);
+// ✅ Fix #11: Use global _sb from init-common.js
+// JURIA_CONFIG loaded from config.js
+// Add chat-specific URLs if needed
+const CHAT_DOC_URL = JURIA_CONFIG.EDGE_FUNCTION_URL.replace('smart-endpoint', 'chat-with-doc');
 
 let currentUser = null;
 let userProfile = null;
@@ -261,8 +259,9 @@ const chatArea     = document.getElementById('chatArea');
 
 // ---- INIT ----
 async function init() {
-  const { data: { session } } = await _sb.auth.getSession();
-  if (!session) { window.location.href = 'auth.html'; return; }
+  // ✅ Fix #18: Use centralized auth check
+  const session = await requireAuth();
+  if (!session) return;
 
   currentUser = session.user;
   const name     = currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];

@@ -48,7 +48,7 @@ const Store = (() => {
     tasksByFolder:         {},   // folderId   → Task[]
     tasksByCounterparty:   {},   // cpId       → Task[]
     tasksByStatus:         {},   // status     → Task[]
-    tasksByAssignee:       {},   // assignee   → Task[]
+    tasksByAssignee:       {},   // assigned_to → Task[]
 
     // Relations dossier ↔ contrepartie
     foldersByCounterparty: {},   // cpId       → Folder[]
@@ -116,7 +116,7 @@ const Store = (() => {
       if (t.risk_id)          _push(indexes.tasksByRisk,          t.risk_id,          t);
       if (t.folder_id)        _push(indexes.tasksByFolder,        t.folder_id,        t);
       if (t.counterparty_id)  _push(indexes.tasksByCounterparty,  t.counterparty_id,  t);
-      if (t.assignee)         _push(indexes.tasksByAssignee,       t.assignee,         t);
+      if (t.assigned_to)      _push(indexes.tasksByAssignee,       t.assigned_to,      t);
 
       const status = t.status || 'todo';
       _push(indexes.tasksByStatus, status, t);

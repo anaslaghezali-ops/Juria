@@ -577,7 +577,7 @@
         <div class="user-name" id="sidebarName">…</div>
         <div class="user-plan" id="sidebarPlan">Essai gratuit</div>
       </div>
-      <button class="btn-logout" id="btnLogout" title="Déconnexion">↩</button>
+      <button class="btn-logout" id="btnLogout" title="Déconnexion">🚪 Déconnexion</button>
     </div>
   </div>
 </aside>
@@ -1088,8 +1088,14 @@
     <div class="modal-sub">PDF ou Word jusqu'à 100 MB</div>
     <div class="form-group">
       <label class="form-label">Dossier</label>
-      <select class="form-input" id="folderSelect">
+      <select class="form-input" id="folderSelect" onchange="onUploadFolderChange()">
         <option value="">Sans dossier</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Contrepartie</label>
+      <select class="form-input" id="counterpartySelect">
+        <option value="">Aucune contrepartie</option>
       </select>
     </div>
     <div class="drop-zone" id="dropZone"
@@ -1137,7 +1143,9 @@
       </div>
       <div class="form-group">
         <label class="form-label">Contrepartie</label>
-        <input class="form-input" type="text" id="folderCounterparty" placeholder="Ex: Fertinagro"/>
+        <select class="form-input" id="folderCounterparty">
+          <option value="">Aucune contrepartie</option>
+        </select>
       </div>
     </div>
     <div class="form-group">
@@ -1326,6 +1334,10 @@
 <!-- SUPABASE -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
+<script src="init-common.js"></script>
+<script src="fetch-safe.js"></script>
+<script src="auth-guard.js"></script>
+<script src="rate-limit.js"></script>
 <script src="store/store.js"></script>
 <script src="services/base-service.js"></script>
 <script src="services/risk-service.js"></script>
@@ -1338,7 +1350,11 @@
 // ══════════════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════════════
-const _sb = window.supabase.createClient(JURIA_CONFIG.SUPABASE_URL, JURIA_CONFIG.SUPABASE_ANON_KEY);
+// _sb now available globally from init-common.js
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function isValidUUID(str) {
+  return str && UUID_REGEX.test(str);
+}
 
 let currentUser = null, currentOrgId = null, userProfile = null;
 // Alias vers le Store — maintenus par _syncGlobalAliases() après chaque mutation
@@ -1643,7 +1659,7 @@ function renderFolders() {
     <div class="folder-card" onclick="openFolder('${f.id}')">
       <div class="folder-card-top">
         <div class="folder-icon">📁</div>
-        <button class="folder-menu-btn" onclick="event.stopPropagation()">⋯</button>
+        <button class="folder-menu-btn" onclick="event.stopPropagation(); editFolder('${f.id}')" title="Modifier le dossier">✏️</button>
       </div>
       <div class="folder-name">${escHtml(f.name)}</div>
       <div class="folder-client">${f.client ? escHtml(f.client) + (f.project ? ' · ' + escHtml(f.project) : '') : 'Sans client'}</div>
@@ -1683,7 +1699,10 @@ function openFolder(folderId) {
   const folderScore = computeFolderRiskScore(folderId);
   const scoreEl = document.getElementById('detailFolderRiskScore');
   if (scoreEl) scoreEl.innerHTML = folderRiskScoreBadge(folderScore);
-  document.getElementById('detailContreparties').textContent = folder.counterparty || '—';
+  const folderCp = folder.counterparty_id
+    ? (allCounterparties.find(c => c.id === folder.counterparty_id)?.name || '—')
+    : '—';
+  document.getElementById('detailContreparties').textContent = folderCp;
   document.getElementById('detailTags').innerHTML = (folder.tags || []).map(t => `<span class="tag">${escHtml(t)}</span>`).join('');
 
   // Docs tab
@@ -1808,6 +1827,38 @@ function populateFolderSelect() {
   });
 }
 
+/**
+ * Peuple les dropdowns de contreparties.
+ * @param {string[]} selectIds - liste d'IDs de <select> à remplir
+ */
+function populateCounterpartySelect(selectIds = ['counterpartySelect', 'folderCounterparty']) {
+  const options = allCounterparties
+    .map(cp => `<option value="${cp.id}">${escHtml(cp.name)}</option>`)
+    .join('');
+  selectIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      const current = el.value; // préserver la sélection en cours si possible
+      el.innerHTML = '<option value="">Aucune contrepartie</option>' + options;
+      if (current) el.value = current;
+    }
+  });
+}
+
+/**
+ * Retourne les contreparties liées à un dossier.
+ * Aujourd'hui : une seule (folder.counterparty_id).
+ * Demain (V2) : pourra retourner plusieurs via une table de jonction,
+ * sans changer le reste de l'application.
+ * @param {string} folderId
+ * @returns {string[]} liste d'IDs de contreparties
+ */
+function getFolderCounterparties(folderId) {
+  const folder = allFolders.find(f => f.id === folderId);
+  if (!folder || !folder.counterparty_id) return [];
+  return [folder.counterparty_id];
+}
+
 function sortBy(col) {
   if (sortCol === col) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
   else { sortCol = col; sortDir = 'asc'; }
@@ -1930,18 +1981,58 @@ function renderDeadlines() {
 }
 
 // ── DOSSIER MODAL ─────────────────────────────
-function openFolderModal() { document.getElementById('folderModal').classList.add('show'); }
-function closeFolderModal() { document.getElementById('folderModal').classList.remove('show'); }
+// ID du dossier en cours d'édition (null = mode création)
+let editingFolderId = null;
+
+function openFolderModal() {
+  editingFolderId = null;
+  document.getElementById('folderModal').querySelector('.modal-title').textContent = 'Nouveau dossier';
+  document.querySelector('#folderModal .btn-confirm').textContent = 'Créer le dossier';
+  populateCounterpartySelect(['folderCounterparty']);
+  document.getElementById('folderModal').classList.add('show');
+}
+function closeFolderModal() {
+  editingFolderId = null;
+  document.getElementById('folderModal').classList.remove('show');
+}
+
+/**
+ * Ouvre le modal en mode édition pour un dossier existant.
+ */
+function editFolder(folderId) {
+  const folder = allFolders.find(f => f.id === folderId);
+  if (!folder) return;
+  editingFolderId = folderId;
+
+  document.getElementById('folderModal').querySelector('.modal-title').textContent = 'Modifier le dossier';
+  document.querySelector('#folderModal .btn-confirm').textContent = 'Enregistrer';
+
+  document.getElementById('folderName').value = folder.name || '';
+  document.getElementById('folderDesc').value = folder.description || '';
+
+  populateCounterpartySelect(['folderCounterparty']);
+  document.getElementById('folderCounterparty').value = folder.counterparty_id || '';
+
+  document.getElementById('folderModal').classList.add('show');
+}
 
 async function createFolder() {
   const name = document.getElementById('folderName').value.trim();
   if (!name) { showToast('Le nom du dossier est requis.', 'error'); return; }
-  const tags = document.getElementById('folderTags').value.split(',').map(t => t.trim()).filter(Boolean);
-  // Colonnes réelles folders : name, description, counterparty_id
+
+  const counterpartyId = document.getElementById('folderCounterparty').value || null;
+
+  // ── MODE ÉDITION ──
+  if (editingFolderId) {
+    await saveEditedFolder(editingFolderId, name, counterpartyId);
+    return;
+  }
+
+  // ── MODE CRÉATION ──
   const payload = {
     name,
     description: document.getElementById('folderDesc').value.trim() || null,
-    counterparty_id: null,
+    counterparty_id: counterpartyId,
   };
 
   let folder;
@@ -1960,8 +2051,82 @@ async function createFolder() {
   renderFolders();
   showToast('Dossier "' + name + '" créé.', 'success');
   ['folderName','folderClient','folderProject','folderOwner','folderCounterparty','folderDesc','folderTags'].forEach(id => {
-    document.getElementById(id).value = '';
+    const el = document.getElementById(id);
+    if (el) el.value = '';
   });
+}
+
+/**
+ * Enregistre les modifications d'un dossier existant.
+ * Gère le garde-fou : si la contrepartie change et que le dossier
+ * contient des documents portant l'ancienne contrepartie, demande
+ * explicitement s'il faut aussi les mettre à jour.
+ */
+async function saveEditedFolder(folderId, name, newCounterpartyId) {
+  const folder = allFolders.find(f => f.id === folderId);
+  if (!folder) return;
+
+  const oldCounterpartyId = folder.counterparty_id || null;
+  const description = document.getElementById('folderDesc').value.trim() || null;
+
+  const updatePayload = { name, description, counterparty_id: newCounterpartyId };
+
+  // Documents du dossier portant l'ANCIENNE contrepartie
+  const docsWithOldCp = (oldCounterpartyId)
+    ? allDocs.filter(d => d.folder_id === folderId && d.counterparty_id === oldCounterpartyId)
+    : [];
+
+  const counterpartyChanged = oldCounterpartyId !== newCounterpartyId;
+
+  // ── Garde-fou : changement de contrepartie avec documents impactés ──
+  let alsoUpdateDocs = false;
+  if (counterpartyChanged && docsWithOldCp.length > 0) {
+    const oldName = allCounterparties.find(c => c.id === oldCounterpartyId)?.name || 'l\'ancienne contrepartie';
+    const newName = newCounterpartyId
+      ? (allCounterparties.find(c => c.id === newCounterpartyId)?.name || 'la nouvelle contrepartie')
+      : 'aucune contrepartie';
+    alsoUpdateDocs = confirm(
+      `Ce dossier contient ${docsWithOldCp.length} document(s) rattaché(s) à "${oldName}".\n\n` +
+      `Voulez-vous aussi mettre à jour ces documents vers "${newName}" ?\n\n` +
+      `• OK  = mettre à jour le dossier ET les ${docsWithOldCp.length} document(s)\n` +
+      `• Annuler = mettre à jour uniquement le dossier (les documents gardent "${oldName}")`
+    );
+  }
+
+  try {
+    // 1. Mise à jour du dossier
+    if (Services?.folders) {
+      const updated = await Services.folders.updateFolder(folderId, updatePayload);
+      if (!updated) throw new Error('Mise à jour du dossier échouée');
+      allFolders = Store.state.folders;
+    } else {
+      Object.assign(folder, updatePayload);
+    }
+
+    // 2. Propagation optionnelle aux documents
+    if (alsoUpdateDocs && docsWithOldCp.length > 0) {
+      for (const doc of docsWithOldCp) {
+        const { error } = await _sb
+          .from('documents')
+          .update({ counterparty_id: newCounterpartyId })
+          .eq('id', doc.id);
+        if (!error) doc.counterparty_id = newCounterpartyId;
+      }
+      showToast(`Dossier et ${docsWithOldCp.length} document(s) mis à jour.`, 'success');
+    } else {
+      showToast('Dossier mis à jour.', 'success');
+    }
+
+    closeFolderModal();
+    populateFolderSelect();
+    updateNavCounts();
+    renderFolders();
+    filterDocs();
+
+  } catch (err) {
+    console.error('[saveEditedFolder]', err);
+    showToast('Erreur: ' + err.message, 'error');
+  }
 }
 
 // ── UPLOAD ────────────────────────────────────
@@ -1969,11 +2134,34 @@ function openUploadModal() {
   pendingFiles = [];
   document.getElementById('fileList').innerHTML = '';
   document.getElementById('btnConfirmUpload').disabled = true;
+  // Peupler les dropdowns dossier + contrepartie
+  populateFolderSelect();
+  populateCounterpartySelect(['counterpartySelect']);
+  // Reset des sélections
+  const fs = document.getElementById('folderSelect');
+  const cs = document.getElementById('counterpartySelect');
+  if (fs) fs.value = '';
+  if (cs) cs.value = '';
   document.getElementById('uploadModal').classList.add('show');
 }
 function closeUploadModal() {
   document.getElementById('uploadModal').classList.remove('show');
   pendingFiles = [];
+}
+
+/**
+ * Quand on choisit un dossier à l'upload, pré-remplit la contrepartie
+ * avec celle du dossier (héritage). L'utilisateur peut ensuite la modifier.
+ */
+function onUploadFolderChange() {
+  const folderId = document.getElementById('folderSelect').value;
+  const cpSelect = document.getElementById('counterpartySelect');
+  if (!folderId || !cpSelect) return;
+
+  const cpIds = getFolderCounterparties(folderId);
+  if (cpIds.length > 0) {
+    cpSelect.value = cpIds[0];
+  }
 }
 function handleDragOver(e) { e.preventDefault(); document.getElementById('dropZone').classList.add('drag-over'); }
 function handleDragLeave() { document.getElementById('dropZone').classList.remove('drag-over'); }
@@ -2012,6 +2200,7 @@ async function confirmUpload() {
   btn.disabled = true;
   document.getElementById('btnUploadText').textContent = 'Importation…';
   const folderId = document.getElementById('folderSelect')?.value || null;
+  const counterpartyId = document.getElementById('counterpartySelect')?.value || null;
 
   // Si DocumentService disponible, l'utiliser
   if (Services?.documents) {
@@ -2023,7 +2212,7 @@ async function confirmUpload() {
       try {
         await Services.documents.importFile(
           file, currentOrgId, currentUser.id,
-          { folder_id: folderId || null },
+          { folder_id: folderId || null, counterparty_id: counterpartyId || null },
           (pct) => { progressBar.style.width = pct + '%'; }
         );
         await new Promise(r => setTimeout(r, 200));
@@ -2051,6 +2240,7 @@ async function confirmUpload() {
           currency: 'MAD', chunk_version: 0, status: 'imported',
           is_starred: false, is_archived: false,
           folder_id: folderId || null,
+          counterparty_id: counterpartyId || null,
           created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
         };
         progressBar.style.width = '20%';
@@ -2095,10 +2285,24 @@ function globalSearchFn() {
 
 // ── ACTIONS ───────────────────────────────────
 function openDoc(id) {
-  const doc = allDocs.find(d => d.id === id);
-  if (!doc) return;
-  if (doc.status === 'analysé' && doc.latest_analysis_id) window.location.href = 'document-view.html?id=' + id;
-  else window.location.href = 'analyse-contrat.html?doc_id=' + id;
+  // ✅ Fix #14: Validate docId before redirect
+  if (!isValidUUID(id)) {
+    console.error('Invalid document id:', id);
+    return;
+  }
+  
+  // Utiliser Store directement au lieu de allDocs (peut être stale)
+  const doc = Store.state.documents.find(d => d.id === id);
+  if (!doc) {
+    console.warn('Document not found:', id);
+    return;
+  }
+  
+  if (doc.status === 'analysé' && doc.latest_analysis_id) {
+    window.location.href = 'document-view.html?id=' + encodeURIComponent(id);
+  } else {
+    window.location.href = 'analyse-contrat.html?doc_id=' + encodeURIComponent(id);
+  }
 }
 function analyzeDoc(id) { window.location.href = 'analyse-contrat.html?doc_id=' + id; }
 async function deleteDoc(id) {
@@ -2287,11 +2491,11 @@ function switchCpTab(name) {
 
 function openCpModal() { document.getElementById('cpModal').classList.add('show'); }
 function closeCpModal() { document.getElementById('cpModal').classList.remove('show'); }
-function createCounterparty() {
+async function createCounterparty() {
   const name = document.getElementById('cpName').value.trim();
   if (!name) { showToast('Le nom est requis.', 'error'); return; }
-  const cp = {
-    id: 'cp-' + Date.now(),
+  
+  const payload = {
     name,
     type: document.getElementById('cpType').value,
     sector: document.getElementById('cpSector').value.trim(),
@@ -2299,12 +2503,46 @@ function createCounterparty() {
     notes: document.getElementById('cpNotes').value.trim(),
     risk_level: 'low',
   };
-  allCounterparties.unshift(cp);
-  closeCpModal();
-  renderCounterparties();
-  document.getElementById('navCpCount').textContent = allCounterparties.length;
-  showToast('Contrepartie "' + name + '" créée.', 'success');
-  ['cpName','cpSector','cpNotes'].forEach(id => { document.getElementById(id).value = ''; });
+  
+  try {
+    // ✅ Sauvegarder en base via le service
+    if (Services?.counterparties) {
+      const saved = await Services.counterparties.saveCounterparty(payload, currentOrgId);
+      if (!saved) throw new Error('Sauvegarde échouée');
+      
+      // Le service appelle déjà upsertCounterparty, mais on force une sync
+      allCounterparties = Store.state.counterparties;
+      document.getElementById('navCpCount').textContent = allCounterparties.length;
+      showToast('Contrepartie "' + name + '" créée et sauvegardée.', 'success');
+      
+    } else {
+      // Fallback direct Supabase
+      const { data: inserted, error: insertErr } = await _sb
+        .from('counterparties')
+        .insert({
+          organization_id: currentOrgId,
+          ...payload
+        })
+        .select()
+        .single();
+      
+      if (insertErr || !inserted) throw insertErr || new Error('Insert failed');
+      
+      allCounterparties.unshift(inserted);
+      document.getElementById('navCpCount').textContent = allCounterparties.length;
+      showToast('Contrepartie "' + name + '" créée.', 'success');
+    }
+    
+    closeCpModal();
+    renderCounterparties();
+    // Rafraîchir les dropdowns qui listent les contreparties
+    populateCounterpartySelect(['counterpartySelect', 'folderCounterparty']);
+    ['cpName','cpSector','cpNotes'].forEach(id => { document.getElementById(id).value = ''; });
+    
+  } catch(err) {
+    console.error('[createCounterparty]', err);
+    showToast('Erreur: ' + err.message, 'error');
+  }
 }
 
 // ══════════════════════════════════════════════

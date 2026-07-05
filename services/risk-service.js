@@ -144,10 +144,15 @@ class RiskService extends BaseService {
         .order('created_at', { ascending: false });
 
       if (error) {
-        if (this._isTableMissing(error)) return;
+        if (this._isTableMissing(error)) {
+          console.warn('[RiskService] commentaires table inexistante');
+          return;
+        }
         this._handleError('loadAllComments', error);
         return;
       }
+
+      if (!data || data.length === 0) return;
 
       (data || []).forEach(c => {
         if (!this._store.state.comments[c.risk_id]) {
@@ -156,14 +161,16 @@ class RiskService extends BaseService {
         const exists = this._store.state.comments[c.risk_id].find(x => x.id === c.id);
         if (!exists) this._store.state.comments[c.risk_id].push({
           ...c,
-          text:   c.content,
+          text:   c.content || '',
           author: c.author_id || 'Utilisateur',
           time:   c.created_at,
         });
       });
 
+      console.log('[RiskService] Commentaires chargés:', data.length);
+
     } catch (err) {
-      console.warn('[RiskService] loadAllComments exception:', err);
+      console.warn('[RiskService] loadAllComments exception:', err?.message);
     }
   }
 

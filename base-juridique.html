@@ -153,11 +153,11 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="init-common.js"></script>
+<script src="fetch-safe.js"></script>
 <script>
-const _sb = supabase.createClient(
-  'https://dnrudcpaqcqyybpbbrum.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRucnVkY3BhcWNxeXlicGJicnVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyODQwMjMsImV4cCI6MjA5Njg2MDAyM30.f6_byMzZBE2SQH2XjNmRQFQpRkRIfXE2OC0mNxQt5z4'
-);
+// _sb now available globally from init-common.js
 
 var activeCode = 'all';
 
@@ -242,7 +242,16 @@ function renderResults(articles, label) {
 function toggleArticle(idx, btn) {
   var el = document.getElementById('content-' + idx);
   var isFull = btn.textContent.includes('Réduire');
-  el.innerHTML = decodeURIComponent(isFull ? btn.dataset.preview : btn.dataset.full);
+  var html = decodeURIComponent(isFull ? btn.dataset.preview : btn.dataset.full);
+  
+  // ✅ Fix #12: Sanitize HTML to prevent XSS
+  if (typeof safeSetHTML === 'function') {
+    safeSetHTML(el, html);
+  } else {
+    // Fallback if fetch-safe.js not loaded
+    el.textContent = html;
+  }
+  
   el.className = 'article-content' + (isFull ? '' : ' expanded');
   btn.textContent = isFull ? 'Lire la suite ↓' : 'Réduire ↑';
 }

@@ -81,14 +81,19 @@ class BaseService {
   /**
    * Crée un enregistrement.
    * @param {Object} payload
+   * @param {Object} options — { skipUpdatedAt: boolean }
    * @returns {Promise<Object|null>}
    */
-  async create(payload) {
+  async create(payload, options = {}) {
     const data_with_ts = {
       ...payload,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
     };
+
+    // Certaines tables n'ont pas de colonne updated_at
+    if (!options.skipUpdatedAt) {
+      data_with_ts.updated_at = new Date().toISOString();
+    }
 
     const { data, error } = await this._sb
       .from(this._table)
@@ -107,12 +112,18 @@ class BaseService {
    * Met à jour un enregistrement.
    * @param {string} id
    * @param {Object} payload  — uniquement les champs à modifier
+   * @param {Object} options — { skipUpdatedAt: boolean }
    * @returns {Promise<Object|null>}
    */
-  async update(id, payload) {
+  async update(id, payload, options = {}) {
+    const updateData = { ...payload };
+    if (!options.skipUpdatedAt) {
+      updateData.updated_at = new Date().toISOString();
+    }
+
     const { data, error } = await this._sb
       .from(this._table)
-      .update({ ...payload, updated_at: new Date().toISOString() })
+      .update(updateData)
       .eq('id', id)
       .select()
       .single();
