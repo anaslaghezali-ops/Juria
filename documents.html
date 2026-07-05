@@ -2566,12 +2566,16 @@ async function confirmUpload() {
         showToast('Erreur import ' + file.name + ' : ' + e.message, 'error');
       }
     }
+    // Synchro finale du state
+    allDocs = Store.state.documents || allDocs;
   }
 
+  const nbImported = pendingFiles.length;  // Sauvegarder avant de vider
   closeUploadModal();
   updateNavCounts();
   filterDocs();
-  showToast(pendingFiles.length + ' document(s) importé(s).', 'success');
+  renderFolders();  // Actualiser l'affichage des dossiers
+  showToast(nbImported + ' document(s) importé(s).', 'success');
   pendingFiles = [];
   document.getElementById('btnUploadText').textContent = 'Importer';
 }
