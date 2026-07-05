@@ -140,6 +140,120 @@
     .subfolder-item:hover .subfolder-edit { opacity: 1; }
     .subfolder-edit:hover { background: var(--slate-200); color: var(--slate-600); }
 
+    /* ═══════════════ WORKSPACE DOSSIERS (3 colonnes) ═══════════════ */
+    /* La page dossiers annule le padding du .content pour occuper tout l'espace */
+    #page-dossiers.active { display: flex; }
+    #page-dossiers { margin: -24px; width: calc(100% + 48px); height: calc(100vh - 56px); }
+    .workspace { display: flex; width: 100%; height: 100%; overflow: hidden; background: var(--white); }
+
+    /* ── Colonne arborescence ── */
+    .ws-tree { width: 320px; min-width: 220px; max-width: 500px; flex-shrink: 0; display: flex; flex-direction: column; border-right: 1px solid var(--border); background: #fcfcfd; }
+    .ws-tree-header { display: flex; align-items: center; gap: 8px; padding: 12px; border-bottom: 1px solid var(--border); }
+    .ws-search { flex: 1; display: flex; align-items: center; gap: 6px; background: var(--white); border: 1px solid var(--border); border-radius: 7px; padding: 6px 10px; }
+    .ws-search-icon { font-size: 12px; opacity: 0.5; }
+    .ws-search input { flex: 1; border: none; outline: none; background: none; font-size: 13px; font-family: var(--font); color: var(--slate-900); }
+    .ws-search input::placeholder { color: var(--slate-400); }
+    .ws-new-btn { width: 30px; height: 30px; flex-shrink: 0; border: 1px solid var(--border); background: var(--white); border-radius: 7px; font-size: 18px; color: var(--slate-600); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.12s; }
+    .ws-new-btn:hover { background: var(--indigo); color: #fff; border-color: var(--indigo); }
+    .ws-tree-body { flex: 1; overflow-y: auto; padding: 8px 6px; }
+
+    /* Noeud d'arbre (contrepartie / dossier / sous-dossier) */
+    .tree-node { user-select: none; }
+    .tree-row { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-radius: 6px; cursor: pointer; font-size: 13px; color: var(--slate-700); transition: background 0.1s; position: relative; }
+    .tree-row:hover { background: var(--slate-100); }
+    .tree-row.selected { background: var(--indigo-bg); color: var(--indigo); font-weight: 600; }
+    .tree-row.selected .tree-name { color: var(--indigo); }
+    .tree-caret { width: 16px; height: 16px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 9px; color: var(--slate-400); transition: transform 0.15s; }
+    .tree-caret.expanded { transform: rotate(90deg); }
+    .tree-caret.leaf { visibility: hidden; }
+    .tree-icon { font-size: 14px; flex-shrink: 0; }
+    .tree-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tree-badge { font-size: 11px; font-weight: 600; color: var(--slate-400); background: var(--slate-100); padding: 1px 6px; border-radius: 10px; flex-shrink: 0; }
+    .tree-row.selected .tree-badge { background: rgba(79,70,229,0.12); color: var(--indigo); }
+    .tree-badge-risk { font-size: 11px; font-weight: 700; color: #fff; background: var(--red); padding: 1px 6px; border-radius: 10px; flex-shrink: 0; }
+    .tree-actions { display: none; align-items: center; gap: 2px; flex-shrink: 0; }
+    .tree-row:hover .tree-actions { display: flex; }
+    .tree-action { width: 20px; height: 20px; border: none; background: none; color: var(--slate-400); cursor: pointer; border-radius: 4px; font-size: 12px; display: flex; align-items: center; justify-content: center; }
+    .tree-action:hover { background: var(--slate-200); color: var(--slate-700); }
+    .tree-children { overflow: hidden; }
+    .tree-children.collapsed { display: none; }
+    /* Indentation par niveau */
+    .tree-node[data-level="0"] > .tree-row { padding-left: 8px; }
+    .tree-node[data-level="1"] > .tree-row { padding-left: 26px; }
+    .tree-node[data-level="2"] > .tree-row { padding-left: 44px; }
+    .tree-section-label { font-size: 11px; font-weight: 700; color: var(--slate-400); text-transform: uppercase; letter-spacing: 0.06em; padding: 12px 8px 6px; }
+    .ws-tree-newclient { margin: 8px 6px; padding: 10px; border: 1px dashed var(--border); border-radius: 8px; text-align: center; font-size: 12px; color: var(--slate-500); cursor: pointer; transition: all 0.12s; }
+    .ws-tree-newclient:hover { border-color: var(--indigo); color: var(--indigo); background: var(--indigo-bg); }
+
+    /* ── Poignée de redimensionnement ── */
+    .ws-resizer { width: 4px; flex-shrink: 0; cursor: col-resize; background: transparent; transition: background 0.15s; position: relative; z-index: 5; }
+    .ws-resizer:hover, .ws-resizer.dragging { background: var(--indigo); }
+
+    /* ── Colonne contenu ── */
+    .ws-content { flex: 1; overflow-y: auto; min-width: 0; }
+    .ws-empty { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px; color: var(--slate-400); }
+    .ws-empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.4; }
+    .ws-empty-title { font-size: 16px; font-weight: 600; color: var(--slate-600); margin-bottom: 6px; }
+    .ws-empty-sub { font-size: 13px; max-width: 320px; line-height: 1.5; }
+
+    .ws-detail { padding: 28px 32px; }
+    .ws-detail-header { margin-bottom: 24px; }
+    .ws-breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--slate-400); margin-bottom: 12px; flex-wrap: wrap; }
+    .ws-breadcrumb a { color: var(--slate-500); cursor: pointer; text-decoration: none; }
+    .ws-breadcrumb a:hover { color: var(--indigo); }
+    .ws-breadcrumb .sep { color: var(--slate-300); }
+    .ws-breadcrumb .current { color: var(--slate-700); font-weight: 600; }
+    .ws-detail-titlerow { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .ws-detail-title { display: flex; align-items: center; gap: 10px; font-family: var(--serif); font-size: 24px; color: var(--slate-900); }
+    .ws-detail-icon { font-size: 26px; }
+    .ws-detail-badge { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 12px; background: var(--indigo-bg); color: var(--indigo); font-family: var(--font); }
+    .ws-detail-actions { display: flex; align-items: center; gap: 8px; }
+    .ws-action-btn { padding: 7px 14px; border: 1px solid var(--border); background: var(--white); border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--slate-700); cursor: pointer; font-family: var(--font); transition: all 0.12s; }
+    .ws-action-btn:hover { border-color: var(--indigo); color: var(--indigo); background: var(--indigo-bg); }
+    .ws-action-btn.ghost { padding: 7px 10px; }
+
+    .ws-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 28px; }
+    @media (max-width: 1100px) { .ws-kpis { grid-template-columns: repeat(2, 1fr); } }
+    .ws-kpi { border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; background: var(--white); }
+    .ws-kpi-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .ws-kpi-label { font-size: 12px; color: var(--slate-500); font-weight: 500; }
+    .ws-kpi-icon { font-size: 14px; opacity: 0.6; }
+    .ws-kpi-val { font-size: 28px; font-weight: 700; color: var(--slate-900); line-height: 1; }
+    .ws-kpi-val.red { color: var(--red); }
+
+    .ws-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+    .ws-tab { padding: 10px 16px; background: none; border: none; font-size: 14px; font-weight: 500; color: var(--slate-500); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.12s; font-family: var(--font); }
+    .ws-tab:hover { color: var(--slate-900); }
+    .ws-tab.active { color: var(--indigo); border-bottom-color: var(--indigo); font-weight: 600; }
+    .ws-tab-content { display: none; }
+    .ws-tab-content.active { display: block; }
+
+    /* Table de documents moderne dans le workspace */
+    .ws-doctable { width: 100%; border-collapse: collapse; }
+    .ws-doctable th { text-align: left; font-size: 11px; font-weight: 600; color: var(--slate-400); text-transform: uppercase; letter-spacing: 0.05em; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+    .ws-doctable td { padding: 12px; border-bottom: 1px solid var(--slate-100); font-size: 13px; vertical-align: middle; }
+    .ws-doctable tr:hover td { background: #fafafa; }
+    .ws-doctable tr { cursor: pointer; }
+    .ws-doc-name { display: flex; align-items: center; gap: 10px; font-weight: 500; color: var(--slate-900); }
+    .ws-doc-fileicon { font-size: 16px; flex-shrink: 0; }
+    .ws-filetype { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 5px; letter-spacing: 0.03em; }
+    .ws-filetype.pdf { background: #fef2f2; color: #dc2626; }
+    .ws-filetype.docx { background: #eff6ff; color: #2563eb; }
+    .ws-filetype.xlsx { background: #f0fdf4; color: #16a34a; }
+    .ws-filetype.pptx { background: #fff7ed; color: #ea580c; }
+    .ws-filetype.other { background: var(--slate-100); color: var(--slate-500); }
+    .ws-empty-tab { text-align: center; padding: 48px 20px; color: var(--slate-400); }
+    .ws-empty-tab-icon { font-size: 36px; margin-bottom: 12px; opacity: 0.4; }
+    .ws-empty-tab-title { font-size: 14px; font-weight: 600; color: var(--slate-600); margin-bottom: 4px; }
+    .ws-empty-tab-sub { font-size: 12px; }
+    /* Sous-dossier card compacte dans l'onglet sous-dossiers */
+    .ws-subgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+    .ws-subcard { border: 1px solid var(--border); border-radius: 10px; padding: 16px; cursor: pointer; transition: all 0.12s; }
+    .ws-subcard:hover { border-color: var(--indigo); box-shadow: 0 2px 12px rgba(79,70,229,0.06); }
+    .ws-subcard-icon { font-size: 22px; margin-bottom: 8px; }
+    .ws-subcard-name { font-size: 14px; font-weight: 600; color: var(--slate-900); margin-bottom: 4px; }
+    .ws-subcard-meta { font-size: 12px; color: var(--slate-400); }
+
     /* ── DOCUMENTS ── */
     .docs-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
     .search-box { display: flex; align-items: center; gap: 8px; background: var(--white); border: 1px solid var(--border); border-radius: 8px; padding: 7px 12px; flex: 1; min-width: 180px; }
@@ -724,15 +838,101 @@
 
     <!-- ══════════ PAGE: DOSSIERS ══════════ -->
     <div class="page" id="page-dossiers">
-      <div class="page-header">
-        <div>
-          <div class="page-title">Dossiers</div>
-          <div class="page-sub">Organisez vos documents par client et par projet</div>
+      <div class="workspace">
+        <!-- COLONNE ARBORESCENCE -->
+        <div class="ws-tree" id="wsTree">
+          <div class="ws-tree-header">
+            <div class="ws-search">
+              <span class="ws-search-icon">🔍</span>
+              <input type="text" id="treeSearch" placeholder="Rechercher un dossier…" oninput="filterTree()"/>
+            </div>
+            <button class="ws-new-btn" onclick="openFolderModal()" title="Nouveau dossier">+</button>
+          </div>
+          <div class="ws-tree-body" id="treeBody">
+            <!-- Rendu dynamiquement -->
+          </div>
         </div>
-        <button class="btn-primary" onclick="openFolderModal()">+ Nouveau dossier</button>
-      </div>
-      <div class="folders-grid" id="foldersGrid">
-        <!-- Rendu dynamiquement -->
+
+        <!-- POIGNÉE DE REDIMENSIONNEMENT -->
+        <div class="ws-resizer" id="wsResizer"></div>
+
+        <!-- COLONNE CONTENU -->
+        <div class="ws-content" id="wsContent">
+          <!-- État vide par défaut -->
+          <div class="ws-empty" id="wsEmpty">
+            <div class="ws-empty-icon">📂</div>
+            <div class="ws-empty-title">Sélectionnez un dossier</div>
+            <div class="ws-empty-sub">Choisissez un dossier dans l'arborescence pour afficher son contenu, ses risques et ses tâches.</div>
+          </div>
+
+          <!-- Détail du dossier sélectionné -->
+          <div class="ws-detail" id="wsDetail" style="display:none">
+            <!-- Breadcrumb + titre -->
+            <div class="ws-detail-header">
+              <div class="ws-breadcrumb" id="wsBreadcrumb"></div>
+              <div class="ws-detail-titlerow">
+                <div class="ws-detail-title">
+                  <span class="ws-detail-icon" id="wsDetailIcon">📁</span>
+                  <span id="wsDetailName">—</span>
+                  <span class="ws-detail-badge" id="wsDetailBadge"></span>
+                </div>
+                <div class="ws-detail-actions">
+                  <button class="ws-action-btn" id="wsAddSubBtn" onclick="wsAddSubFolder()" title="Ajouter un sous-dossier">+ Sous-dossier</button>
+                  <button class="ws-action-btn" onclick="wsImportDoc()" title="Importer un document">+ Document</button>
+                  <button class="ws-action-btn ghost" onclick="wsEditFolder()" title="Modifier">✏️</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- KPIs -->
+            <div class="ws-kpis">
+              <div class="ws-kpi">
+                <div class="ws-kpi-top">
+                  <span class="ws-kpi-label">Documents</span>
+                  <span class="ws-kpi-icon">📄</span>
+                </div>
+                <div class="ws-kpi-val" id="wsKpiDocs">0</div>
+              </div>
+              <div class="ws-kpi">
+                <div class="ws-kpi-top">
+                  <span class="ws-kpi-label">Sous-dossiers</span>
+                  <span class="ws-kpi-icon">📁</span>
+                </div>
+                <div class="ws-kpi-val" id="wsKpiSubs">0</div>
+              </div>
+              <div class="ws-kpi">
+                <div class="ws-kpi-top">
+                  <span class="ws-kpi-label">Risques élevés</span>
+                  <span class="ws-kpi-icon">⚠️</span>
+                </div>
+                <div class="ws-kpi-val red" id="wsKpiRisks">0</div>
+              </div>
+              <div class="ws-kpi">
+                <div class="ws-kpi-top">
+                  <span class="ws-kpi-label">Tâches ouvertes</span>
+                  <span class="ws-kpi-icon">✅</span>
+                </div>
+                <div class="ws-kpi-val" id="wsKpiTasks">0</div>
+              </div>
+            </div>
+
+            <!-- Onglets -->
+            <div class="ws-tabs">
+              <button class="ws-tab active" onclick="wsSwitchTab('docs')">Documents</button>
+              <button class="ws-tab" onclick="wsSwitchTab('subs')">Sous-dossiers</button>
+              <button class="ws-tab" onclick="wsSwitchTab('risks')">Risques</button>
+              <button class="ws-tab" onclick="wsSwitchTab('tasks')">Tâches</button>
+              <button class="ws-tab" onclick="wsSwitchTab('activity')">Activité</button>
+            </div>
+
+            <!-- Contenu des onglets -->
+            <div class="ws-tab-content active" id="wsTab-docs"></div>
+            <div class="ws-tab-content" id="wsTab-subs"></div>
+            <div class="ws-tab-content" id="wsTab-risks"></div>
+            <div class="ws-tab-content" id="wsTab-tasks"></div>
+            <div class="ws-tab-content" id="wsTab-activity"></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1735,86 +1935,489 @@ function renderDashboard() {
     </div>`;
 }
 
-// ── DOSSIERS ─────────────────────────────────
+// ── DOSSIERS : WORKSPACE 3 COLONNES ─────────────────────────────
+// État de l'arborescence
+let wsExpandedNodes = new Set();     // IDs des noeuds dépliés (cp- ou folder id)
+let wsSelectedFolderId = null;        // Dossier actuellement sélectionné
+let wsActiveTab = 'docs';             // Onglet actif dans le détail
+let wsTreeInitialized = false;
+
+/**
+ * Point d'entrée : rend l'arborescence. Remplace l'ancien renderFolders.
+ */
 function renderFolders() {
-  const grid = document.getElementById('foldersGrid');
-  if (!allFolders.length) {
-    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
-      <div class="empty-icon">📁</div>
-      <div class="empty-title">Aucun dossier</div>
-      <div class="empty-sub">Créez votre premier dossier pour organiser vos documents par affaire.</div>
-    </div>`;
-    return;
+  renderTree();
+  // Restaurer la sélection si elle existe encore
+  if (wsSelectedFolderId && allFolders.find(f => f.id === wsSelectedFolderId)) {
+    renderFolderDetail(wsSelectedFolderId);
+  }
+  // Init des interactions une seule fois
+  if (!wsTreeInitialized) {
+    initTreeResizer();
+    wsTreeInitialized = true;
+  }
+}
+
+/**
+ * Construit l'arbre : Contreparties → Dossiers principaux → Sous-dossiers.
+ * Utilise les indexes du Store (foldersByParent, foldersByCounterparty).
+ */
+function renderTree(searchFilter) {
+  const body = document.getElementById('treeBody');
+  if (!body) return;
+
+  const q = (searchFilter || '').toLowerCase().trim();
+
+  // Helper : compte docs (dossier + sous-dossiers) et risques élevés
+  function folderStats(folderId, folderName) {
+    const subs = getSubFoldersFast(folderId);
+    const ids = [folderId, ...subs.map(s => s.id)];
+    const docs = allDocs.filter(d => ids.includes(d.folder_id) || d.folder === folderName);
+    const highR = allRisks.filter(r => docs.find(d => d.id === r.document_id) && (r.severity === 'high' || r.severity === 'critical')).length;
+    return { docCount: docs.length, highRisks: highR, subCount: subs.length };
   }
 
-  // Dossiers principaux uniquement (les sous-dossiers sont affichés dans leur parent)
+  // Dossiers principaux (parent_id null)
   const mainFolders = allFolders.filter(f => !f.parent_id);
 
-  grid.innerHTML = mainFolders.map(f => {
-    // Sous-dossiers de ce dossier principal
-    const subFolders = Services?.folders
-      ? Services.folders.getSubFolders(f.id)
-      : allFolders.filter(sf => sf.parent_id === f.id);
-    const subFolderIds = subFolders.map(s => s.id);
+  // Grouper par contrepartie
+  const byCounterparty = {};
+  const noCp = [];
+  mainFolders.forEach(f => {
+    if (f.counterparty_id) {
+      (byCounterparty[f.counterparty_id] = byCounterparty[f.counterparty_id] || []).push(f);
+    } else {
+      noCp.push(f);
+    }
+  });
 
-    // Documents : ceux du dossier principal + ceux de ses sous-dossiers
-    const relatedFolderIds = [f.id, ...subFolderIds];
-    const docsInFolder = allDocs.filter(d => relatedFolderIds.includes(d.folder_id) || d.folder === f.name);
+  let html = '';
 
-    // Risques : rattachés au dossier principal uniquement (via ses documents)
-    const highR = allRisks.filter(r => docsInFolder.find(d => d.id === r.document_id) && (r.severity === 'high' || r.severity === 'critical')).length;
-    const medR = allRisks.filter(r => docsInFolder.find(d => d.id === r.document_id) && r.severity === 'medium').length;
-
-    // Nom de la contrepartie
-    const cpName = f.counterparty_id
-      ? (allCounterparties.find(c => c.id === f.counterparty_id)?.name || '')
-      : '';
-
-    // Rendu des sous-dossiers (style Notion/Linear)
-    const subFoldersHtml = subFolders.length > 0 ? `
-      <div class="subfolder-list" onclick="event.stopPropagation()">
-        ${subFolders.map(sf => {
-          const subDocs = allDocs.filter(d => d.folder_id === sf.id);
-          return `
-          <div class="subfolder-item" onclick="event.stopPropagation(); openFolder('${sf.id}')">
-            <span class="subfolder-icon">📂</span>
-            <span class="subfolder-name">${escHtml(sf.name)}</span>
-            <span class="subfolder-count">${subDocs.length}</span>
-            <button class="subfolder-edit" onclick="event.stopPropagation(); editFolder('${sf.id}')" title="Modifier">✏️</button>
-          </div>`;
-        }).join('')}
-      </div>` : '';
-
-    return `
-    <div class="folder-card">
-      <div class="folder-card-clickable" onclick="openFolder('${f.id}')">
-        <div class="folder-card-top">
-          <div class="folder-icon">📁</div>
-          <div class="folder-card-actions" onclick="event.stopPropagation()">
-            <button class="folder-menu-btn" onclick="openSubFolderModal('${f.id}')" title="Ajouter un sous-dossier">➕</button>
-            <button class="folder-menu-btn" onclick="editFolder('${f.id}')" title="Modifier le dossier">✏️</button>
-          </div>
-        </div>
-        <div class="folder-name">${escHtml(f.name)}</div>
-        <div class="folder-client">${cpName ? '🏢 ' + escHtml(cpName) : 'Sans contrepartie'}</div>
-        <div class="folder-stats">
-          <div class="folder-stat">
-            <div class="folder-stat-val">${docsInFolder.length}</div>
-            <div class="folder-stat-label">Documents</div>
-          </div>
-          <div class="folder-stat">
-            <div class="folder-stat-val">${subFolders.length}</div>
-            <div class="folder-stat-label">Sous-dossiers</div>
-          </div>
-          <div class="folder-stat">
-            <div class="folder-stat-val red">${highR}</div>
-            <div class="folder-stat-label">Risques élevés</div>
-          </div>
-        </div>
+  // Noeud racine "Tous les dossiers"
+  const totalDocs = allDocs.length;
+  html += `
+    <div class="tree-node" data-level="0">
+      <div class="tree-row ${wsSelectedFolderId === '__all__' ? 'selected' : ''}" onclick="selectAllFolders()">
+        <span class="tree-caret leaf"></span>
+        <span class="tree-icon">📚</span>
+        <span class="tree-name">Tous les dossiers</span>
+        <span class="tree-badge">${totalDocs}</span>
       </div>
-      ${subFoldersHtml}
     </div>`;
+
+  // Contreparties avec leurs dossiers
+  Object.entries(byCounterparty).forEach(([cpId, folders]) => {
+    const cp = allCounterparties.find(c => c.id === cpId);
+    const cpName = cp?.name || 'Contrepartie';
+    const cpNodeId = 'cp-' + cpId;
+    const expanded = wsExpandedNodes.has(cpNodeId);
+
+    // Filtre recherche : garder la CP si elle-même ou un de ses dossiers matche
+    const matchesSearch = !q || cpName.toLowerCase().includes(q) ||
+      folders.some(f => f.name.toLowerCase().includes(q) ||
+        getSubFoldersFast(f.id).some(s => s.name.toLowerCase().includes(q)));
+    if (!matchesSearch) return;
+
+    // Total docs de la contrepartie
+    let cpDocCount = 0;
+    folders.forEach(f => { cpDocCount += folderStats(f.id, f.name).docCount; });
+
+    html += `
+      <div class="tree-node" data-level="0">
+        <div class="tree-row" onclick="toggleTreeNode('${cpNodeId}')">
+          <span class="tree-caret ${expanded ? 'expanded' : ''}">▶</span>
+          <span class="tree-icon">🏢</span>
+          <span class="tree-name">${escHtml(cpName)}</span>
+          <span class="tree-badge">${cpDocCount}</span>
+        </div>
+        <div class="tree-children ${expanded ? '' : 'collapsed'}">
+          ${folders.map(f => renderTreeFolder(f, 1, q, folderStats)).join('')}
+        </div>
+      </div>`;
+  });
+
+  // Dossiers sans contrepartie
+  if (noCp.length) {
+    const filtered = noCp.filter(f => !q || f.name.toLowerCase().includes(q) ||
+      getSubFoldersFast(f.id).some(s => s.name.toLowerCase().includes(q)));
+    if (filtered.length) {
+      html += `<div class="tree-section-label">Sans contrepartie</div>`;
+      filtered.forEach(f => { html += renderTreeFolder(f, 0, q, folderStats); });
+    }
+  }
+
+  // Bouton nouveau dossier client
+  html += `<div class="ws-tree-newclient" onclick="openFolderModal()">+ Nouveau dossier client</div>`;
+
+  body.innerHTML = html || '<div style="padding:20px;text-align:center;color:var(--slate-400);font-size:13px">Aucun dossier</div>';
+}
+
+/**
+ * Rend un dossier principal + ses sous-dossiers dans l'arbre.
+ */
+function renderTreeFolder(folder, level, q, folderStats) {
+  const subs = getSubFoldersFast(folder.id);
+  const nodeId = folder.id;
+  const expanded = wsExpandedNodes.has(nodeId);
+  const hasChildren = subs.length > 0;
+  const stats = folderStats(folder.id, folder.name);
+  const selected = wsSelectedFolderId === folder.id;
+
+  const riskBadge = stats.highRisks > 0
+    ? `<span class="tree-badge-risk">${stats.highRisks}</span>` : '';
+
+  const caretClass = hasChildren ? (expanded ? 'expanded' : '') : 'leaf';
+  const caretClick = hasChildren
+    ? `onclick="event.stopPropagation();toggleTreeNode('${nodeId}')"` : '';
+
+  let html = `
+    <div class="tree-node" data-level="${level}">
+      <div class="tree-row ${selected ? 'selected' : ''}" onclick="selectFolder('${folder.id}')">
+        <span class="tree-caret ${caretClass}" ${caretClick}>▶</span>
+        <span class="tree-icon">📁</span>
+        <span class="tree-name">${escHtml(folder.name)}</span>
+        ${riskBadge}
+        <span class="tree-badge">${stats.docCount}</span>
+        <span class="tree-actions">
+          <button class="tree-action" onclick="event.stopPropagation();openSubFolderModal('${folder.id}')" title="Sous-dossier">+</button>
+          <button class="tree-action" onclick="event.stopPropagation();editFolder('${folder.id}')" title="Modifier">✏️</button>
+        </span>
+      </div>`;
+
+  if (hasChildren) {
+    html += `<div class="tree-children ${expanded ? '' : 'collapsed'}">
+      ${subs.map(sf => {
+        const subDocs = allDocs.filter(d => d.folder_id === sf.id);
+        const subHighR = allRisks.filter(r => subDocs.find(d => d.id === r.document_id) && (r.severity === 'high' || r.severity === 'critical')).length;
+        const subSelected = wsSelectedFolderId === sf.id;
+        const subRiskBadge = subHighR > 0 ? `<span class="tree-badge-risk">${subHighR}</span>` : '';
+        return `
+        <div class="tree-node" data-level="${level + 1}">
+          <div class="tree-row ${subSelected ? 'selected' : ''}" onclick="selectFolder('${sf.id}')">
+            <span class="tree-caret leaf"></span>
+            <span class="tree-icon">📂</span>
+            <span class="tree-name">${escHtml(sf.name)}</span>
+            ${subRiskBadge}
+            <span class="tree-badge">${subDocs.length}</span>
+            <span class="tree-actions">
+              <button class="tree-action" onclick="event.stopPropagation();editFolder('${sf.id}')" title="Modifier">✏️</button>
+            </span>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+
+  html += `</div>`;
+  return html;
+}
+
+/**
+ * Accès rapide aux sous-dossiers via l'index du Store (pas de filter O(n)).
+ */
+function getSubFoldersFast(parentId) {
+  if (Services?.folders?.getSubFolders) {
+    const r = Services.folders.getSubFolders(parentId);
+    if (r && r.length) return r;
+  }
+  const idx = Store?.indexes?.foldersByParent?.[parentId];
+  if (idx && idx.length) return idx;
+  // Fallback : filtre direct (utilisé si l'index n'est pas encore peuplé)
+  return allFolders.filter(f => f.parent_id === parentId);
+}
+
+/**
+ * Déplie / replie un noeud de l'arbre.
+ */
+function toggleTreeNode(nodeId) {
+  if (wsExpandedNodes.has(nodeId)) wsExpandedNodes.delete(nodeId);
+  else wsExpandedNodes.add(nodeId);
+  renderTree(document.getElementById('treeSearch')?.value);
+}
+
+/**
+ * Sélectionne un dossier → affiche son contenu dans la colonne 3.
+ */
+function selectFolder(folderId) {
+  wsSelectedFolderId = folderId;
+  // Auto-déplier le parent si c'est un sous-dossier
+  const folder = allFolders.find(f => f.id === folderId);
+  if (folder?.parent_id) wsExpandedNodes.add(folder.parent_id);
+  if (folder?.counterparty_id) wsExpandedNodes.add('cp-' + folder.counterparty_id);
+  renderTree(document.getElementById('treeSearch')?.value);
+  renderFolderDetail(folderId);
+}
+
+/**
+ * Vue "Tous les dossiers".
+ */
+function selectAllFolders() {
+  wsSelectedFolderId = '__all__';
+  renderTree(document.getElementById('treeSearch')?.value);
+  const empty = document.getElementById('wsEmpty');
+  const detail = document.getElementById('wsDetail');
+  if (empty) empty.style.display = 'none';
+  if (detail) detail.style.display = 'block';
+
+  document.getElementById('wsBreadcrumb').innerHTML = `<span class="current">Tous les dossiers</span>`;
+  document.getElementById('wsDetailIcon').textContent = '📚';
+  document.getElementById('wsDetailName').textContent = 'Tous les dossiers';
+  document.getElementById('wsDetailBadge').textContent = '';
+  document.getElementById('wsAddSubBtn').style.display = 'none';
+
+  document.getElementById('wsKpiDocs').textContent = allDocs.length;
+  document.getElementById('wsKpiSubs').textContent = allFolders.filter(f => !f.parent_id).length;
+  const allHighR = allRisks.filter(r => r.severity === 'high' || r.severity === 'critical').length;
+  document.getElementById('wsKpiRisks').textContent = allHighR;
+  document.getElementById('wsKpiTasks').textContent = allTasks.filter(t => t.status !== 'done' && t.status !== 'closed').length;
+
+  // Onglet documents = tous les documents
+  wsSwitchTab('docs');
+}
+
+/**
+ * Rend le détail du dossier sélectionné (colonne 3).
+ */
+function renderFolderDetail(folderId) {
+  const folder = allFolders.find(f => f.id === folderId);
+  if (!folder) return;
+  currentDetailFolderId = folderId;
+
+  const empty = document.getElementById('wsEmpty');
+  const detail = document.getElementById('wsDetail');
+  if (empty) empty.style.display = 'none';
+  if (detail) detail.style.display = 'block';
+
+  const isMain = !folder.parent_id;
+  const subs = isMain ? getSubFoldersFast(folderId) : [];
+  const relatedIds = [folderId, ...subs.map(s => s.id)];
+  const docsInFolder = allDocs.filter(d => relatedIds.includes(d.folder_id) || d.folder === folder.name);
+  const highR = allRisks.filter(r => docsInFolder.find(d => d.id === r.document_id) && (r.severity === 'high' || r.severity === 'critical')).length;
+  const openTasks = allTasks.filter(t => t.folder_id === folderId && t.status !== 'done' && t.status !== 'closed').length;
+
+  // Breadcrumb
+  const crumbs = [];
+  if (folder.counterparty_id) {
+    const cp = allCounterparties.find(c => c.id === folder.counterparty_id);
+    if (cp) crumbs.push(`<a onclick="toggleTreeNode('cp-${cp.id}')">${escHtml(cp.name)}</a>`);
+  }
+  if (folder.parent_id) {
+    const parent = allFolders.find(f => f.id === folder.parent_id);
+    if (parent) crumbs.push(`<a onclick="selectFolder('${parent.id}')">${escHtml(parent.name)}</a>`);
+  }
+  crumbs.push(`<span class="current">${escHtml(folder.name)}</span>`);
+  document.getElementById('wsBreadcrumb').innerHTML = crumbs.join('<span class="sep">›</span>');
+
+  // Titre + badge
+  document.getElementById('wsDetailIcon').textContent = isMain ? '📁' : '📂';
+  document.getElementById('wsDetailName').textContent = folder.name;
+  document.getElementById('wsDetailBadge').textContent = isMain ? 'Dossier' : 'Sous-dossier';
+  document.getElementById('wsAddSubBtn').style.display = isMain ? '' : 'none';
+
+  // KPIs
+  document.getElementById('wsKpiDocs').textContent = docsInFolder.length;
+  document.getElementById('wsKpiSubs').textContent = subs.length;
+  document.getElementById('wsKpiRisks').textContent = highR;
+  document.getElementById('wsKpiTasks').textContent = openTasks;
+
+  // Rendu de l'onglet actif
+  wsSwitchTab(wsActiveTab);
+}
+
+/**
+ * Switche entre les onglets Documents / Sous-dossiers / Risques / Tâches / Activité.
+ */
+function wsSwitchTab(tabName) {
+  wsActiveTab = tabName;
+  document.querySelectorAll('.ws-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.ws-tab-content').forEach(c => c.classList.remove('active'));
+  const btn = document.querySelector(`.ws-tab[onclick="wsSwitchTab('${tabName}')"]`);
+  const content = document.getElementById('wsTab-' + tabName);
+  if (btn) btn.classList.add('active');
+  if (content) content.classList.add('active');
+
+  // Déterminer le périmètre documentaire
+  let folder = null, docsInScope = [], subs = [];
+  if (wsSelectedFolderId === '__all__') {
+    docsInScope = allDocs;
+  } else {
+    folder = allFolders.find(f => f.id === wsSelectedFolderId);
+    if (!folder) return;
+    const isMain = !folder.parent_id;
+    subs = isMain ? getSubFoldersFast(folder.id) : [];
+    const relatedIds = [folder.id, ...subs.map(s => s.id)];
+    docsInScope = allDocs.filter(d => relatedIds.includes(d.folder_id) || d.folder === folder.name);
+  }
+
+  if (tabName === 'docs') {
+    document.getElementById('wsTab-docs').innerHTML = renderWsDocsTable(docsInScope, subs);
+  } else if (tabName === 'subs') {
+    document.getElementById('wsTab-subs').innerHTML = renderWsSubfolders(folder, subs);
+  } else if (tabName === 'risks') {
+    const risks = allRisks.filter(r => docsInScope.find(d => d.id === r.document_id));
+    document.getElementById('wsTab-risks').innerHTML = risks.length
+      ? renderRisksTable(risks)
+      : wsEmptyTab('✅', 'Aucun risque', 'Ce dossier ne contient aucun risque identifié.');
+  } else if (tabName === 'tasks') {
+    document.getElementById('wsTab-tasks').innerHTML = folder
+      ? `<div style="display:flex;justify-content:flex-end;margin-bottom:14px"><button class="ws-action-btn" onclick="openTaskModal(null,null,'${folder.id}')">+ Nouvelle tâche</button></div>` + renderFolderTasks(folder.id)
+      : wsEmptyTab('✅', 'Aucune tâche', 'Sélectionnez un dossier pour voir ses tâches.');
+  } else if (tabName === 'activity') {
+    document.getElementById('wsTab-activity').innerHTML = renderWsActivity(docsInScope);
+  }
+}
+
+/**
+ * Table de documents moderne (style NetDocuments / iManage).
+ */
+function renderWsDocsTable(docs, subs) {
+  subs = subs || [];
+  if (!docs.length && !subs.length) {
+    return wsEmptyTab('📄', 'Aucun document', 'Importez des documents ou créez des sous-dossiers pour organiser ce dossier.');
+  }
+
+  const fileIcon = (type) => {
+    const t = (type || '').toLowerCase();
+    if (t === 'pdf') return '📕';
+    if (t === 'docx' || t === 'doc') return '📘';
+    if (t === 'xlsx' || t === 'xls') return '📗';
+    if (t === 'pptx' || t === 'ppt') return '📙';
+    return '📄';
+  };
+  const fileBadge = (type) => {
+    const t = (type || 'other').toLowerCase();
+    const cls = ['pdf','docx','xlsx','pptx'].includes(t) ? t : 'other';
+    return `<span class="ws-filetype ${cls}">${(type || '—').toUpperCase()}</span>`;
+  };
+  const fmtSize = (bytes) => {
+    if (!bytes) return '—';
+    if (bytes < 1024) return bytes + ' o';
+    if (bytes < 1048576) return Math.round(bytes/1024) + ' Ko';
+    return (bytes/1048576).toFixed(1) + ' Mo';
+  };
+  const fmtDate = (d) => d ? new Date(d).toLocaleDateString('fr-MA', {day:'2-digit',month:'2-digit',year:'numeric'}) : '—';
+
+  // Lignes sous-dossiers d'abord (comme un vrai explorateur)
+  const subRows = subs.map(sf => {
+    const subDocs = allDocs.filter(d => d.folder_id === sf.id);
+    return `<tr onclick="selectFolder('${sf.id}')">
+      <td><div class="ws-doc-name"><span class="ws-doc-fileicon">📂</span>${escHtml(sf.name)}/</div></td>
+      <td><span class="ws-filetype other">Dossier</span></td>
+      <td style="color:var(--slate-400)">${subDocs.length} doc(s)</td>
+      <td style="color:var(--slate-400)">—</td>
+      <td></td>
+    </tr>`;
   }).join('');
+
+  const docRows = docs.map(d => `
+    <tr onclick="openDoc('${d.id}')">
+      <td><div class="ws-doc-name"><span class="ws-doc-fileicon">${fileIcon(d.file_type)}</span>${escHtml(d.name)}</div></td>
+      <td>${fileBadge(d.file_type)}</td>
+      <td style="color:var(--slate-500)">${fmtDate(d.created_at)}</td>
+      <td style="color:var(--slate-500)">${fmtSize(d.file_size)}</td>
+      <td style="text-align:right"><button class="tree-action" onclick="event.stopPropagation();openDoc('${d.id}')" title="Ouvrir">⋯</button></td>
+    </tr>`).join('');
+
+  return `<table class="ws-doctable">
+    <thead><tr><th>Nom</th><th>Type</th><th>Modifié le</th><th>Taille</th><th></th></tr></thead>
+    <tbody>${subRows}${docRows}</tbody>
+  </table>`;
+}
+
+/**
+ * Grille des sous-dossiers.
+ */
+function renderWsSubfolders(folder, subs) {
+  if (!folder || !folder.parent_id === false) { /* main folder */ }
+  if (folder && folder.parent_id) {
+    return wsEmptyTab('📂', 'Sous-dossier', 'Un sous-dossier ne peut pas contenir d\'autres sous-dossiers (max 1 niveau).');
+  }
+  if (!subs || !subs.length) {
+    return `<div style="margin-bottom:16px"><button class="ws-action-btn" onclick="openSubFolderModal('${folder.id}')">+ Créer un sous-dossier</button></div>` +
+      wsEmptyTab('📁', 'Aucun sous-dossier', 'Créez des sous-dossiers pour organiser les documents de cette affaire.');
+  }
+  return `<div style="margin-bottom:16px"><button class="ws-action-btn" onclick="openSubFolderModal('${folder.id}')">+ Créer un sous-dossier</button></div>
+    <div class="ws-subgrid">
+    ${subs.map(sf => {
+      const subDocs = allDocs.filter(d => d.folder_id === sf.id);
+      return `<div class="ws-subcard" onclick="selectFolder('${sf.id}')">
+        <div class="ws-subcard-icon">📂</div>
+        <div class="ws-subcard-name">${escHtml(sf.name)}</div>
+        <div class="ws-subcard-meta">${subDocs.length} document(s)</div>
+      </div>`;
+    }).join('')}
+    </div>`;
+}
+
+/**
+ * Onglet Activité (timeline simple des documents du dossier).
+ */
+function renderWsActivity(docs) {
+  if (!docs.length) return wsEmptyTab('🕐', 'Aucune activité', 'L\'activité du dossier apparaîtra ici.');
+  const sorted = [...docs].sort((a,b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 20);
+  return `<div style="display:flex;flex-direction:column;gap:2px">
+    ${sorted.map(d => `
+      <div style="display:flex;align-items:center;gap:12px;padding:12px;border-bottom:1px solid var(--slate-100)">
+        <span style="font-size:16px">📄</span>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:500;color:var(--slate-900)">${escHtml(d.name)}</div>
+          <div style="font-size:11px;color:var(--slate-400)">Importé le ${new Date(d.created_at).toLocaleDateString('fr-MA',{day:'numeric',month:'long',year:'numeric'})}</div>
+        </div>
+        <span class="ws-filetype other">${(d.file_type||'—').toUpperCase()}</span>
+      </div>`).join('')}
+  </div>`;
+}
+
+function wsEmptyTab(icon, title, sub) {
+  return `<div class="ws-empty-tab">
+    <div class="ws-empty-tab-icon">${icon}</div>
+    <div class="ws-empty-tab-title">${title}</div>
+    <div class="ws-empty-tab-sub">${sub}</div>
+  </div>`;
+}
+
+// Actions de la barre de détail
+function wsAddSubFolder() { if (wsSelectedFolderId && wsSelectedFolderId !== '__all__') openSubFolderModal(wsSelectedFolderId); }
+function wsImportDoc() { openUploadModal(); }
+function wsEditFolder() { if (wsSelectedFolderId && wsSelectedFolderId !== '__all__') editFolder(wsSelectedFolderId); }
+
+/**
+ * Recherche instantanée dans l'arbre.
+ */
+function filterTree() {
+  renderTree(document.getElementById('treeSearch')?.value);
+}
+
+/**
+ * Rend la colonne d'arborescence redimensionnable (comme VS Code / Notion).
+ */
+function initTreeResizer() {
+  const resizer = document.getElementById('wsResizer');
+  const tree = document.getElementById('wsTree');
+  if (!resizer || !tree) return;
+  let dragging = false;
+
+  resizer.addEventListener('mousedown', (e) => {
+    dragging = true;
+    resizer.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const rect = tree.getBoundingClientRect();
+    let newWidth = e.clientX - rect.left;
+    newWidth = Math.max(220, Math.min(500, newWidth));
+    tree.style.width = newWidth + 'px';
+  });
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    resizer.classList.remove('dragging');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  });
 }
 
 /**
@@ -1828,52 +2431,13 @@ function openSubFolderModal(parentId) {
   onParentFolderChange();
 }
 
+/**
+ * Ancienne fonction openFolder — redirige vers la nouvelle sélection d'arbre.
+ * Conservée pour compatibilité avec les appels externes (dashboard, etc.).
+ */
 function openFolder(folderId) {
-  const folder = allFolders.find(f => f.id === folderId);
-  if (!folder) return;
-  currentDetailFolderId = folderId;
-
-  // Point 9 : les risques/tâches/score sont agrégés au niveau du dossier principal.
-  // Si on ouvre un dossier principal, inclure les documents de ses sous-dossiers.
-  const isMain = !folder.parent_id;
-  const subFolderIds = isMain
-    ? (Services?.folders ? Services.folders.getSubFolders(folderId) : allFolders.filter(f => f.parent_id === folderId)).map(s => s.id)
-    : [];
-  const relatedFolderIds = [folderId, ...subFolderIds];
-
-  const docsInFolder = allDocs.filter(d => relatedFolderIds.includes(d.folder_id) || d.folder === folder.name);
-  const highR = allRisks.filter(r => docsInFolder.find(d => d.id === r.document_id) && (r.severity === 'high' || r.severity === 'critical')).length;
-  const medR = allRisks.filter(r => docsInFolder.find(d => d.id === r.document_id) && r.severity === 'medium').length;
-
-  document.getElementById('detailFolderName').textContent = folder.name;
-  document.getElementById('detailName').textContent = folder.name;
-  document.getElementById('detailMeta').textContent = [folder.client, folder.project, folder.owner ? 'Resp: ' + folder.owner : ''].filter(Boolean).join(' · ');
-  document.getElementById('detailDocCount').textContent = docsInFolder.length;
-  document.getElementById('detailHighRisks').textContent = highR;
-  document.getElementById('detailMedRisks').textContent = medR;
-  const folderScore = computeFolderRiskScore(folderId);
-  const scoreEl = document.getElementById('detailFolderRiskScore');
-  if (scoreEl) scoreEl.innerHTML = folderRiskScoreBadge(folderScore);
-  const folderCp = folder.counterparty_id
-    ? (allCounterparties.find(c => c.id === folder.counterparty_id)?.name || '—')
-    : '—';
-  document.getElementById('detailContreparties').textContent = folderCp;
-  document.getElementById('detailTags').innerHTML = (folder.tags || []).map(t => `<span class="tag">${escHtml(t)}</span>`).join('');
-
-  // Docs tab
-  document.getElementById('detailDocsList').innerHTML = docsInFolder.length
-    ? renderDocsTable(docsInFolder)
-    : '<div class="empty-state"><div class="empty-icon">📄</div><div class="empty-title">Aucun document</div></div>';
-
-  // Risks tab
-  const folderRisks = allRisks.filter(r => docsInFolder.find(d => d.id === r.document_id));
-  document.getElementById('detailRisksList').innerHTML = folderRisks.length
-    ? renderRisksTable(folderRisks)
-    : '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-title">Aucun risque</div></div>';
-
-  document.getElementById('detailTasksList').innerHTML = renderFolderTasks(folderId);
-
-  showPage('dossier-detail');
+  showPage('dossiers');
+  setTimeout(() => selectFolder(folderId), 30);
 }
 
 function switchTab(name) {
