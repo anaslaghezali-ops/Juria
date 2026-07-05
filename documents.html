@@ -109,11 +109,13 @@
     .btn-secondary:hover { background: var(--slate-100); }
     .folders-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
     @media (max-width: 900px) { .folders-grid { grid-template-columns: 1fr; } }
-    .folder-card { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 20px; cursor: pointer; transition: all 0.18s; }
+    .folder-card { background: var(--white); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; transition: all 0.18s; }
     .folder-card:hover { border-color: var(--indigo); box-shadow: 0 2px 16px rgba(79,70,229,0.08); }
+    .folder-card-clickable { padding: 20px; cursor: pointer; }
+    .folder-card-actions { display: flex; gap: 2px; }
     .folder-card-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
     .folder-icon { font-size: 28px; }
-    .folder-menu-btn { background: none; border: none; color: var(--slate-400); cursor: pointer; padding: 4px; border-radius: 6px; font-size: 16px; }
+    .folder-menu-btn { background: none; border: none; color: var(--slate-400); cursor: pointer; padding: 4px; border-radius: 6px; font-size: 15px; }
     .folder-menu-btn:hover { background: var(--slate-100); color: var(--slate-700); }
     .folder-name { font-size: 15px; font-weight: 700; color: var(--slate-900); margin-bottom: 3px; }
     .folder-client { font-size: 12px; color: var(--slate-500); margin-bottom: 10px; }
@@ -127,6 +129,16 @@
     .folder-stat-label { font-size: 10px; color: var(--slate-400); text-transform: uppercase; letter-spacing: 0.05em; }
     .folder-stat-val.red { color: var(--red); }
     .folder-stat-val.amber { color: var(--amber); }
+    /* Sous-dossiers (style Notion/Linear) */
+    .subfolder-list { border-top: 1px solid var(--border); background: var(--slate-50, #f8fafc); padding: 6px; }
+    .subfolder-item { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 7px; cursor: pointer; transition: background 0.12s; }
+    .subfolder-item:hover { background: var(--white); }
+    .subfolder-icon { font-size: 14px; }
+    .subfolder-name { flex: 1; font-size: 13px; font-weight: 500; color: var(--slate-700); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .subfolder-count { font-size: 11px; color: var(--slate-400); background: var(--slate-100); padding: 1px 7px; border-radius: 99px; font-weight: 600; }
+    .subfolder-edit { background: none; border: none; color: var(--slate-300); cursor: pointer; padding: 2px 4px; border-radius: 5px; font-size: 12px; opacity: 0; transition: opacity 0.12s; }
+    .subfolder-item:hover .subfolder-edit { opacity: 1; }
+    .subfolder-edit:hover { background: var(--slate-200); color: var(--slate-600); }
 
     /* ── DOCUMENTS ── */
     .docs-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
@@ -237,6 +249,11 @@
     .form-input { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; font-family: var(--font); color: var(--slate-900); outline: none; transition: border-color 0.15s; }
     .form-input:focus { border-color: var(--indigo); }
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-hint { font-size: 11px; color: var(--slate-500); margin-top: 6px; padding: 6px 10px; background: var(--indigo-bg); border-radius: 6px; }
+    .folder-type-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .folder-type-btn { padding: 12px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--slate-600); background: var(--white); cursor: pointer; font-family: var(--font); transition: all 0.15s; }
+    .folder-type-btn:hover { border-color: var(--indigo); background: var(--indigo-bg); }
+    .folder-type-btn.active { border-color: var(--indigo); background: var(--indigo-bg); color: var(--indigo); font-weight: 600; }
     .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
     .btn-cancel { padding: 8px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--slate-600); background: var(--white); cursor: pointer; font-family: var(--font); }
     .btn-cancel:hover { background: var(--slate-100); }
@@ -1121,41 +1138,48 @@
   <div class="modal">
     <button class="modal-close" onclick="closeFolderModal()">×</button>
     <div class="modal-title">Nouveau dossier</div>
-    <div class="modal-sub">Organisez vos documents par client et par projet</div>
+    <div class="modal-sub">Organisez vos documents par affaire</div>
+
+    <!-- Sélecteur de type : principal vs sous-dossier -->
+    <div class="form-group" id="folderTypeGroup">
+      <label class="form-label">Type de dossier</label>
+      <div class="folder-type-toggle">
+        <button type="button" class="folder-type-btn active" id="typeMainBtn" onclick="setFolderType('main')">
+          📁 Dossier principal
+        </button>
+        <button type="button" class="folder-type-btn" id="typeSubBtn" onclick="setFolderType('sub')">
+          📂 Sous-dossier
+        </button>
+      </div>
+    </div>
+
+    <!-- Sélecteur de dossier parent (visible seulement pour sous-dossier) -->
+    <div class="form-group" id="parentFolderGroup" style="display:none">
+      <label class="form-label">Dossier parent *</label>
+      <select class="form-input" id="folderParent" onchange="onParentFolderChange()">
+        <option value="">Choisir un dossier principal…</option>
+      </select>
+      <div class="form-hint" id="parentCpHint" style="display:none"></div>
+    </div>
+
     <div class="form-group">
       <label class="form-label">Nom du dossier *</label>
-      <input class="form-input" type="text" id="folderName" placeholder="Ex: OCP - JV Fertinagro"/>
+      <input class="form-input" type="text" id="folderName" placeholder="Ex: Acquisition TotalEnergies 2026"/>
     </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">Client</label>
-        <input class="form-input" type="text" id="folderClient" placeholder="Ex: OCP"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Projet</label>
-        <input class="form-input" type="text" id="folderProject" placeholder="Ex: JV Fertinagro"/>
-      </div>
+
+    <!-- Contrepartie : visible seulement pour dossier principal -->
+    <div class="form-group" id="counterpartyGroup">
+      <label class="form-label">Contrepartie</label>
+      <select class="form-input" id="folderCounterparty">
+        <option value="">Aucune contrepartie</option>
+      </select>
     </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">Responsable</label>
-        <input class="form-input" type="text" id="folderOwner" placeholder="Nom de l'avocat"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Contrepartie</label>
-        <select class="form-input" id="folderCounterparty">
-          <option value="">Aucune contrepartie</option>
-        </select>
-      </div>
-    </div>
+
     <div class="form-group">
       <label class="form-label">Description</label>
       <input class="form-input" type="text" id="folderDesc" placeholder="Description du dossier"/>
     </div>
-    <div class="form-group">
-      <label class="form-label">Tags (séparés par virgule)</label>
-      <input class="form-input" type="text" id="folderTags" placeholder="Ex: JV, M&A, Espagne, Critique"/>
-    </div>
+
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeFolderModal()">Annuler</button>
       <button class="btn-confirm" onclick="createFolder()">Créer le dossier</button>
@@ -1646,47 +1670,106 @@ function renderFolders() {
     grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
       <div class="empty-icon">📁</div>
       <div class="empty-title">Aucun dossier</div>
-      <div class="empty-sub">Créez votre premier dossier pour organiser vos documents par client et par projet.</div>
+      <div class="empty-sub">Créez votre premier dossier pour organiser vos documents par affaire.</div>
     </div>`;
     return;
   }
-  grid.innerHTML = allFolders.map(f => {
-    const docsInFolder = allDocs.filter(d => d.folder_id === f.id || d.folder === f.name);
+
+  // Dossiers principaux uniquement (les sous-dossiers sont affichés dans leur parent)
+  const mainFolders = allFolders.filter(f => !f.parent_id);
+
+  grid.innerHTML = mainFolders.map(f => {
+    // Sous-dossiers de ce dossier principal
+    const subFolders = Services?.folders
+      ? Services.folders.getSubFolders(f.id)
+      : allFolders.filter(sf => sf.parent_id === f.id);
+    const subFolderIds = subFolders.map(s => s.id);
+
+    // Documents : ceux du dossier principal + ceux de ses sous-dossiers
+    const relatedFolderIds = [f.id, ...subFolderIds];
+    const docsInFolder = allDocs.filter(d => relatedFolderIds.includes(d.folder_id) || d.folder === f.name);
+
+    // Risques : rattachés au dossier principal uniquement (via ses documents)
     const highR = allRisks.filter(r => docsInFolder.find(d => d.id === r.document_id) && (r.severity === 'high' || r.severity === 'critical')).length;
     const medR = allRisks.filter(r => docsInFolder.find(d => d.id === r.document_id) && r.severity === 'medium').length;
-    const tags = (f.tags || []).map(t => `<span class="tag">${escHtml(t)}</span>`).join('');
+
+    // Nom de la contrepartie
+    const cpName = f.counterparty_id
+      ? (allCounterparties.find(c => c.id === f.counterparty_id)?.name || '')
+      : '';
+
+    // Rendu des sous-dossiers (style Notion/Linear)
+    const subFoldersHtml = subFolders.length > 0 ? `
+      <div class="subfolder-list" onclick="event.stopPropagation()">
+        ${subFolders.map(sf => {
+          const subDocs = allDocs.filter(d => d.folder_id === sf.id);
+          return `
+          <div class="subfolder-item" onclick="event.stopPropagation(); openFolder('${sf.id}')">
+            <span class="subfolder-icon">📂</span>
+            <span class="subfolder-name">${escHtml(sf.name)}</span>
+            <span class="subfolder-count">${subDocs.length}</span>
+            <button class="subfolder-edit" onclick="event.stopPropagation(); editFolder('${sf.id}')" title="Modifier">✏️</button>
+          </div>`;
+        }).join('')}
+      </div>` : '';
+
     return `
-    <div class="folder-card" onclick="openFolder('${f.id}')">
-      <div class="folder-card-top">
-        <div class="folder-icon">📁</div>
-        <button class="folder-menu-btn" onclick="event.stopPropagation(); editFolder('${f.id}')" title="Modifier le dossier">✏️</button>
+    <div class="folder-card">
+      <div class="folder-card-clickable" onclick="openFolder('${f.id}')">
+        <div class="folder-card-top">
+          <div class="folder-icon">📁</div>
+          <div class="folder-card-actions" onclick="event.stopPropagation()">
+            <button class="folder-menu-btn" onclick="openSubFolderModal('${f.id}')" title="Ajouter un sous-dossier">➕</button>
+            <button class="folder-menu-btn" onclick="editFolder('${f.id}')" title="Modifier le dossier">✏️</button>
+          </div>
+        </div>
+        <div class="folder-name">${escHtml(f.name)}</div>
+        <div class="folder-client">${cpName ? '🏢 ' + escHtml(cpName) : 'Sans contrepartie'}</div>
+        <div class="folder-stats">
+          <div class="folder-stat">
+            <div class="folder-stat-val">${docsInFolder.length}</div>
+            <div class="folder-stat-label">Documents</div>
+          </div>
+          <div class="folder-stat">
+            <div class="folder-stat-val">${subFolders.length}</div>
+            <div class="folder-stat-label">Sous-dossiers</div>
+          </div>
+          <div class="folder-stat">
+            <div class="folder-stat-val red">${highR}</div>
+            <div class="folder-stat-label">Risques élevés</div>
+          </div>
+        </div>
       </div>
-      <div class="folder-name">${escHtml(f.name)}</div>
-      <div class="folder-client">${f.client ? escHtml(f.client) + (f.project ? ' · ' + escHtml(f.project) : '') : 'Sans client'}</div>
-      <div class="folder-tags">${tags}</div>
-      <div class="folder-stats">
-        <div class="folder-stat">
-          <div class="folder-stat-val">${docsInFolder.length}</div>
-          <div class="folder-stat-label">Documents</div>
-        </div>
-        <div class="folder-stat">
-          <div class="folder-stat-val red">${highR}</div>
-          <div class="folder-stat-label">Risques élevés</div>
-        </div>
-        <div class="folder-stat">
-          <div class="folder-stat-val amber">${medR}</div>
-          <div class="folder-stat-label">Risques moyens</div>
-        </div>
-      </div>
+      ${subFoldersHtml}
     </div>`;
   }).join('');
+}
+
+/**
+ * Ouvre le modal en mode sous-dossier avec le parent pré-sélectionné.
+ */
+function openSubFolderModal(parentId) {
+  openFolderModal();
+  setFolderType('sub');
+  populateParentFolderSelect();
+  document.getElementById('folderParent').value = parentId;
+  onParentFolderChange();
 }
 
 function openFolder(folderId) {
   const folder = allFolders.find(f => f.id === folderId);
   if (!folder) return;
   currentDetailFolderId = folderId;
-  const docsInFolder = allDocs.filter(d => d.folder_id === folderId || d.folder === folder.name);
+
+  // Point 9 : les risques/tâches/score sont agrégés au niveau du dossier principal.
+  // Si on ouvre un dossier principal, inclure les documents de ses sous-dossiers.
+  const isMain = !folder.parent_id;
+  const subFolderIds = isMain
+    ? (Services?.folders ? Services.folders.getSubFolders(folderId) : allFolders.filter(f => f.parent_id === folderId)).map(s => s.id)
+    : [];
+  const relatedFolderIds = [folderId, ...subFolderIds];
+
+  const docsInFolder = allDocs.filter(d => relatedFolderIds.includes(d.folder_id) || d.folder === folder.name);
   const highR = allRisks.filter(r => docsInFolder.find(d => d.id === r.document_id) && (r.severity === 'high' || r.severity === 'critical')).length;
   const medR = allRisks.filter(r => docsInFolder.find(d => d.id === r.document_id) && r.severity === 'medium').length;
 
@@ -1820,10 +1903,19 @@ function populateFolderFilter() {
 }
 
 function populateFolderSelect() {
-  const options = allFolders.map(f => `<option value="${f.id}">${escHtml(f.name)}</option>`).join('');
+  // Afficher les dossiers principaux avec leurs sous-dossiers indentés
+  const mainFolders = allFolders.filter(f => !f.parent_id);
+  let optionsHtml = '';
+  mainFolders.forEach(f => {
+    optionsHtml += `<option value="${f.id}">${escHtml(f.name)}</option>`;
+    const subs = allFolders.filter(sf => sf.parent_id === f.id);
+    subs.forEach(sf => {
+      optionsHtml += `<option value="${sf.id}">&nbsp;&nbsp;↳ ${escHtml(sf.name)}</option>`;
+    });
+  });
   ['folderSelect'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.innerHTML = '<option value="">Sans dossier</option>' + options;
+    if (el) el.innerHTML = '<option value="">Sans dossier</option>' + optionsHtml;
   });
 }
 
@@ -1847,15 +1939,22 @@ function populateCounterpartySelect(selectIds = ['counterpartySelect', 'folderCo
 
 /**
  * Retourne les contreparties liées à un dossier.
- * Aujourd'hui : une seule (folder.counterparty_id).
+ * Si c'est un sous-dossier, remonte au dossier parent pour la contrepartie.
+ * Aujourd'hui : une seule contrepartie.
  * Demain (V2) : pourra retourner plusieurs via une table de jonction,
  * sans changer le reste de l'application.
  * @param {string} folderId
  * @returns {string[]} liste d'IDs de contreparties
  */
 function getFolderCounterparties(folderId) {
-  const folder = allFolders.find(f => f.id === folderId);
-  if (!folder || !folder.counterparty_id) return [];
+  let folder = allFolders.find(f => f.id === folderId);
+  if (!folder) return [];
+  // Si sous-dossier, remonter au parent
+  if (folder.parent_id) {
+    const parent = allFolders.find(f => f.id === folder.parent_id);
+    if (parent) folder = parent;
+  }
+  if (!folder.counterparty_id) return [];
   return [folder.counterparty_id];
 }
 
@@ -1983,12 +2082,78 @@ function renderDeadlines() {
 // ── DOSSIER MODAL ─────────────────────────────
 // ID du dossier en cours d'édition (null = mode création)
 let editingFolderId = null;
+// Type de dossier en cours ('main' | 'sub')
+let currentFolderType = 'main';
+
+/**
+ * Bascule entre dossier principal et sous-dossier dans le formulaire.
+ */
+function setFolderType(type) {
+  currentFolderType = type;
+  const mainBtn = document.getElementById('typeMainBtn');
+  const subBtn = document.getElementById('typeSubBtn');
+  const parentGroup = document.getElementById('parentFolderGroup');
+  const cpGroup = document.getElementById('counterpartyGroup');
+
+  if (type === 'main') {
+    mainBtn.classList.add('active');
+    subBtn.classList.remove('active');
+    parentGroup.style.display = 'none';
+    cpGroup.style.display = '';  // Contrepartie visible pour dossier principal
+  } else {
+    mainBtn.classList.remove('active');
+    subBtn.classList.add('active');
+    parentGroup.style.display = '';
+    cpGroup.style.display = 'none';  // Contrepartie héritée du parent, on la cache
+    populateParentFolderSelect();
+  }
+}
+
+/**
+ * Peuple le dropdown des dossiers parents (uniquement les dossiers principaux).
+ */
+function populateParentFolderSelect() {
+  const mainFolders = Services?.folders
+    ? Services.folders.getMainFolders()
+    : allFolders.filter(f => !f.parent_id);
+  const options = mainFolders
+    .map(f => `<option value="${f.id}">${escHtml(f.name)}</option>`)
+    .join('');
+  const el = document.getElementById('folderParent');
+  if (el) el.innerHTML = '<option value="">Choisir un dossier principal…</option>' + options;
+}
+
+/**
+ * Affiche un indice sur la contrepartie héritée quand on choisit un parent.
+ */
+function onParentFolderChange() {
+  const parentId = document.getElementById('folderParent').value;
+  const hint = document.getElementById('parentCpHint');
+  if (!parentId || !hint) { if (hint) hint.style.display = 'none'; return; }
+
+  const parent = allFolders.find(f => f.id === parentId);
+  if (parent && parent.counterparty_id) {
+    const cpName = allCounterparties.find(c => c.id === parent.counterparty_id)?.name || '—';
+    hint.textContent = `↳ Ce sous-dossier héritera de la contrepartie : ${cpName}`;
+    hint.style.display = '';
+  } else {
+    hint.textContent = '↳ Le dossier parent n\'a pas de contrepartie.';
+    hint.style.display = '';
+  }
+}
 
 function openFolderModal() {
   editingFolderId = null;
   document.getElementById('folderModal').querySelector('.modal-title').textContent = 'Nouveau dossier';
   document.querySelector('#folderModal .btn-confirm').textContent = 'Créer le dossier';
+  // Réafficher le sélecteur de type (masqué en mode édition)
+  document.getElementById('folderTypeGroup').style.display = '';
+  setFolderType('main');  // Reset sur "principal" par défaut
   populateCounterpartySelect(['folderCounterparty']);
+  // Reset des champs
+  document.getElementById('folderName').value = '';
+  document.getElementById('folderDesc').value = '';
+  document.getElementById('folderCounterparty').value = '';
   document.getElementById('folderModal').classList.add('show');
 }
 function closeFolderModal() {
@@ -1998,20 +2163,39 @@ function closeFolderModal() {
 
 /**
  * Ouvre le modal en mode édition pour un dossier existant.
+ * - Dossier principal : nom, description, contrepartie modifiables
+ * - Sous-dossier : nom, description seulement (contrepartie héritée, non modifiable)
  */
 function editFolder(folderId) {
   const folder = allFolders.find(f => f.id === folderId);
   if (!folder) return;
   editingFolderId = folderId;
 
-  document.getElementById('folderModal').querySelector('.modal-title').textContent = 'Modifier le dossier';
+  const isSubFolder = !!folder.parent_id;
+
+  document.getElementById('folderModal').querySelector('.modal-title').textContent =
+    isSubFolder ? 'Modifier le sous-dossier' : 'Modifier le dossier';
   document.querySelector('#folderModal .btn-confirm').textContent = 'Enregistrer';
+
+  // En édition, on masque le sélecteur de type (on ne change pas main↔sub)
+  document.getElementById('folderTypeGroup').style.display = 'none';
+  document.getElementById('parentFolderGroup').style.display = 'none';
 
   document.getElementById('folderName').value = folder.name || '';
   document.getElementById('folderDesc').value = folder.description || '';
 
-  populateCounterpartySelect(['folderCounterparty']);
-  document.getElementById('folderCounterparty').value = folder.counterparty_id || '';
+  const cpGroup = document.getElementById('counterpartyGroup');
+  if (isSubFolder) {
+    // Sous-dossier : contrepartie héritée, non modifiable → on cache le champ
+    cpGroup.style.display = 'none';
+    currentFolderType = 'sub';
+  } else {
+    // Dossier principal : contrepartie modifiable
+    cpGroup.style.display = '';
+    populateCounterpartySelect(['folderCounterparty']);
+    document.getElementById('folderCounterparty').value = folder.counterparty_id || '';
+    currentFolderType = 'main';
+  }
 
   document.getElementById('folderModal').classList.add('show');
 }
@@ -2020,19 +2204,58 @@ async function createFolder() {
   const name = document.getElementById('folderName').value.trim();
   if (!name) { showToast('Le nom du dossier est requis.', 'error'); return; }
 
-  const counterpartyId = document.getElementById('folderCounterparty').value || null;
-
   // ── MODE ÉDITION ──
   if (editingFolderId) {
-    await saveEditedFolder(editingFolderId, name, counterpartyId);
+    const folder = allFolders.find(f => f.id === editingFolderId);
+    const isSubFolder = folder && !!folder.parent_id;
+    // Pour un sous-dossier, pas de changement de contrepartie
+    const counterpartyId = isSubFolder
+      ? (folder.counterparty_id || null)
+      : (document.getElementById('folderCounterparty').value || null);
+    await saveEditedFolder(editingFolderId, name, counterpartyId, isSubFolder);
     return;
   }
 
-  // ── MODE CRÉATION ──
+  // ── MODE CRÉATION : SOUS-DOSSIER ──
+  if (currentFolderType === 'sub') {
+    const parentId = document.getElementById('folderParent').value;
+    if (!parentId) { showToast('Choisissez un dossier parent.', 'error'); return; }
+
+    const payload = {
+      name,
+      description: document.getElementById('folderDesc').value.trim() || null,
+    };
+
+    let subFolder;
+    if (Services?.folders) {
+      subFolder = await Services.folders.createSubFolder(parentId, payload, currentOrgId, currentUser?.id);
+      if (!subFolder) { showToast('Erreur lors de la création du sous-dossier.', 'error'); return; }
+      allFolders = Store.state.folders;
+    } else {
+      const parent = allFolders.find(f => f.id === parentId);
+      subFolder = {
+        id: 'f-' + Date.now(), ...payload, parent_id: parentId,
+        counterparty_id: parent?.counterparty_id || null,
+        created_at: new Date().toISOString()
+      };
+      allFolders.unshift(subFolder);
+    }
+
+    closeFolderModal();
+    populateFolderSelect();
+    updateNavCounts();
+    renderFolders();
+    showToast('Sous-dossier "' + name + '" créé.', 'success');
+    return;
+  }
+
+  // ── MODE CRÉATION : DOSSIER PRINCIPAL ──
+  const counterpartyId = document.getElementById('folderCounterparty').value || null;
   const payload = {
     name,
     description: document.getElementById('folderDesc').value.trim() || null,
     counterparty_id: counterpartyId,
+    parent_id: null,
   };
 
   let folder;
@@ -2050,51 +2273,83 @@ async function createFolder() {
   updateNavCounts();
   renderFolders();
   showToast('Dossier "' + name + '" créé.', 'success');
-  ['folderName','folderClient','folderProject','folderOwner','folderCounterparty','folderDesc','folderTags'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = '';
-  });
 }
 
 /**
  * Enregistre les modifications d'un dossier existant.
- * Gère le garde-fou : si la contrepartie change et que le dossier
- * contient des documents portant l'ancienne contrepartie, demande
- * explicitement s'il faut aussi les mettre à jour.
+ * Pour un dossier PRINCIPAL avec changement de contrepartie, gère le garde-fou
+ * qui propose de propager aux sous-dossiers et/ou aux documents.
  */
-async function saveEditedFolder(folderId, name, newCounterpartyId) {
+async function saveEditedFolder(folderId, name, newCounterpartyId, isSubFolder) {
   const folder = allFolders.find(f => f.id === folderId);
   if (!folder) return;
 
   const oldCounterpartyId = folder.counterparty_id || null;
   const description = document.getElementById('folderDesc').value.trim() || null;
-
   const updatePayload = { name, description, counterparty_id: newCounterpartyId };
 
-  // Documents du dossier portant l'ANCIENNE contrepartie
-  const docsWithOldCp = (oldCounterpartyId)
-    ? allDocs.filter(d => d.folder_id === folderId && d.counterparty_id === oldCounterpartyId)
-    : [];
+  // Un sous-dossier : simple mise à jour nom/description, pas de garde-fou contrepartie
+  if (isSubFolder) {
+    try {
+      if (Services?.folders) {
+        const updated = await Services.folders.updateFolder(folderId, { name, description });
+        if (!updated) throw new Error('Mise à jour échouée');
+        allFolders = Store.state.folders;
+      } else {
+        Object.assign(folder, { name, description });
+      }
+      closeFolderModal();
+      populateFolderSelect();
+      renderFolders();
+      showToast('Sous-dossier mis à jour.', 'success');
+    } catch (err) {
+      console.error('[saveEditedFolder:sub]', err);
+      showToast('Erreur: ' + err.message, 'error');
+    }
+    return;
+  }
 
+  // ── DOSSIER PRINCIPAL ──
   const counterpartyChanged = oldCounterpartyId !== newCounterpartyId;
 
-  // ── Garde-fou : changement de contrepartie avec documents impactés ──
-  let alsoUpdateDocs = false;
-  if (counterpartyChanged && docsWithOldCp.length > 0) {
+  // Sous-dossiers de ce dossier principal
+  const subFolders = Services?.folders
+    ? Services.folders.getSubFolders(folderId)
+    : allFolders.filter(f => f.parent_id === folderId);
+  const subFolderIds = subFolders.map(s => s.id);
+
+  // Documents portant l'ANCIENNE contrepartie, dans le dossier OU ses sous-dossiers
+  const allRelatedFolderIds = [folderId, ...subFolderIds];
+  const docsWithOldCp = (oldCounterpartyId)
+    ? allDocs.filter(d => allRelatedFolderIds.includes(d.folder_id) && d.counterparty_id === oldCounterpartyId)
+    : [];
+
+  // ── Garde-fou : 3 choix ──
+  let propagateMode = 'folder-only';  // 'folder-only' | 'with-subs' | 'with-subs-and-docs'
+  if (counterpartyChanged && (subFolders.length > 0 || docsWithOldCp.length > 0)) {
     const oldName = allCounterparties.find(c => c.id === oldCounterpartyId)?.name || 'l\'ancienne contrepartie';
     const newName = newCounterpartyId
       ? (allCounterparties.find(c => c.id === newCounterpartyId)?.name || 'la nouvelle contrepartie')
       : 'aucune contrepartie';
-    alsoUpdateDocs = confirm(
-      `Ce dossier contient ${docsWithOldCp.length} document(s) rattaché(s) à "${oldName}".\n\n` +
-      `Voulez-vous aussi mettre à jour ces documents vers "${newName}" ?\n\n` +
-      `• OK  = mettre à jour le dossier ET les ${docsWithOldCp.length} document(s)\n` +
-      `• Annuler = mettre à jour uniquement le dossier (les documents gardent "${oldName}")`
+
+    const choice = prompt(
+      `Cette affaire contient ${subFolders.length} sous-dossier(s) et ${docsWithOldCp.length} document(s) rattaché(s) à "${oldName}".\n\n` +
+      `Que souhaitez-vous faire ? Tapez 1, 2 ou 3 :\n\n` +
+      `1 = Modifier uniquement le dossier principal\n` +
+      `2 = Mettre à jour aussi les sous-dossiers\n` +
+      `3 = Mettre à jour les sous-dossiers ET les documents (vers "${newName}")\n\n` +
+      `(Annuler = ne rien changer)`,
+      '1'
     );
+
+    if (choice === null) return;  // Annulé
+    if (choice.trim() === '2') propagateMode = 'with-subs';
+    else if (choice.trim() === '3') propagateMode = 'with-subs-and-docs';
+    else propagateMode = 'folder-only';
   }
 
   try {
-    // 1. Mise à jour du dossier
+    // 1. Mise à jour du dossier principal
     if (Services?.folders) {
       const updated = await Services.folders.updateFolder(folderId, updatePayload);
       if (!updated) throw new Error('Mise à jour du dossier échouée');
@@ -2103,8 +2358,22 @@ async function saveEditedFolder(folderId, name, newCounterpartyId) {
       Object.assign(folder, updatePayload);
     }
 
-    // 2. Propagation optionnelle aux documents
-    if (alsoUpdateDocs && docsWithOldCp.length > 0) {
+    // 2. Propagation aux sous-dossiers
+    if ((propagateMode === 'with-subs' || propagateMode === 'with-subs-and-docs') && subFolderIds.length > 0) {
+      for (const subId of subFolderIds) {
+        const { error } = await _sb
+          .from('folders')
+          .update({ counterparty_id: newCounterpartyId })
+          .eq('id', subId);
+        if (!error) {
+          const sub = allFolders.find(f => f.id === subId);
+          if (sub) sub.counterparty_id = newCounterpartyId;
+        }
+      }
+    }
+
+    // 3. Propagation aux documents
+    if (propagateMode === 'with-subs-and-docs' && docsWithOldCp.length > 0) {
       for (const doc of docsWithOldCp) {
         const { error } = await _sb
           .from('documents')
@@ -2112,10 +2381,15 @@ async function saveEditedFolder(folderId, name, newCounterpartyId) {
           .eq('id', doc.id);
         if (!error) doc.counterparty_id = newCounterpartyId;
       }
-      showToast(`Dossier et ${docsWithOldCp.length} document(s) mis à jour.`, 'success');
-    } else {
-      showToast('Dossier mis à jour.', 'success');
     }
+
+    // Message de confirmation adapté
+    const msgMap = {
+      'folder-only': 'Dossier mis à jour.',
+      'with-subs': `Dossier et ${subFolderIds.length} sous-dossier(s) mis à jour.`,
+      'with-subs-and-docs': `Dossier, ${subFolderIds.length} sous-dossier(s) et ${docsWithOldCp.length} document(s) mis à jour.`,
+    };
+    showToast(msgMap[propagateMode], 'success');
 
     closeFolderModal();
     populateFolderSelect();
