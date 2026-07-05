@@ -200,6 +200,22 @@
     .type-chip { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; background: var(--slate-800); color: #a5b4fc; letter-spacing: 0.04em; font-family: monospace; }
     .clause-ref { font-size: 11px; font-weight: 600; color: var(--indigo); background: var(--indigo-bg); padding: 2px 6px; border-radius: 4px; }
 
+    /* ── ONGLETS RISQUES ── */
+    .risk-tabs { display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 2px solid var(--border); }
+    .risk-tab-btn { padding: 12px 18px; background: none; border: none; font-size: 14px; font-weight: 600; color: var(--slate-600); cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all 0.15s; }
+    .risk-tab-btn:hover { color: var(--slate-900); }
+    .risk-tab-btn.active { color: var(--indigo); border-bottom-color: var(--indigo); }
+    .risk-tab-content { display: none; }
+    .risk-tab-content.active { display: block; }
+    .risk-reporting-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+    @media (max-width: 900px) { .risk-reporting-grid { grid-template-columns: 1fr; } }
+    .risk-report-card { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+    .risk-report-card-title { font-size: 13px; font-weight: 700; color: var(--slate-700); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.06em; }
+    .risk-report-list { display: flex; flex-direction: column; gap: 12px; }
+    .risk-report-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: var(--slate-50); border-radius: 8px; }
+    .risk-report-item-name { font-size: 13px; font-weight: 500; color: var(--slate-900); flex: 1; }
+    .risk-report-item-count { font-size: 14px; font-weight: 700; color: var(--indigo); background: var(--indigo-bg); padding: 3px 10px; border-radius: 6px; }
+
     /* ── ÉCHÉANCES ── */
     .deadlines-list { display: flex; flex-direction: column; gap: 10px; }
     .deadline-card { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; display: flex; align-items: center; gap: 16px; }
@@ -559,9 +575,6 @@
       <span class="nav-icon">⚠️</span> Risques
       <span class="nav-count nav-badge-red" id="navRisksCount">—</span>
     </button>
-    <button class="nav-item" onclick="showPage('portefeuille')">
-      <span class="nav-icon">📈</span> Portefeuille risques
-    </button>
     <button class="nav-item" onclick="showPage('echeances')">
       <span class="nav-icon">📅</span> Échéances
     </button>
@@ -845,46 +858,111 @@
         </div>
       </div>
 
-      <!-- KPIs résolution -->
-      <div class="kpi-grid" style="grid-template-columns:repeat(5,1fr);margin-bottom:20px" id="riskKpiGrid"></div>
+      <!-- Onglets -->
+      <div class="risk-tabs">
+        <button class="risk-tab-btn active" onclick="switchRiskTab('liste')">📋 Liste</button>
+        <button class="risk-tab-btn" onclick="switchRiskTab('portfolio')">📈 Portefeuille</button>
+        <button class="risk-tab-btn" onclick="switchRiskTab('reporting')">📊 Reporting</button>
+      </div>
 
-      <!-- Filtres sévérité + statut -->
-      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
-        <div class="risks-filters" style="margin-bottom:0">
-          <button class="filter-pill active" onclick="filterRisks('all',this)">Tous</button>
-          <button class="filter-pill red" onclick="filterRisks('high',this)">⚠️ Élevés</button>
-          <button class="filter-pill amber" onclick="filterRisks('medium',this)">Moyens</button>
-          <button class="filter-pill" onclick="filterRisks('low',this)">Faibles</button>
+      <!-- ONGLET: LISTE -->
+      <div class="risk-tab-content active" id="tab-liste">
+        <!-- KPIs résolution -->
+        <div class="kpi-grid" style="grid-template-columns:repeat(5,1fr);margin-bottom:20px" id="riskKpiGrid"></div>
+
+        <!-- Filtres sévérité + statut -->
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
+          <div class="risks-filters" style="margin-bottom:0">
+            <button class="filter-pill active" onclick="filterRisks('all',this)">Tous</button>
+            <button class="filter-pill red" onclick="filterRisks('high',this)">⚠️ Élevés</button>
+            <button class="filter-pill amber" onclick="filterRisks('medium',this)">Moyens</button>
+            <button class="filter-pill" onclick="filterRisks('low',this)">Faibles</button>
+          </div>
+          <div class="risks-filters" style="margin-bottom:0;margin-left:auto">
+            <button class="filter-pill active" id="rsFiltAll" onclick="filterRisksByStatus('all',this)">Tous statuts</button>
+            <button class="filter-pill" onclick="filterRisksByStatus('open',this)">🔴 Open</button>
+            <button class="filter-pill" onclick="filterRisksByStatus('review',this)">🟡 Under Review</button>
+            <button class="filter-pill" onclick="filterRisksByStatus('mitigated',this)">🔵 Mitigated</button>
+            <button class="filter-pill" onclick="filterRisksByStatus('accepted',this)">🟣 Accepted</button>
+            <button class="filter-pill" onclick="filterRisksByStatus('closed',this)">✅ Closed</button>
+          </div>
         </div>
-        <div class="risks-filters" style="margin-bottom:0;margin-left:auto">
-          <button class="filter-pill active" id="rsFiltAll" onclick="filterRisksByStatus('all',this)">Tous statuts</button>
-          <button class="filter-pill" onclick="filterRisksByStatus('open',this)">🔴 Open</button>
-          <button class="filter-pill" onclick="filterRisksByStatus('review',this)">🟡 Under Review</button>
-          <button class="filter-pill" onclick="filterRisksByStatus('mitigated',this)">🔵 Mitigated</button>
-          <button class="filter-pill" onclick="filterRisksByStatus('accepted',this)">🟣 Accepted</button>
-          <button class="filter-pill" onclick="filterRisksByStatus('closed',this)">✅ Closed</button>
+
+        <table class="risks-table" id="risksTable">
+          <thead>
+            <tr>
+              <th>Niveau</th>
+              <th>Statut</th>
+              <th>Type</th>
+              <th>Risque</th>
+              <th>Dossier / Document</th>
+              <th>Clause</th>
+              <th>Responsable</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="risksBody"></tbody>
+        </table>
+        <div class="empty-state" id="emptyRisks" style="display:none">
+          <div class="empty-icon">✅</div>
+          <div class="empty-title">Aucun risque identifié</div>
+          <div class="empty-sub">Les risques apparaissent ici après l'analyse de vos documents.</div>
         </div>
       </div>
 
-      <table class="risks-table" id="risksTable">
-        <thead>
-          <tr>
-            <th>Niveau</th>
-            <th>Statut</th>
-            <th>Type</th>
-            <th>Risque</th>
-            <th>Dossier / Document</th>
-            <th>Clause</th>
-            <th>Responsable</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="risksBody"></tbody>
-      </table>
-      <div class="empty-state" id="emptyRisks" style="display:none">
-        <div class="empty-icon">✅</div>
-        <div class="empty-title">Aucun risque identifié</div>
-        <div class="empty-sub">Les risques apparaissent ici après l'analyse de vos documents.</div>
+      <!-- ONGLET: PORTEFEUILLE -->
+      <div class="risk-tab-content" id="tab-portfolio">
+        <!-- Niveaux -->
+        <div class="risk-levels" id="portfolioLevels"></div>
+
+        <div class="risk-portfolio-grid">
+          <!-- Répartition par type -->
+          <div class="risk-summary-card">
+            <div class="risk-summary-title">Répartition par type</div>
+            <div class="risk-bars" id="portfolioBars"></div>
+          </div>
+          <!-- Top 10 -->
+          <div class="risk-summary-card">
+            <div class="risk-summary-title">Top risques les plus fréquents</div>
+            <div class="top-risks-list" id="portfolioTop"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ONGLET: REPORTING -->
+      <div class="risk-tab-content" id="tab-reporting">
+        <!-- Risques par contrepartie -->
+        <div class="risk-report-card">
+          <div class="risk-report-card-title">⚠️ Risques par contrepartie</div>
+          <div class="risk-report-list" id="reportRisksByCounterparty"></div>
+        </div>
+
+        <!-- Risques par dossier -->
+        <div class="risk-report-card">
+          <div class="risk-report-card-title">📁 Risques par dossier</div>
+          <div class="risk-report-list" id="reportRisksByFolder"></div>
+        </div>
+
+        <!-- Grille inférieure -->
+        <div class="risk-reporting-grid">
+          <!-- Répartition par statut -->
+          <div class="risk-report-card">
+            <div class="risk-report-card-title">Répartition par statut</div>
+            <div class="risk-report-list" id="reportStatusDistribution"></div>
+          </div>
+
+          <!-- Top dossiers les plus risqués -->
+          <div class="risk-report-card">
+            <div class="risk-report-card-title">🔴 Top dossiers les plus risqués</div>
+            <div class="risk-report-list" id="reportTopFolders"></div>
+          </div>
+        </div>
+
+        <!-- Taux de résolution -->
+        <div class="risk-report-card" style="grid-column: 1 / -1">
+          <div class="risk-report-card-title">📈 Taux de résolution</div>
+          <div id="reportResolutionRate" style="font-size:32px;font-weight:700;color:var(--indigo);text-align:center;padding:20px">—</div>
+        </div>
       </div>
     </div>
 
@@ -971,43 +1049,8 @@
     </div>
 
     <!-- ══════════ PAGE: PORTEFEUILLE RISQUES ══════════ -->
-    <div class="page" id="page-portefeuille">
-      <div class="page-header">
-        <div>
-          <div class="page-title">Portefeuille de risques</div>
-          <div class="page-sub">Vue de management de l'exposition juridique globale</div>
-        </div>
-      </div>
-
-      <!-- Niveaux -->
-      <div class="risk-levels" id="portfolioLevels"></div>
-
-      <div class="risk-portfolio-grid">
-        <!-- Répartition par type -->
-        <div class="risk-summary-card">
-          <div class="risk-summary-title">Répartition par type</div>
-          <div class="risk-bars" id="portfolioBars"></div>
-        </div>
-        <!-- Top 10 -->
-        <div class="risk-summary-card">
-          <div class="risk-summary-title">Top risques les plus fréquents</div>
-          <div class="top-risks-list" id="portfolioTop"></div>
-        </div>
-      </div>
-
-      <!-- Tableau complet filtrable -->
-      <div style="margin-top:4px">
-        <div class="risks-filters" style="margin-bottom:12px">
-          <button class="filter-pill active" onclick="filterPortfolio('all',this)">Tous</button>
-          <button class="filter-pill red" onclick="filterPortfolio('high',this)">⚠️ Élevés</button>
-          <button class="filter-pill amber" onclick="filterPortfolio('medium',this)">Moyens</button>
-          <button class="filter-pill" onclick="filterPortfolio('low',this)">Faibles</button>
-        </div>
-        <table class="risks-table" id="portfolioTable">
-          <thead><tr><th>Niveau</th><th>Type</th><th>Risque</th><th>Document</th><th>Contrepartie</th><th>Clause</th></tr></thead>
-          <tbody id="portfolioBody"></tbody>
-        </table>
-      </div>
+    <div class="page" id="page-portefeuille" style="display:none">
+      <!-- Page conservée pour compatibilité mais le contenu est intégré dans page-risques -->
     </div>
 
 
@@ -2045,6 +2088,166 @@ function filterRisks(level, btn) {
   document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
   if (btn) btn.classList.add('active');
   renderRisks(level);
+}
+
+// ── ONGLETS RISQUES ──────────────────────────────
+/**
+ * Switche entre les 3 onglets du module Risques.
+ */
+function switchRiskTab(tabName) {
+  // Masquer tous les onglets et les boutons
+  document.querySelectorAll('.risk-tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.risk-tab-btn').forEach(b => b.classList.remove('active'));
+
+  // Afficher l'onglet sélectionné
+  const tabEl = document.getElementById('tab-' + tabName);
+  const btnEl = document.querySelector(`.risk-tab-btn[onclick="switchRiskTab('${tabName}')"]`);
+  if (tabEl) tabEl.classList.add('active');
+  if (btnEl) btnEl.classList.add('active');
+
+  // Rendu spécifique selon l'onglet
+  if (tabName === 'portfolio') {
+    renderRiskTabPortfolio();
+  } else if (tabName === 'reporting') {
+    renderRiskTabReporting();
+  }
+}
+
+/**
+ * Rend l'onglet Portefeuille (même contenu que l'ancienne page portefeuille).
+ */
+function renderRiskTabPortfolio() {
+  // Niveaux de risque
+  const levels = { high: 0, medium: 0, low: 0 };
+  allRisks.forEach(r => {
+    if (!levels[r.severity]) levels[r.severity] = 0;
+    levels[r.severity]++;
+  });
+  const levelsHtml = `
+    <div style="display:flex;gap:20px;margin-bottom:20px;flex-wrap:wrap">
+      <div style="flex:1;min-width:150px">
+        <div style="font-size:11px;color:var(--slate-500);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">⚠️ Élevés</div>
+        <div style="font-size:28px;font-weight:700;color:var(--red)">${levels.high || 0}</div>
+      </div>
+      <div style="flex:1;min-width:150px">
+        <div style="font-size:11px;color:var(--slate-500);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">🟡 Moyens</div>
+        <div style="font-size:28px;font-weight:700;color:var(--amber)">${levels.medium || 0}</div>
+      </div>
+      <div style="flex:1;min-width:150px">
+        <div style="font-size:11px;color:var(--slate-500);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">🟢 Faibles</div>
+        <div style="font-size:28px;font-weight:700;color:var(--green)">${levels.low || 0}</div>
+      </div>
+    </div>`;
+  document.getElementById('portfolioLevels').innerHTML = levelsHtml;
+
+  // Répartition par type
+  const typeCount = {};
+  allRisks.forEach(r => {
+    const t = r.risk_type || 'autre';
+    typeCount[t] = (typeCount[t] || 0) + 1;
+  });
+  const sorted = Object.entries(typeCount).sort((a,b) => b[1] - a[1]);
+  const maxCount = Math.max(...sorted.map(x => x[1]), 1);
+  const typeBarsHtml = sorted.map(([type, count]) => {
+    const pct = (count / maxCount * 100).toFixed(0);
+    return `<div style="margin-bottom:12px">
+      <div style="font-size:12px;font-weight:500;color:var(--slate-700);margin-bottom:4px">${escHtml(type)}</div>
+      <div style="height:8px;background:var(--slate-100);border-radius:4px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:var(--indigo);transition:width 0.2s"></div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('portfolioBars').innerHTML = typeBarsHtml || '<div style="color:var(--slate-400)">Aucun risque</div>';
+
+  // Top 10 risques fréquents
+  const top = sorted.slice(0, 10);
+  const topHtml = top.map(([type, count]) => {
+    const badge = count > 5 ? '🔴' : (count > 2 ? '🟡' : '🟢');
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--slate-50);border-radius:8px;font-size:13px">
+      <span style="font-weight:500;color:var(--slate-900)">${badge} ${escHtml(type)}</span>
+      <span style="font-weight:700;color:var(--indigo)">${count}</span>
+    </div>`;
+  }).join('');
+  document.getElementById('portfolioTop').innerHTML = topHtml || '<div style="color:var(--slate-400)">Aucun risque</div>';
+}
+
+/**
+ * Rend l'onglet Reporting (nouvelles vues pour management).
+ */
+function renderRiskTabReporting() {
+  // Risques par contrepartie
+  const risksByCp = {};
+  allRisks.forEach(r => {
+    const doc = allDocs.find(d => d.id === r.document_id);
+    const cp = doc?.counterparty_id ? (allCounterparties.find(c => c.id === doc.counterparty_id)?.name || 'Sans nom') : 'Pas de contrepartie';
+    risksByCp[cp] = (risksByCp[cp] || 0) + 1;
+  });
+  const cpSorted = Object.entries(risksByCp).sort((a,b) => b[1] - a[1]);
+  const cpHtml = cpSorted.map(([cp, count]) => `
+    <div class="risk-report-item">
+      <span class="risk-report-item-name">${escHtml(cp)}</span>
+      <span class="risk-report-item-count">${count}</span>
+    </div>`).join('');
+  document.getElementById('reportRisksByCounterparty').innerHTML = cpHtml || '<div style="color:var(--slate-400);padding:12px">Aucun risque</div>';
+
+  // Risques par dossier
+  const risksByFolder = {};
+  allRisks.forEach(r => {
+    const doc = allDocs.find(d => d.id === r.document_id);
+    const folder = doc?.folder_id ? (allFolders.find(f => f.id === doc.folder_id)?.name || 'Sans dossier') : 'Pas de dossier';
+    risksByFolder[folder] = (risksByFolder[folder] || 0) + 1;
+  });
+  const folderSorted = Object.entries(risksByFolder).sort((a,b) => b[1] - a[1]);
+  const folderHtml = folderSorted.map(([folder, count]) => `
+    <div class="risk-report-item">
+      <span class="risk-report-item-name">${escHtml(folder)}</span>
+      <span class="risk-report-item-count">${count}</span>
+    </div>`).join('');
+  document.getElementById('reportRisksByFolder').innerHTML = folderHtml || '<div style="color:var(--slate-400);padding:12px">Aucun risque</div>';
+
+  // Répartition par statut
+  const statuses = { open: 0, review: 0, mitigated: 0, accepted: 0, closed: 0 };
+  allRisks.forEach(r => {
+    const s = r.status || 'open';
+    if (statuses.hasOwnProperty(s)) statuses[s]++;
+  });
+  const statusLabels = {
+    open: '🔴 Open',
+    review: '🟡 Under Review',
+    mitigated: '🔵 Mitigated',
+    accepted: '🟣 Accepted',
+    closed: '✅ Closed'
+  };
+  const statusHtml = Object.entries(statuses).map(([status, count]) => `
+    <div class="risk-report-item">
+      <span class="risk-report-item-name">${statusLabels[status] || status}</span>
+      <span class="risk-report-item-count">${count}</span>
+    </div>`).join('');
+  document.getElementById('reportStatusDistribution').innerHTML = statusHtml;
+
+  // Top dossiers les plus risqués
+  const folderRiskScores = {};
+  folderSorted.forEach(([folder, count]) => {
+    const folderId = allFolders.find(f => f.name === folder)?.id;
+    if (folderId) {
+      const docsInFolder = allDocs.filter(d => d.folder_id === folderId);
+      const highRisks = allRisks.filter(r => docsInFolder.find(d => d.id === r.document_id) && (r.severity === 'high' || r.severity === 'critical')).length;
+      folderRiskScores[folder] = highRisks * 3 + count;  // Poids : risques élevés * 3 + total
+    }
+  });
+  const topFoldersSorted = Object.entries(folderRiskScores).sort((a,b) => b[1] - a[1]).slice(0, 5);
+  const topFoldersHtml = topFoldersSorted.map(([folder, score], idx) => `
+    <div class="risk-report-item">
+      <span class="risk-report-item-name">${idx + 1}. ${escHtml(folder)}</span>
+      <span class="risk-report-item-count">${Math.round(score)}</span>
+    </div>`).join('');
+  document.getElementById('reportTopFolders').innerHTML = topFoldersHtml || '<div style="color:var(--slate-400);padding:12px">Aucun dossier</div>';
+
+  // Taux de résolution (closed / total)
+  const closed = statuses.closed;
+  const total = Object.values(statuses).reduce((a,b) => a+b, 0);
+  const resolution = total > 0 ? Math.round((closed / total) * 100) : 0;
+  document.getElementById('reportResolutionRate').innerHTML = `${resolution}%`;
 }
 
 // ── ÉCHÉANCES ─────────────────────────────────
