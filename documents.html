@@ -1092,6 +1092,12 @@
         <option value="">Sans dossier</option>
       </select>
     </div>
+    <div class="form-group">
+      <label class="form-label">Contrepartie</label>
+      <select class="form-input" id="counterpartySelect">
+        <option value="">Aucune contrepartie</option>
+      </select>
+    </div>
     <div class="drop-zone" id="dropZone"
       onclick="document.getElementById('fileInput').click()"
       ondragover="handleDragOver(event)" ondragleave="handleDragLeave()" ondrop="handleDrop(event)">
@@ -2020,6 +2026,7 @@ async function confirmUpload() {
   btn.disabled = true;
   document.getElementById('btnUploadText').textContent = 'Importation…';
   const folderId = document.getElementById('folderSelect')?.value || null;
+  const counterpartyId = document.getElementById('counterpartySelect')?.value || null;
 
   // Si DocumentService disponible, l'utiliser
   if (Services?.documents) {
@@ -2031,7 +2038,7 @@ async function confirmUpload() {
       try {
         await Services.documents.importFile(
           file, currentOrgId, currentUser.id,
-          { folder_id: folderId || null },
+          { folder_id: folderId || null, counterparty_id: counterpartyId || null },
           (pct) => { progressBar.style.width = pct + '%'; }
         );
         await new Promise(r => setTimeout(r, 200));
@@ -2059,6 +2066,7 @@ async function confirmUpload() {
           currency: 'MAD', chunk_version: 0, status: 'imported',
           is_starred: false, is_archived: false,
           folder_id: folderId || null,
+          counterparty_id: counterpartyId || null,
           created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
         };
         progressBar.style.width = '20%';
@@ -2309,11 +2317,11 @@ function switchCpTab(name) {
 
 function openCpModal() { document.getElementById('cpModal').classList.add('show'); }
 function closeCpModal() { document.getElementById('cpModal').classList.remove('show'); }
-function createCounterparty() {
+async function createCounterparty() {
   const name = document.getElementById('cpName').value.trim();
   if (!name) { showToast('Le nom est requis.', 'error'); return; }
-  const cp = {
-    id: 'cp-' + Date.now(),
+  
+  const payload = {
     name,
     type: document.getElementById('cpType').value,
     sector: document.getElementById('cpSector').value.trim(),
@@ -2321,12 +2329,44 @@ function createCounterparty() {
     notes: document.getElementById('cpNotes').value.trim(),
     risk_level: 'low',
   };
-  allCounterparties.unshift(cp);
-  closeCpModal();
-  renderCounterparties();
-  document.getElementById('navCpCount').textContent = allCounterparties.length;
-  showToast('Contrepartie "' + name + '" créée.', 'success');
-  ['cpName','cpSector','cpNotes'].forEach(id => { document.getElementById(id).value = ''; });
+  
+  try {
+    // ✅ Sauvegarder en base via le service
+    if (Services?.counterparties) {
+      const saved = await Services.counterparties.saveCounterparty(payload, currentOrgId);
+      if (!saved) throw new Error('Sauvegarde échouée');
+      
+      // Le service appelle déjà upsertCounterparty, mais on force une sync
+      allCounterparties = Store.state.counterparties;
+      document.getElementById('navCpCount').textContent = allCounterparties.length;
+      showToast('Contrepartie "' + name + '" créée et sauvegardée.', 'success');
+      
+    } else {
+      // Fallback direct Supabase
+      const { data: inserted, error: insertErr } = await _sb
+        .from('counterparties')
+        .insert({
+          organization_id: currentOrgId,
+          ...payload
+        })
+        .select()
+        .single();
+      
+      if (insertErr || !inserted) throw insertErr || new Error('Insert failed');
+      
+      allCounterparties.unshift(inserted);
+      document.getElementById('navCpCount').textContent = allCounterparties.length;
+      showToast('Contrepartie "' + name + '" créée.', 'success');
+    }
+    
+    closeCpModal();
+    renderCounterparties();
+    ['cpName','cpSector','cpNotes'].forEach(id => { document.getElementById(id).value = ''; });
+    
+  } catch(err) {
+    console.error('[createCounterparty]', err);
+    showToast('Erreur: ' + err.message, 'error');
+  }
 }
 
 // ══════════════════════════════════════════════
