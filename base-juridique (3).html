@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Juria — Base Juridique</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --indigo: #4f46e5; --indigo-light: #6366f1; --indigo-bg: #eef2ff; --indigo-text: #3730a3;
+      --slate-900: #0f1117; --slate-700: #374151; --slate-500: #6b7280; --slate-400: #9ca3af;
+      --slate-300: #d1d5db; --slate-100: #f3f4f6; --border: #e5e7eb; --white: #ffffff;
+      --font: 'Inter', sans-serif; --serif: 'DM Serif Display', Georgia, serif;
+    }
+    html { font-size: 15px; }
+    body { font-family: var(--font); color: var(--slate-900); background: #f8f9fb; min-height: 100vh; }
+
+    .topnav { background: var(--white); border-bottom: 1px solid var(--border); padding: 0 32px; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+    .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-mark { width: 30px; height: 30px; background: var(--indigo); color: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-family: var(--serif); font-size: 17px; }
+    .logo-name { font-family: var(--serif); font-size: 20px; color: var(--slate-900); }
+    .nav-back { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--slate-500); text-decoration: none; padding: 6px 12px; border-radius: 8px; transition: all 0.15s; }
+    .nav-back:hover { background: var(--slate-100); color: var(--slate-900); }
+
+    .main { max-width: 900px; margin: 0 auto; padding: 40px 24px; }
+    .page-title { font-family: var(--serif); font-size: 30px; margin-bottom: 6px; }
+    .page-sub { font-size: 14px; color: var(--slate-500); margin-bottom: 32px; }
+
+    /* SEARCH */
+    .search-row { display: flex; gap: 10px; margin-bottom: 16px; }
+    .search-input { flex: 1; padding: 12px 16px; border: 1px solid var(--border); border-radius: 10px; font-family: var(--font); font-size: 15px; color: var(--slate-900); background: var(--white); outline: none; transition: border-color 0.15s; }
+    .search-input:focus { border-color: var(--indigo); box-shadow: 0 0 0 3px rgba(79,70,229,0.08); }
+    .search-input::placeholder { color: var(--slate-400); }
+    .btn-search { padding: 12px 24px; background: var(--indigo); color: #fff; border: none; border-radius: 10px; font-family: var(--font); font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.15s; white-space: nowrap; }
+    .btn-search:hover { background: var(--indigo-light); }
+
+    /* FILTERS */
+    .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
+    .filter-btn { padding: 6px 14px; border-radius: 99px; border: 1px solid var(--border); background: var(--white); font-family: var(--font); font-size: 12px; color: var(--slate-500); cursor: pointer; transition: all 0.15s; }
+    .filter-btn:hover { border-color: var(--indigo); color: var(--indigo); }
+    .filter-btn.active { background: var(--indigo); color: #fff; border-color: var(--indigo); }
+
+    /* STATS */
+    .stats-row { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+    .stat-item { font-size: 13px; color: var(--slate-500); }
+    .stat-item strong { color: var(--slate-900); }
+
+    /* RESULTS */
+    .results-list { display: flex; flex-direction: column; gap: 12px; }
+    .article-card { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 20px; transition: all 0.15s; cursor: pointer; }
+    .article-card:hover { border-color: var(--indigo); box-shadow: 0 2px 12px rgba(79,70,229,0.06); }
+    .article-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+    .article-num { font-size: 14px; font-weight: 600; color: var(--slate-900); }
+    .code-badge { font-size: 11px; padding: 3px 8px; border-radius: 99px; background: var(--indigo-bg); color: var(--indigo-text); }
+    .book-badge { font-size: 11px; padding: 3px 8px; border-radius: 99px; background: var(--slate-100); color: var(--slate-500); }
+    .article-content { font-size: 13px; color: var(--slate-500); line-height: 1.6; }
+    .article-content.expanded { color: var(--slate-700); }
+    .article-toggle { font-size: 12px; color: var(--indigo); margin-top: 8px; cursor: pointer; display: inline-block; }
+    .article-toggle:hover { text-decoration: underline; }
+
+    /* EMPTY / LOADING */
+    .empty { text-align: center; padding: 60px 24px; color: var(--slate-400); }
+    .empty-icon { font-size: 40px; margin-bottom: 12px; }
+    .loading-bar { text-align: center; padding: 40px; color: var(--slate-400); font-size: 14px; }
+
+    /* CODES GRID */
+    .codes-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 32px; }
+    @media (max-width: 640px) { .codes-grid { grid-template-columns: 1fr 1fr; } }
+    .code-card { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 16px; cursor: pointer; transition: all 0.15s; text-align: center; }
+    .code-card:hover { border-color: var(--indigo); background: var(--indigo-bg); }
+    .code-card-icon { font-size: 24px; margin-bottom: 8px; }
+    .code-card-name { font-size: 12px; font-weight: 600; color: var(--slate-700); line-height: 1.3; }
+    .code-card-count { font-size: 11px; color: var(--slate-400); margin-top: 4px; }
+    .section-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--slate-400); margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+
+<nav class="topnav">
+  <a href="dashboard.html" class="nav-logo">
+    <div class="logo-mark">J</div>
+    <span class="logo-name">Juria</span>
+  </a>
+  <a href="dashboard.html" class="nav-back">← Tableau de bord</a>
+</nav>
+
+<main class="main">
+  <div class="page-title">📚 Base Juridique</div>
+  <div class="page-sub">5 000+ articles des codes marocains. Recherchez par mot-clé, numéro d'article ou code.</div>
+
+  <!-- SEARCH -->
+  <div class="search-row">
+    <input class="search-input" id="searchInput" type="text" placeholder="Ex: Article 304, licenciement, bail commercial, ACAPS..." autocomplete="off"/>
+    <button class="btn-search" onclick="doSearch()">Rechercher</button>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="filters" id="filters">
+    <button class="filter-btn active" data-code="all" onclick="setFilter(this, 'all')">Tous les codes</button>
+    <button class="filter-btn" data-code="Code de Commerce" onclick="setFilter(this, 'Code de Commerce')">Code de Commerce</button>
+    <button class="filter-btn" data-code="Code des Obligations et Contrats" onclick="setFilter(this, 'Code des Obligations et Contrats')">COC</button>
+    <button class="filter-btn" data-code="Code du Travail (Loi 65-99)" onclick="setFilter(this, 'Code du Travail (Loi 65-99)')">Code du Travail</button>
+    <button class="filter-btn" data-code="Code des Assurances (Loi 17-99)" onclick="setFilter(this, 'Code des Assurances (Loi 17-99)')">Code des Assurances</button>
+    <button class="filter-btn" data-code="Législation commerciale" onclick="setFilter(this, 'Législation commerciale')">Législation commerciale</button>
+  </div>
+
+  <!-- CODES OVERVIEW (shown when no search) -->
+  <div id="codesOverview">
+    <div class="section-label">Explorer par code</div>
+    <div class="codes-grid">
+      <div class="code-card" onclick="filterByCode('Code de Commerce')">
+        <div class="code-card-icon">🏪</div>
+        <div class="code-card-name">Code de Commerce</div>
+        <div class="code-card-count">~810 articles</div>
+      </div>
+      <div class="code-card" onclick="filterByCode('Code des Obligations et Contrats')">
+        <div class="code-card-icon">📜</div>
+        <div class="code-card-name">Code des Obligations et Contrats</div>
+        <div class="code-card-count">~1 305 articles</div>
+      </div>
+      <div class="code-card" onclick="filterByCode('Code du Travail (Loi 65-99)')">
+        <div class="code-card-icon">👷</div>
+        <div class="code-card-name">Code du Travail</div>
+        <div class="code-card-count">~587 articles</div>
+      </div>
+      <div class="code-card" onclick="filterByCode('Code des Assurances (Loi 17-99)')">
+        <div class="code-card-icon">🛡️</div>
+        <div class="code-card-name">Code des Assurances</div>
+        <div class="code-card-count">~394 articles</div>
+      </div>
+      <div class="code-card" onclick="filterByCode('Législation commerciale')">
+        <div class="code-card-icon">⚖️</div>
+        <div class="code-card-name">Législation commerciale</div>
+        <div class="code-card-count">~1 009 articles</div>
+      </div>
+      <div class="code-card" onclick="filterByCode('Matière d\'Assurance Marocaine')">
+        <div class="code-card-icon">📋</div>
+        <div class="code-card-name">Matière d'Assurance</div>
+        <div class="code-card-count">~271 articles</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="searchResults" style="display:none">
+    <div class="stats-row" id="statsRow"></div>
+    <div class="results-list" id="resultsList"></div>
+  </div>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="init-common.js"></script>
+<script src="fetch-safe.js"></script>
+<script>
+// _sb now available globally from init-common.js
+
+var activeCode = 'all';
+
+async function init() {
+  const { data: { session } } = await _sb.auth.getSession();
+  if (!session) { window.location.href = 'auth.html'; return; }
+}
+init();
+
+document.getElementById('searchInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') doSearch();
+});
+
+function setFilter(btn, code) {
+  document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  activeCode = code;
+  var q = document.getElementById('searchInput').value.trim();
+  if (q) doSearch();
+}
+
+function filterByCode(code) {
+  activeCode = code;
+  document.querySelectorAll('.filter-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.code === code);
+  });
+  document.getElementById('searchInput').value = '';
+  loadByCode(code);
+}
+
+async function loadByCode(code) {
+  document.getElementById('codesOverview').style.display = 'none';
+  document.getElementById('searchResults').style.display = 'block';
+  document.getElementById('resultsList').innerHTML = '<div class="loading-bar">Chargement...</div>';
+
+  var query = _sb.from('articles_juridiques')
+    .select('id, code, numero_article, contenu, book, title')
+    .eq('code', code)
+    .order('id')
+    .limit(50);
+
+  var { data, error, count } = await query;
+  renderResults(data || [], code + ' — 50 premiers articles');
+}
+
+async function doSearch() {
+  var q = document.getElementById('searchInput').value.trim();
+  if (!q) return;
+
+  document.getElementById('codesOverview').style.display = 'none';
+  document.getElementById('searchResults').style.display = 'block';
+  document.getElementById('resultsList').innerHTML = '<div class="loading-bar">Recherche en cours...</div>';
+
+  var query = _sb.from('articles_juridiques')
+    .select('id, code, numero_article, contenu, book, title')
+    .or('contenu.ilike.%' + q + '%,numero_article.ilike.%' + q + '%')
+    .limit(30);
+
+  if (activeCode !== 'all') {
+    query = query.eq('code', activeCode);
+  }
+
+  var { data, error } = await query;
+  renderResults(data || [], (data ? data.length : 0) + ' résultat(s) pour "' + q + '"');
+}
+
+function renderResults(articles, label) {
+  document.getElementById('statsRow').innerHTML = '<div class="stat-item"><strong>' + label + '</strong></div>';
+
+  if (!articles.length) {
+    document.getElementById('resultsList').innerHTML = '<div class="empty"><div class="empty-icon">🔍</div>Aucun article trouvé. Essayez d\'autres mots-clés.</div>';
+    return;
+  }
+
+  document.getElementById('resultsList').innerHTML = articles.map(function(a, idx) {
+    var preview = (a.contenu || '').slice(0, 200).replace(/</g, '&lt;');
+    var full = (a.contenu || '').replace(/</g, '&lt;');
+    return '<div class="article-card"><div class="article-header"><span class="article-num">' + (a.numero_article || '') + '</span><span class="code-badge">' + (a.code || '') + '</span>' + (a.book ? '<span class="book-badge">' + a.book + '</span>' : '') + '</div><div class="article-content" id="content-' + idx + '">' + preview + (full.length > 200 ? '...' : '') + '</div>' + (full.length > 200 ? '<span class="article-toggle" onclick="toggleArticle(' + idx + ', this)" data-full="' + encodeURIComponent(full) + '" data-preview="' + encodeURIComponent(preview + '...') + '">Lire la suite ↓</span>' : '') + '</div>';
+  }).join('');
+}
+
+function toggleArticle(idx, btn) {
+  var el = document.getElementById('content-' + idx);
+  var isFull = btn.textContent.includes('Réduire');
+  var html = decodeURIComponent(isFull ? btn.dataset.preview : btn.dataset.full);
+  
+  // ✅ Fix #12: Sanitize HTML to prevent XSS
+  if (typeof safeSetHTML === 'function') {
+    safeSetHTML(el, html);
+  } else {
+    // Fallback if fetch-safe.js not loaded
+    el.textContent = html;
+  }
+  
+  el.className = 'article-content' + (isFull ? '' : ' expanded');
+  btn.textContent = isFull ? 'Lire la suite ↓' : 'Réduire ↑';
+}
+</script>
+</body>
+</html>
