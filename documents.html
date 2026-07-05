@@ -2460,7 +2460,7 @@ function wsEmptyTab(icon, title, sub) {
 
 // Actions de la barre de détail
 function wsAddSubFolder() { if (wsSelectedFolderId && wsSelectedFolderId !== '__all__') openSubFolderModal(wsSelectedFolderId); }
-function wsImportDoc() { openUploadModal(); }
+function wsImportDoc() { openUploadModal(wsSelectedFolderId); }
 function wsEditFolder() { if (wsSelectedFolderId && wsSelectedFolderId !== '__all__') editFolder(wsSelectedFolderId); }
 
 /**
@@ -3283,7 +3283,7 @@ async function saveEditedFolder(folderId, name, newCounterpartyId, isSubFolder) 
 }
 
 // ── UPLOAD ────────────────────────────────────
-function openUploadModal() {
+function openUploadModal(preselectFolderId) {
   pendingFiles = [];
   document.getElementById('fileList').innerHTML = '';
   document.getElementById('btnConfirmUpload').disabled = true;
@@ -3295,6 +3295,11 @@ function openUploadModal() {
   const cs = document.getElementById('counterpartySelect');
   if (fs) fs.value = '';
   if (cs) cs.value = '';
+  // Pré-sélection du dossier si fourni (ex: on est déjà dans un dossier)
+  if (preselectFolderId && preselectFolderId !== '__all__' && fs) {
+    fs.value = preselectFolderId;
+    onUploadFolderChange();  // hérite la contrepartie du dossier
+  }
   document.getElementById('uploadModal').classList.add('show');
 }
 function closeUploadModal() {
