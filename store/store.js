@@ -52,6 +52,9 @@ const Store = (() => {
 
     // Relations dossier ↔ contrepartie
     foldersByCounterparty: {},   // cpId       → Folder[]
+    
+    // Relations dossier ↔ parent (sous-dossiers)
+    foldersByParent:       {},   // parentId   → Folder[]
   };
 
   // ── Reconstruction des indexes ────────────────────────────────────────
@@ -76,6 +79,10 @@ const Store = (() => {
       indexes.foldersById[f.id] = f;
       if (f.counterparty_id) {
         _push(indexes.foldersByCounterparty, f.counterparty_id, f);
+      }
+      // Indexer les sous-dossiers par parent
+      if (f.parent_id) {
+        _push(indexes.foldersByParent, f.parent_id, f);
       }
     });
 

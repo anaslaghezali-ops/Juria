@@ -137,14 +137,87 @@ class FolderService extends BaseService {
   }
 
   /**
-   * Tous les dossiers enrichis, triés par score décroissant.
+   * Retourne tous les dossiers principaux (parent_id IS NULL).
    * @returns {Object[]}
    */
-  getAllWithKPIs() {
-    return this._store.state.folders
-      .map(f => this.getFolderWithKPIs(f.id))
-      .filter(Boolean)
-      .sort((a, b) => b.riskScore - a.riskScore);
+  getMainFolders() {
+    return this._store.state.folders.filter(f => !f.parent_id) || [];
+  }
+
+  /**
+   * Retourne tous les sous-dossiers d'un parent.
+   * Utilise l'index foldersByParent — O(1) lookup.
+   * @param {string} parentId
+   * @returns {Object[]}
+   */
+  getSubFolders(parentId) {
+    return this._store.indexes.foldersByParent[parentId] || [];
+  }
+
+  /**
+   * Crée un sous-dossier.
+   * Hérite automatiquement :
+   * - organization_id du parent
+   * - counterparty_id du parent
+   * @param {string} parentId
+   * @param {Object} payload — { name, description }
+   * @param {string} orgId — pour vérification de sécurité
+   * @param {string} userId
+   * @returns {Promise<Object|null>}
+   */
+  async createSubFolder(parentId, payload, orgId, userId) {
+    const parent = this._store.indexes.foldersById[parentId];
+    if (!parent) {
+      console.error('[FolderService] Parent folder not found:', parentId);
+      return null;
+    }
+
+    // Vérifier que le parent appartient bien à cette organisation (sécurité RLS)
+    if (parent.organization_id !== orgId) {
+      console.error('[FolderService] Parent folder not in org:', parentId);
+      return null;
+    }
+
+    // Héritage du parent
+    const subFolderData = {
+      name:             payload.name,
+      description:      payload.description || null,
+      organization_id:  parent.organization_id,
+      parent_id:        parentId,
+      counterparty_id:  parent.counterparty_id,  // ← Héritage automatique
+      created_by:       userId || null,
+      color:            payload.color || '#6366f1',
+      icon:             payload.icon || '📂',  // Icon différente pour sous-dossier
+    };
+
+    const created = await this.create(subFolderData);
+    if (!created) return null;
+
+    this._store.upsertFolder(created);
+    this._store.logActivity('subfolder_created', {
+      subFolderId: created.id,
+      parentId:    parentId,
+      name:        created.name
+    });
+    return created;
+  }
+
+  /**
+   * Vérifie si un dossier est principal.
+   * @param {Object} folder
+   * @returns {boolean}
+   */
+  isMainFolder(folder) {
+    return !folder || !folder.parent_id;
+  }
+
+  /**
+   * Vérifie si un dossier est un sous-dossier.
+   * @param {Object} folder
+   * @returns {boolean}
+   */
+  isSubFolder(folder) {
+    return folder && !!folder.parent_id;
   }
 }
 
