@@ -2468,6 +2468,39 @@ function removeFile(idx) {
   document.getElementById('btnConfirmUpload').disabled = pendingFiles.length === 0;
 }
 
+/**
+ * Nettoie un nom de fichier pour Supabase Storage.
+ * Remplace espaces, accents, caractères spéciaux.
+ * @param {string} filename
+ * @returns {string}
+ */
+function sanitizeFilename(filename) {
+  if (!filename) return 'document';
+  // Séparer nom et extension
+  const parts = filename.lastIndexOf('.') > 0
+    ? [filename.slice(0, filename.lastIndexOf('.')), filename.slice(filename.lastIndexOf('.'))]
+    : [filename, ''];
+  const name = parts[0];
+  const ext = parts[1] || '';
+
+  // Remplacer les accents (NFD normalization)
+  let clean = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+  // Remplacer espaces par tirets
+  clean = clean.replace(/\s+/g, '-');
+
+  // Supprimer les caractères non alphanumériques (sauf tirets, underscores)
+  clean = clean.replace(/[^a-zA-Z0-9\-_]/g, '');
+
+  // Supprimer les tirets multiples consécutifs
+  clean = clean.replace(/-+/g, '-');
+
+  // Limiter la longueur
+  clean = clean.substring(0, 200);
+
+  return clean + ext;
+}
+
 async function confirmUpload() {
   if (!pendingFiles.length) return;
   const btn = document.getElementById('btnConfirmUpload');
@@ -2521,7 +2554,7 @@ async function confirmUpload() {
         const { data: inserted, error: insertErr } = await _sb.from('documents').insert(docData).select().single();
         if (insertErr || !inserted) throw insertErr || new Error('Insertion échouée');
         progressBar.style.width = '40%';
-        const storagePath = `${currentOrgId}/${inserted.id}/${Date.now()}-${file.name}`;
+        const storagePath = `${currentOrgId}/${inserted.id}/${Date.now()}-${sanitizeFilename(file.name)}`;
         const { error: uploadErr } = await _sb.storage.from('juria-documents').upload(storagePath, file, { upsert: false });
         if (uploadErr) { await _sb.from('documents').delete().eq('id', inserted.id); throw uploadErr; }
         progressBar.style.width = '75%';
