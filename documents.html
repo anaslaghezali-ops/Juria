@@ -1936,10 +1936,35 @@ function renderDashboard() {
 }
 
 // ── DOSSIERS : WORKSPACE 3 COLONNES ─────────────────────────────
-// État de l'arborescence
-let wsExpandedNodes = new Set();     // IDs des noeuds dépliés (cp- ou folder id)
-let wsSelectedFolderId = null;        // Dossier actuellement sélectionné
-let wsActiveTab = 'docs';             // Onglet actif dans le détail
+// État de l'arborescence — persisté dans localStorage (clé par utilisateur si dispo)
+const WS_STORAGE_KEY = 'juria.workspace.v1';
+
+function _loadWsState() {
+  try {
+    const raw = localStorage.getItem(WS_STORAGE_KEY);
+    if (!raw) return {};
+    return JSON.parse(raw) || {};
+  } catch (e) { return {}; }
+}
+function _saveWsState() {
+  try {
+    localStorage.setItem(WS_STORAGE_KEY, JSON.stringify({
+      expanded: [...wsExpandedNodes],
+      selected: wsSelectedFolderId,
+      tab: wsActiveTab,
+      treeWidth: document.getElementById('wsTree')?.style.width || null,
+      sortKey: wsSortKey,
+      sortDir: wsSortDir,
+    }));
+  } catch (e) { /* localStorage indisponible : on ignore silencieusement */ }
+}
+
+const _wsInit = _loadWsState();
+let wsExpandedNodes = new Set(_wsInit.expanded || []);  // IDs des noeuds dépliés
+let wsSelectedFolderId = _wsInit.selected || null;      // Dossier sélectionné
+let wsActiveTab = _wsInit.tab || 'docs';                // Onglet actif
+let wsSortKey = _wsInit.sortKey || 'name';              // Tri table docs : name|type|date|size
+let wsSortDir = _wsInit.sortDir || 'asc';               // asc|desc
 let wsTreeInitialized = false;
 
 /**
@@ -1947,8 +1972,18 @@ let wsTreeInitialized = false;
  */
 function renderFolders() {
   renderTree();
+  // Restaurer la largeur de l'arbre persistée
+  if (_wsInit.treeWidth) {
+    const tree = document.getElementById('wsTree');
+    if (tree && !tree.dataset.widthRestored) {
+      tree.style.width = _wsInit.treeWidth;
+      tree.dataset.widthRestored = '1';
+    }
+  }
   // Restaurer la sélection si elle existe encore
-  if (wsSelectedFolderId && allFolders.find(f => f.id === wsSelectedFolderId)) {
+  if (wsSelectedFolderId === '__all__') {
+    selectAllFolders();
+  } else if (wsSelectedFolderId && allFolders.find(f => f.id === wsSelectedFolderId)) {
     renderFolderDetail(wsSelectedFolderId);
   }
   // Init des interactions une seule fois
@@ -2133,6 +2168,7 @@ function toggleTreeNode(nodeId) {
   if (wsExpandedNodes.has(nodeId)) wsExpandedNodes.delete(nodeId);
   else wsExpandedNodes.add(nodeId);
   renderTree(document.getElementById('treeSearch')?.value);
+  _saveWsState();
 }
 
 /**
@@ -2146,6 +2182,7 @@ function selectFolder(folderId) {
   if (folder?.counterparty_id) wsExpandedNodes.add('cp-' + folder.counterparty_id);
   renderTree(document.getElementById('treeSearch')?.value);
   renderFolderDetail(folderId);
+  _saveWsState();
 }
 
 /**
@@ -2173,6 +2210,7 @@ function selectAllFolders() {
 
   // Onglet documents = tous les documents
   wsSwitchTab('docs');
+  _saveWsState();
 }
 
 /**
@@ -2229,6 +2267,7 @@ function renderFolderDetail(folderId) {
  */
 function wsSwitchTab(tabName) {
   wsActiveTab = tabName;
+  _saveWsState();
   document.querySelectorAll('.ws-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.ws-tab-content').forEach(c => c.classList.remove('active'));
   const btn = document.querySelector(`.ws-tab[onclick="wsSwitchTab('${tabName}')"]`);
@@ -2297,7 +2336,29 @@ function renderWsDocsTable(docs, subs) {
   };
   const fmtDate = (d) => d ? new Date(d).toLocaleDateString('fr-MA', {day:'2-digit',month:'2-digit',year:'numeric'}) : '—';
 
-  // Lignes sous-dossiers d'abord (comme un vrai explorateur)
+  // ── TRI des documents selon wsSortKey / wsSortDir ──
+  const sortedDocs = [...docs].sort((a, b) => {
+    let va, vb;
+    switch (wsSortKey) {
+      case 'type': va = (a.file_type||'').toLowerCase(); vb = (b.file_type||'').toLowerCase(); break;
+      case 'date': va = new Date(a.created_at||0).getTime(); vb = new Date(b.created_at||0).getTime(); break;
+      case 'size': va = a.file_size||0; vb = b.file_size||0; break;
+      default:     va = (a.name||'').toLowerCase(); vb = (b.name||'').toLowerCase();
+    }
+    if (va < vb) return wsSortDir === 'asc' ? -1 : 1;
+    if (va > vb) return wsSortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  // En-tête de colonne cliquable avec indicateur de direction
+  const sortHeader = (key, label, align) => {
+    const active = wsSortKey === key;
+    const arrow = active ? (wsSortDir === 'asc' ? ' ▲' : ' ▼') : '';
+    const style = `cursor:pointer;user-select:none;${align ? 'text-align:' + align + ';' : ''}${active ? 'color:var(--indigo);' : ''}`;
+    return `<th style="${style}" onclick="wsSortDocs('${key}')">${label}${arrow}</th>`;
+  };
+
+  // Lignes sous-dossiers d'abord (comme un vrai explorateur) — non triées, toujours en tête
   const subRows = subs.map(sf => {
     const subDocs = allDocs.filter(d => d.folder_id === sf.id);
     return `<tr onclick="selectFolder('${sf.id}')">
@@ -2309,7 +2370,7 @@ function renderWsDocsTable(docs, subs) {
     </tr>`;
   }).join('');
 
-  const docRows = docs.map(d => `
+  const docRows = sortedDocs.map(d => `
     <tr onclick="openDoc('${d.id}')">
       <td><div class="ws-doc-name"><span class="ws-doc-fileicon">${fileIcon(d.file_type)}</span>${escHtml(d.name)}</div></td>
       <td>${fileBadge(d.file_type)}</td>
@@ -2319,9 +2380,30 @@ function renderWsDocsTable(docs, subs) {
     </tr>`).join('');
 
   return `<table class="ws-doctable">
-    <thead><tr><th>Nom</th><th>Type</th><th>Modifié le</th><th>Taille</th><th></th></tr></thead>
+    <thead><tr>
+      ${sortHeader('name', 'Nom')}
+      ${sortHeader('type', 'Type')}
+      ${sortHeader('date', 'Modifié le')}
+      ${sortHeader('size', 'Taille')}
+      <th></th>
+    </tr></thead>
     <tbody>${subRows}${docRows}</tbody>
   </table>`;
+}
+
+/**
+ * Change la clé de tri de la table (ou inverse la direction si déjà active).
+ */
+function wsSortDocs(key) {
+  if (wsSortKey === key) {
+    wsSortDir = wsSortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    wsSortKey = key;
+    wsSortDir = 'asc';
+  }
+  _saveWsState();
+  // Re-render uniquement l'onglet documents
+  wsSwitchTab('docs');
 }
 
 /**
@@ -2378,7 +2460,7 @@ function wsEmptyTab(icon, title, sub) {
 
 // Actions de la barre de détail
 function wsAddSubFolder() { if (wsSelectedFolderId && wsSelectedFolderId !== '__all__') openSubFolderModal(wsSelectedFolderId); }
-function wsImportDoc() { openUploadModal(); }
+function wsImportDoc() { openUploadModal(wsSelectedFolderId); }
 function wsEditFolder() { if (wsSelectedFolderId && wsSelectedFolderId !== '__all__') editFolder(wsSelectedFolderId); }
 
 /**
@@ -2417,6 +2499,7 @@ function initTreeResizer() {
     resizer.classList.remove('dragging');
     document.body.style.cursor = '';
     document.body.style.userSelect = '';
+    _saveWsState();
   });
 }
 
@@ -3200,7 +3283,7 @@ async function saveEditedFolder(folderId, name, newCounterpartyId, isSubFolder) 
 }
 
 // ── UPLOAD ────────────────────────────────────
-function openUploadModal() {
+function openUploadModal(preselectFolderId) {
   pendingFiles = [];
   document.getElementById('fileList').innerHTML = '';
   document.getElementById('btnConfirmUpload').disabled = true;
@@ -3212,6 +3295,11 @@ function openUploadModal() {
   const cs = document.getElementById('counterpartySelect');
   if (fs) fs.value = '';
   if (cs) cs.value = '';
+  // Pré-sélection du dossier si fourni (ex: on est déjà dans un dossier)
+  if (preselectFolderId && preselectFolderId !== '__all__' && fs) {
+    fs.value = preselectFolderId;
+    onUploadFolderChange();  // hérite la contrepartie du dossier
+  }
   document.getElementById('uploadModal').classList.add('show');
 }
 function closeUploadModal() {
