@@ -49,82 +49,6 @@
     .nav-count { margin-left: auto; font-size: 11px; background: var(--slate-100); color: var(--slate-500); padding: 1px 7px; border-radius: 99px; font-weight: 600; }
     .nav-item.active .nav-count { background: #c7d2fe; color: var(--indigo-dark); }
     .nav-badge-red { background: #fef2f2; color: #991b1b; }
-    .nav-kbd { margin-left: auto; font-size: 10px; font-weight: 600; color: var(--slate-400); background: var(--slate-100); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; font-family: var(--font); }
-
-    /* ── Favoris & Récents dans la sidebar ── */
-    .nav-ws-item { display: flex; align-items: center; gap: 8px; padding: 6px 10px 6px 12px; border-radius: 8px; font-size: 13px; color: var(--slate-600); cursor: pointer; transition: all 0.12s; border: none; background: none; width: 100%; text-align: left; position: relative; }
-    .nav-ws-item:hover { background: var(--slate-100); color: var(--slate-900); }
-    .nav-ws-item.active { background: var(--indigo-bg); color: var(--indigo-text); font-weight: 600; }
-    .nav-ws-icon { font-size: 13px; flex-shrink: 0; opacity: 0.7; }
-    .nav-ws-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .nav-ws-star { flex-shrink: 0; font-size: 12px; opacity: 0; transition: opacity 0.12s; cursor: pointer; }
-    .nav-ws-item:hover .nav-ws-star { opacity: 0.5; }
-    .nav-ws-star:hover { opacity: 1 !important; }
-    .nav-ws-star.starred { opacity: 1; color: #f59e0b; }
-
-    /* ── Déclencheur Command Palette (topbar) ── */
-    .cmdk-trigger { display: flex; align-items: center; gap: 8px; background: var(--slate-100); border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; width: 320px; cursor: pointer; transition: all 0.12s; font-family: var(--font); }
-    .cmdk-trigger:hover { background: var(--white); border-color: var(--indigo); }
-    .cmdk-trigger-text { flex: 1; text-align: left; font-size: 13px; color: var(--slate-400); }
-
-    /* ── Command Palette (overlay) ── */
-    .cmdk-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); z-index: 1000; display: none; align-items: flex-start; justify-content: center; padding-top: 12vh; }
-    .cmdk-overlay.show { display: flex; }
-    .cmdk-box { width: 90%; max-width: 620px; background: var(--white); border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,0.25); overflow: hidden; display: flex; flex-direction: column; max-height: 70vh; }
-    .cmdk-input-row { display: flex; align-items: center; gap: 12px; padding: 18px 20px; border-bottom: 1px solid var(--border); }
-    .cmdk-input-row input { flex: 1; border: none; outline: none; font-size: 16px; color: var(--slate-900); font-family: var(--font); background: none; }
-    .cmdk-input-icon { font-size: 18px; opacity: 0.5; }
-    .cmdk-esc { font-size: 10px; font-weight: 600; color: var(--slate-400); background: var(--slate-100); border: 1px solid var(--border); border-radius: 5px; padding: 2px 7px; }
-    .cmdk-results { overflow-y: auto; padding: 8px; }
-    .cmdk-group-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--slate-400); padding: 10px 12px 4px; }
-    .cmdk-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; cursor: pointer; }
-    .cmdk-item.selected, .cmdk-item:hover { background: var(--indigo-bg); }
-    .cmdk-item-icon { font-size: 16px; width: 22px; text-align: center; flex-shrink: 0; }
-    .cmdk-item-main { flex: 1; min-width: 0; }
-    .cmdk-item-title { font-size: 14px; color: var(--slate-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .cmdk-item-sub { font-size: 12px; color: var(--slate-400); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .cmdk-item-type { font-size: 10px; font-weight: 600; color: var(--slate-400); background: var(--slate-100); padding: 2px 8px; border-radius: 5px; flex-shrink: 0; }
-    .cmdk-empty { padding: 40px 20px; text-align: center; color: var(--slate-400); font-size: 13px; }
-    .cmdk-footer { display: flex; align-items: center; gap: 16px; padding: 10px 20px; border-top: 1px solid var(--border); font-size: 11px; color: var(--slate-400); }
-    .cmdk-footer-key { display: inline-flex; align-items: center; gap: 4px; }
-    .cmdk-footer-key kbd { font-size: 10px; background: var(--slate-100); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-family: var(--font); }
-
-    /* ── Panneau Vue Portefeuille (slide from right) ── */
-    .portfolio-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.3); z-index: 900; display: none; }
-    .portfolio-overlay.show { display: block; }
-    .portfolio-panel { position: fixed; top: 0; right: 0; height: 100vh; width: 560px; max-width: 92vw; background: var(--white); box-shadow: -8px 0 40px rgba(0,0,0,0.12); z-index: 901; transform: translateX(100%); transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1); display: flex; flex-direction: column; }
-    .portfolio-panel.show { transform: translateX(0); }
-    .portfolio-header { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; border-bottom: 1px solid var(--border); }
-    .portfolio-title { font-family: var(--serif); font-size: 20px; color: var(--slate-900); }
-    .portfolio-sub { font-size: 12px; color: var(--slate-400); margin-top: 2px; }
-    .portfolio-close { width: 32px; height: 32px; border: none; background: var(--slate-100); border-radius: 8px; cursor: pointer; font-size: 16px; color: var(--slate-500); }
-    .portfolio-close:hover { background: var(--slate-200); }
-    .portfolio-tabs { display: flex; gap: 4px; padding: 12px 24px 0; border-bottom: 1px solid var(--border); }
-    .portfolio-tab { padding: 8px 14px; background: none; border: none; font-size: 13px; font-weight: 500; color: var(--slate-500); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; font-family: var(--font); }
-    .portfolio-tab.active { color: var(--indigo); border-bottom-color: var(--indigo); font-weight: 600; }
-    .portfolio-body { flex: 1; overflow-y: auto; padding: 20px 24px; }
-
-    /* ── Onglet Vue d'ensemble & IA du workspace ── */
-    .ws-overview-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 28px; }
-    @media (max-width: 1100px) { .ws-overview-kpis { grid-template-columns: repeat(2, 1fr); } }
-    .ws-ov-section-title { font-size: 13px; font-weight: 700; color: var(--slate-400); text-transform: uppercase; letter-spacing: 0.05em; margin: 24px 0 12px; }
-    .ws-ia-panel { max-width: 620px; }
-    .ws-ia-hero { text-align: center; padding: 32px 20px; }
-    .ws-ia-hero-icon { font-size: 40px; margin-bottom: 16px; }
-    .ws-ia-hero-title { font-family: var(--serif); font-size: 22px; color: var(--slate-900); margin-bottom: 8px; }
-    .ws-ia-hero-sub { font-size: 14px; color: var(--slate-500); margin-bottom: 24px; line-height: 1.5; }
-    .ws-ia-prompt { display: flex; gap: 10px; align-items: center; border: 1px solid var(--border); border-radius: 12px; padding: 6px 6px 6px 16px; margin-bottom: 20px; }
-    .ws-ia-prompt input { flex: 1; border: none; outline: none; font-size: 14px; font-family: var(--font); background: none; }
-    .ws-ia-suggestions { display: flex; flex-direction: column; gap: 8px; }
-    .ws-ia-suggestion { text-align: left; padding: 12px 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--white); cursor: pointer; font-size: 13px; color: var(--slate-700); transition: all 0.12s; }
-    .ws-ia-suggestion:hover { border-color: var(--indigo); background: var(--indigo-bg); color: var(--indigo); }
-
-    /* Bouton Vue portefeuille dans le header workspace */
-    .ws-portfolio-btn { padding: 7px 14px; border: 1px solid var(--border); background: var(--white); border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--slate-700); cursor: pointer; font-family: var(--font); transition: all 0.12s; display: inline-flex; align-items: center; gap: 6px; }
-    .ws-portfolio-btn:hover { border-color: var(--indigo); color: var(--indigo); background: var(--indigo-bg); }
-    .ws-star-btn { padding: 7px 10px; border: 1px solid var(--border); background: var(--white); border-radius: 8px; font-size: 15px; cursor: pointer; transition: all 0.12s; line-height: 1; }
-    .ws-star-btn:hover { border-color: #f59e0b; }
-    .ws-star-btn.starred { color: #f59e0b; border-color: #fcd34d; background: #fffbeb; }
     .sidebar-footer { padding: 12px; border-top: 1px solid var(--border); }
     .user-row { display: flex; align-items: center; gap: 9px; padding: 8px; border-radius: 8px; }
     .user-avatar { width: 30px; height: 30px; background: var(--indigo); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
@@ -157,95 +81,7 @@
     .kpi-card.amber { border-left: 3px solid var(--amber); }
     .kpi-card.green { border-left: 3px solid var(--green); }
     .kpi-card.indigo { border-left: 3px solid var(--indigo); }
-
-    /* ═══════════════ DASHBOARD WORKSTREAM (Proposition 1) ═══════════════ */
-    #page-dashboard { padding-bottom: 80px; }
-
-    .dashboard-hero { padding: 48px 24px 32px; text-align: center; border-bottom: 1px solid var(--border); margin-bottom: 40px; }
-    .dashboard-greeting h1 { font-size: 32px; font-weight: 600; color: var(--slate-900); margin-bottom: 6px; font-family: var(--serif); }
-    .dashboard-greeting p { font-size: 15px; color: var(--slate-500); }
-
-    .dash-section { max-width: 900px; margin: 0 auto 48px; padding: 0 24px; }
-    .dash-section-title { font-size: 18px; font-weight: 600; color: var(--slate-900); margin-bottom: 20px; font-family: var(--serif); }
-
-    /* ── Priorités du jour : cartes grandes et actionnables ── */
-    .dash-priority-list { display: flex; flex-direction: column; gap: 16px; }
-    .dash-priority-card { border: 1px solid var(--border); border-radius: 12px; padding: 20px; background: var(--white); transition: all 0.12s; cursor: pointer; }
-    .dash-priority-card:hover { border-color: var(--indigo); box-shadow: 0 4px 16px rgba(79, 70, 229, 0.08); }
-    .dash-priority-card.critical { border-left: 4px solid var(--red); }
-    .dash-priority-card.warning { border-left: 4px solid #f59e0b; }
-    .dash-priority-card.urgent { border-left: 4px solid #06b6d4; }
-    .dash-priority-level { display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; padding: 2px 8px; border-radius: 6px; }
-    .dash-priority-level.critical { background: #fee2e2; color: var(--red); }
-    .dash-priority-level.warning { background: #fef3c7; color: #d97706; }
-    .dash-priority-level.urgent { background: #cffafe; color: #0891b2; }
-    .dash-priority-main { font-size: 16px; font-weight: 600; color: var(--slate-900); margin-bottom: 6px; }
-    .dash-priority-sub { font-size: 13px; color: var(--slate-600); margin-bottom: 12px; line-height: 1.5; }
-    .dash-priority-meta { font-size: 12px; color: var(--slate-400); margin-bottom: 14px; }
-    .dash-priority-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-    .dash-priority-btn { padding: 6px 12px; border: 1px solid var(--border); background: var(--white); border-radius: 8px; font-size: 12px; font-weight: 500; color: var(--slate-700); cursor: pointer; transition: all 0.12s; font-family: var(--font); }
-    .dash-priority-btn:hover { border-color: var(--indigo); color: var(--indigo); background: var(--indigo-bg); }
-    .dash-priority-btn.primary { border-color: var(--indigo); background: var(--indigo); color: #fff; }
-    .dash-priority-btn.primary:hover { background: #4f46e5; }
-
-    /* ── Reprendre mon travail : cartes de dossier ── */
-    .dash-recent-list { display: flex; flex-direction: column; gap: 12px; }
-    .dash-recent-card { border: 1px solid var(--border); border-radius: 10px; padding: 16px; background: var(--white); cursor: pointer; transition: all 0.12s; display: flex; align-items: center; justify-content: space-between; }
-    .dash-recent-card:hover { border-color: var(--indigo); background: #fafbff; }
-    .dash-recent-left { flex: 1; }
-    .dash-recent-title { font-size: 15px; font-weight: 600; color: var(--slate-900); margin-bottom: 4px; }
-    .dash-recent-time { font-size: 12px; color: var(--slate-400); }
-    .dash-recent-arrow { font-size: 20px; color: var(--indigo); opacity: 0.3; margin-left: 16px; transition: all 0.12s; }
-    .dash-recent-card:hover .dash-recent-arrow { opacity: 1; }
-
-    /* ── Activité récente : timeline ── */
-    .dash-activity-list { display: flex; flex-direction: column; gap: 2px; }
-    .dash-activity-item { padding: 12px 0; font-size: 13px; color: var(--slate-700); line-height: 1.6; padding-left: 20px; position: relative; }
-    .dash-activity-item::before { content: ''; position: absolute; left: 0; top: 16px; width: 8px; height: 8px; background: var(--indigo); border-radius: 50%; }
-    .dash-activity-time { font-size: 11px; color: var(--slate-400); margin-left: 4px; }
-
-    /* ── Dossiers actifs : tableau simplifié ── */
-    .dash-folders-list { display: flex; flex-direction: column; gap: 1px; }
-    .dash-folder-row { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr; gap: 16px; padding: 14px 16px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.12s; align-items: center; }
-    .dash-folder-row:hover { background: #fafbff; border-color: var(--indigo); }
-    .dash-folder-name { font-size: 14px; font-weight: 500; color: var(--slate-900); }
-    .dash-folder-cp { font-size: 12px; color: var(--slate-500); }
-    .dash-folder-stat { font-size: 13px; color: var(--slate-700); }
-    .dash-folder-stat.number { font-weight: 600; }
-    .dash-folder-stat.secondary { font-size: 11px; color: var(--slate-400); }
-
-    /* ── Risques critiques : cartes actionnables ── */
-    .dash-risks-list { display: flex; flex-direction: column; gap: 12px; }
-    .dash-risk-card { border: 1px solid var(--border); border-radius: 10px; padding: 16px; background: var(--white); transition: all 0.12s; }
-    .dash-risk-card:hover { border-color: var(--red); box-shadow: 0 2px 12px rgba(220, 38, 38, 0.06); }
-    .dash-risk-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-    .dash-risk-title { font-size: 14px; font-weight: 600; color: var(--slate-900); }
-    .dash-risk-level { font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 2px 8px; border-radius: 5px; letter-spacing: 0.03em; }
-    .dash-risk-level.critical { background: #fee2e2; color: var(--red); }
-    .dash-risk-level.high { background: #fecaca; color: #b91c1c; }
-    .dash-risk-meta { font-size: 12px; color: var(--slate-500); margin-bottom: 10px; }
-    .dash-risk-action { font-size: 13px; color: var(--slate-700); font-weight: 500; margin-bottom: 10px; }
-    .dash-risk-buttons { display: flex; gap: 6px; }
-    .dash-risk-btn { padding: 6px 10px; border: 1px solid var(--border); background: var(--white); border-radius: 6px; font-size: 11px; cursor: pointer; transition: all 0.12s; font-family: var(--font); }
-    .dash-risk-btn:hover { border-color: var(--red); color: var(--red); }
-
-    /* ── Échéances : liste simple ── */
-    .dash-deadlines-list { display: flex; flex-direction: column; gap: 1px; }
-    .dash-deadline-item { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 14px 16px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.12s; align-items: center; }
-    .dash-deadline-item:hover { background: #fafbff; border-color: #f59e0b; }
-    .dash-deadline-name { font-size: 14px; font-weight: 500; color: var(--slate-900); }
-    .dash-deadline-cp { font-size: 12px; color: var(--slate-500); }
-    .dash-deadline-date { font-size: 13px; font-weight: 600; text-align: right; }
-    .dash-deadline-date.soon { color: var(--red); }
-    .dash-deadline-date.upcoming { color: #f59e0b; }
-    .dash-deadline-date.far { color: var(--slate-500); }
-
-    /* ── Estado vacío ── */
-    .dash-empty { text-align: center; padding: 32px 20px; color: var(--slate-400); }
-    .dash-empty-icon { font-size: 32px; margin-bottom: 12px; opacity: 0.4; }
-    .dash-empty-text { font-size: 13px; }
-
-    
+    .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
     @media (max-width: 900px) { .dash-grid { grid-template-columns: 1fr; } }
     .dash-card { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
     .dash-card-title { font-size: 13px; font-weight: 700; color: var(--slate-900); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
@@ -819,44 +655,8 @@
       .search-global { display: none; }
     }
   </style>
-  <script src="services/workspace-services.js"></script>
 </head>
 <body>
-
-<!-- ══════════ COMMAND PALETTE (⌘K) ══════════ -->
-<div class="cmdk-overlay" id="cmdkOverlay" onclick="if(event.target===this)closeCommandPalette()">
-  <div class="cmdk-box">
-    <div class="cmdk-input-row">
-      <span class="cmdk-input-icon">🔍</span>
-      <input type="text" id="cmdkInput" placeholder="Rechercher un dossier, document, risque, contrepartie…" oninput="renderCommandResults()" autocomplete="off"/>
-      <span class="cmdk-esc">ESC</span>
-    </div>
-    <div class="cmdk-results" id="cmdkResults"></div>
-    <div class="cmdk-footer">
-      <span class="cmdk-footer-key"><kbd>↑</kbd><kbd>↓</kbd> naviguer</span>
-      <span class="cmdk-footer-key"><kbd>↵</kbd> ouvrir</span>
-      <span class="cmdk-footer-key"><kbd>esc</kbd> fermer</span>
-    </div>
-  </div>
-</div>
-
-<!-- ══════════ PANNEAU VUE PORTEFEUILLE ══════════ -->
-<div class="portfolio-overlay" id="portfolioOverlay" onclick="closePortfolio()"></div>
-<div class="portfolio-panel" id="portfolioPanel">
-  <div class="portfolio-header">
-    <div>
-      <div class="portfolio-title">Vue portefeuille</div>
-      <div class="portfolio-sub">Tous dossiers confondus</div>
-    </div>
-    <button class="portfolio-close" onclick="closePortfolio()">✕</button>
-  </div>
-  <div class="portfolio-tabs">
-    <button class="portfolio-tab active" onclick="switchPortfolioTab('risks')">Risques</button>
-    <button class="portfolio-tab" onclick="switchPortfolioTab('tasks')">Tâches</button>
-    <button class="portfolio-tab" onclick="switchPortfolioTab('deadlines')">Échéances</button>
-  </div>
-  <div class="portfolio-body" id="portfolioBody"></div>
-</div>
 
 <!-- SIDEBAR -->
 <aside class="sidebar" id="sidebar">
@@ -867,26 +667,52 @@
     </a>
   </div>
   <nav class="sidebar-nav">
+    <div class="nav-section">Principal</div>
     <button class="nav-item" onclick="showPage('dashboard')">
-      <span class="nav-icon">🏠</span> Accueil
+      <span class="nav-icon">📊</span> Dashboard
+    </button>
+    <button class="nav-item" onclick="showPage('contreparties')">
+      <span class="nav-icon">🏢</span> Contreparties
+      <span class="nav-count" id="navCpCount">—</span>
     </button>
     <button class="nav-item" onclick="showPage('dossiers')">
-      <span class="nav-icon">📁</span> Workspaces
+      <span class="nav-icon">📁</span> Dossiers
       <span class="nav-count" id="navFolderCount">—</span>
     </button>
-    <a href="base-juridique.html" class="nav-item">
-      <span class="nav-icon">📚</span> Bibliothèque juridique
-    </a>
-    <button class="nav-item" onclick="openCommandPalette()">
-      <span class="nav-icon">🔍</span> Recherche
-      <span class="nav-kbd">⌘K</span>
+    <button class="nav-item" onclick="showPage('documents')">
+      <span class="nav-icon">📄</span> Documents
+      <span class="nav-count" id="navTotalCount">—</span>
     </button>
 
-    <div class="nav-section" id="navFavSection" style="display:none">⭐ Favoris</div>
-    <div id="navFavorites"></div>
+    <div class="nav-section">Analyse</div>
+    <button class="nav-item" onclick="showPage('risques')">
+      <span class="nav-icon">⚠️</span> Risques
+      <span class="nav-count nav-badge-red" id="navRisksCount">—</span>
+    </button>
+    <button class="nav-item" onclick="showPage('echeances')">
+      <span class="nav-icon">📅</span> Échéances
+    </button>
+    <button class="nav-item" onclick="showPage('timeline')">
+      <span class="nav-icon">🕐</span> Timeline
+    </button>
 
-    <div class="nav-section" id="navRecentSection" style="display:none">Récents</div>
-    <div id="navRecents"></div>
+    <button class="nav-item" onclick="showPage('tasks')">
+      <span class="nav-icon">✅</span> Tâches
+      <span class="nav-count nav-badge-red" id="navTasksCount">—</span>
+    </button>
+
+    <div class="nav-section">Outils</div>
+    <a href="chat.html" class="nav-item">
+      <span class="nav-icon">💬</span> Assistant IA
+    </a>
+    <a href="base-juridique.html" class="nav-item">
+      <span class="nav-icon">📚</span> Base juridique
+    </a>
+
+    <div class="nav-section">Organisation</div>
+    <button class="nav-item" onclick="showPage('documents')">
+      <span class="nav-icon">⚙️</span> Administration
+    </button>
   </nav>
   <div class="sidebar-footer">
     <div class="user-row">
@@ -904,70 +730,108 @@
 <div class="main">
   <div class="topbar">
     <button class="btn-menu" id="btnMenu">☰</button>
-    <div class="topbar-title" id="topbarTitle">Accueil</div>
-    <button class="cmdk-trigger" onclick="openCommandPalette()">
+    <div class="topbar-title" id="topbarTitle">Dashboard</div>
+    <div class="search-global">
       <span style="color:var(--slate-400);font-size:14px">🔍</span>
-      <span class="cmdk-trigger-text">Rechercher partout…</span>
-      <span class="nav-kbd">⌘K</span>
-    </button>
+      <input type="text" placeholder="Rechercher documents, dossiers, risques..." id="globalSearch" onkeyup="globalSearchFn()"/>
+    </div>
   </div>
 
   <div class="content">
 
     <!-- ══════════ PAGE: DASHBOARD ══════════ -->
     <div class="page active" id="page-dashboard">
-      <div class="dashboard-hero">
-        <div class="dashboard-greeting">
-          <h1>Bonjour Anas</h1>
-          <p id="dashGreetingSub">Voici ce qui nécessite votre attention aujourd'hui.</p>
+      <div class="page-header">
+        <div>
+          <div class="page-title">Dashboard</div>
+          <div class="page-sub">Vue de pilotage du patrimoine juridique</div>
+        </div>
+        <button class="btn-primary" onclick="openUploadModal()">+ Importer un document</button>
+      </div>
+
+      <!-- KPIs ligne 1 : 8 cartes (6 + 2 tasks) -->
+      <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:12px">
+        <div class="kpi-card indigo">
+          <div class="kpi-label">Documents</div>
+          <div class="kpi-val" id="kpiTotal">—</div>
+          <div class="kpi-sub"><span id="kpiAnalysed">—</span> analysés</div>
+        </div>
+        <div class="kpi-card red">
+          <div class="kpi-label">Risques élevés</div>
+          <div class="kpi-val" id="kpiHighRisks">—</div>
+          <div class="kpi-sub">à traiter</div>
+        </div>
+        <div class="kpi-card amber">
+          <div class="kpi-label">Dossiers actifs</div>
+          <div class="kpi-val" id="kpiFolders">—</div>
+          <div class="kpi-sub">en cours</div>
+        </div>
+        <div class="kpi-card green">
+          <div class="kpi-label">Score moyen</div>
+          <div class="kpi-val" id="kpiAvgScore">—</div>
+          <div class="kpi-sub">conformité /10</div>
+        </div>
+      </div>
+      <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">
+        <div class="kpi-card" style="border-left:3px solid var(--blue)">
+          <div class="kpi-label">Contreparties</div>
+          <div class="kpi-val" id="kpiCp">—</div>
+          <div class="kpi-sub">actives</div>
+        </div>
+        <div class="kpi-card" style="border-left:3px solid var(--red)">
+          <div class="kpi-label">Échéances 30j</div>
+          <div class="kpi-val" id="kpiDeadlines">—</div>
+          <div class="kpi-sub">à venir</div>
+        </div>
+        <div class="kpi-card" style="border-left:3px solid var(--indigo)">
+          <div class="kpi-label">Tâches ouvertes</div>
+          <div class="kpi-val" id="kpiDashTasksOpen">—</div>
+          <div class="kpi-sub">en cours</div>
+        </div>
+        <div class="kpi-card red">
+          <div class="kpi-label">Tâches en retard</div>
+          <div class="kpi-val" id="kpiDashTasksOverdue">—</div>
+          <div class="kpi-sub">action requise</div>
         </div>
       </div>
 
-      <!-- SECTION 1 : PRIORITÉS DU JOUR -->
-      <div class="dash-section">
-        <div class="dash-section-title">Priorités du jour</div>
-        <div id="dashPriorities" class="dash-priority-list">
-          <!-- Rendu dynamiquement : max 3 cartes -->
+      <!-- Grille 3 colonnes -->
+      <div class="dash-grid-3">
+        <!-- Risques critiques -->
+        <div class="dash-card">
+          <div class="dash-card-title">⚠️ Risques élevés</div>
+          <div id="dashRisks"></div>
+          <button class="btn-secondary" onclick="showPage('risques')" style="font-size:12px;margin-top:12px;width:100%">Voir tous les risques →</button>
+        </div>
+
+        <!-- Tâches urgentes -->
+        <div class="dash-card">
+          <div class="dash-card-title">✅ Tâches prioritaires</div>
+          <div id="dashTasks"></div>
+          <button class="btn-secondary" onclick="showPage('tasks')" style="font-size:12px;margin-top:12px;width:100%">Voir toutes les tâches →</button>
+        </div>
+
+        <!-- Contreparties à risque -->
+        <div class="dash-card">
+          <div class="dash-card-title">🏢 Contreparties critiques</div>
+          <div id="dashCp"></div>
+          <button class="btn-secondary" onclick="showPage('contreparties')" style="font-size:12px;margin-top:12px;width:100%">Voir toutes les contreparties →</button>
         </div>
       </div>
 
-      <!-- SECTION 2 : REPRENDRE MON TRAVAIL -->
-      <div class="dash-section">
-        <div class="dash-section-title">Reprendre mon travail</div>
-        <div id="dashRecent" class="dash-recent-list">
-          <!-- Derniers dossiers ouverts -->
+      <!-- Résolution risques + Répartition -->
+      <div class="dash-grid" style="margin-top:20px">
+        <div class="dash-card">
+          <div class="dash-card-title">📈 Résolution des risques</div>
+          <div id="dashResolution"></div>
+          <div style="margin-top:12px">
+            <div style="font-size:11px;font-weight:700;color:var(--slate-400);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Score par dossier</div>
+            <div id="dashFolderScores"></div>
+          </div>
         </div>
-      </div>
-
-      <!-- SECTION 3 : ACTIVITÉ RÉCENTE -->
-      <div class="dash-section">
-        <div class="dash-section-title">Activité récente</div>
-        <div id="dashActivity" class="dash-activity-list">
-          <!-- Timeline -->
-        </div>
-      </div>
-
-      <!-- SECTION 4 : DOSSIERS ACTIFS -->
-      <div class="dash-section">
-        <div class="dash-section-title">Dossiers actifs</div>
-        <div id="dashFolders" class="dash-folders-list">
-          <!-- Dossiers récemment modifiés -->
-        </div>
-      </div>
-
-      <!-- SECTION 5 : RISQUES CRITIQUES -->
-      <div class="dash-section">
-        <div class="dash-section-title">Risques critiques</div>
-        <div id="dashCriticalRisks" class="dash-risks-list">
-          <!-- Top 5 risques -->
-        </div>
-      </div>
-
-      <!-- SECTION 6 : ÉCHÉANCES -->
-      <div class="dash-section">
-        <div class="dash-section-title">Prochaines échéances</div>
-        <div id="dashUpcoming" class="dash-deadlines-list">
-          <!-- Échéances à venir -->
+        <div class="dash-card">
+          <div class="dash-card-title">📊 Répartition des risques</div>
+          <div id="dashRiskPortfolio"></div>
         </div>
       </div>
     </div>
@@ -1013,35 +877,60 @@
                   <span class="ws-detail-badge" id="wsDetailBadge"></span>
                 </div>
                 <div class="ws-detail-actions">
-                  <button class="ws-star-btn" id="wsStarBtn" onclick="toggleFavorite()" title="Ajouter aux favoris">☆</button>
                   <button class="ws-action-btn" id="wsAddSubBtn" onclick="wsAddSubFolder()" title="Ajouter un sous-dossier">+ Sous-dossier</button>
                   <button class="ws-action-btn" onclick="wsImportDoc()" title="Importer un document">+ Document</button>
                   <button class="ws-action-btn ghost" onclick="wsEditFolder()" title="Modifier">✏️</button>
-                  <button class="ws-portfolio-btn" onclick="openPortfolio()" title="Vue portefeuille (tous dossiers)">▦ Vue portefeuille</button>
                 </div>
               </div>
             </div>
 
-            <!-- Onglets du Workspace -->
+            <!-- KPIs -->
+            <div class="ws-kpis">
+              <div class="ws-kpi">
+                <div class="ws-kpi-top">
+                  <span class="ws-kpi-label">Documents</span>
+                  <span class="ws-kpi-icon">📄</span>
+                </div>
+                <div class="ws-kpi-val" id="wsKpiDocs">0</div>
+              </div>
+              <div class="ws-kpi">
+                <div class="ws-kpi-top">
+                  <span class="ws-kpi-label">Sous-dossiers</span>
+                  <span class="ws-kpi-icon">📁</span>
+                </div>
+                <div class="ws-kpi-val" id="wsKpiSubs">0</div>
+              </div>
+              <div class="ws-kpi">
+                <div class="ws-kpi-top">
+                  <span class="ws-kpi-label">Risques élevés</span>
+                  <span class="ws-kpi-icon">⚠️</span>
+                </div>
+                <div class="ws-kpi-val red" id="wsKpiRisks">0</div>
+              </div>
+              <div class="ws-kpi">
+                <div class="ws-kpi-top">
+                  <span class="ws-kpi-label">Tâches ouvertes</span>
+                  <span class="ws-kpi-icon">✅</span>
+                </div>
+                <div class="ws-kpi-val" id="wsKpiTasks">0</div>
+              </div>
+            </div>
+
+            <!-- Onglets -->
             <div class="ws-tabs">
-              <button class="ws-tab active" onclick="wsSwitchTab('overview')">Vue d'ensemble</button>
-              <button class="ws-tab" onclick="wsSwitchTab('docs')">Documents</button>
+              <button class="ws-tab active" onclick="wsSwitchTab('docs')">Documents</button>
+              <button class="ws-tab" onclick="wsSwitchTab('subs')">Sous-dossiers</button>
               <button class="ws-tab" onclick="wsSwitchTab('risks')">Risques</button>
               <button class="ws-tab" onclick="wsSwitchTab('tasks')">Tâches</button>
-              <button class="ws-tab" onclick="wsSwitchTab('deadlines')">Échéances</button>
               <button class="ws-tab" onclick="wsSwitchTab('activity')">Activité</button>
-              <button class="ws-tab" onclick="wsSwitchTab('ia')">IA</button>
             </div>
 
             <!-- Contenu des onglets -->
-            <div class="ws-tab-content active" id="wsTab-overview"></div>
-            <div class="ws-tab-content" id="wsTab-docs"></div>
+            <div class="ws-tab-content active" id="wsTab-docs"></div>
             <div class="ws-tab-content" id="wsTab-subs"></div>
             <div class="ws-tab-content" id="wsTab-risks"></div>
             <div class="ws-tab-content" id="wsTab-tasks"></div>
-            <div class="ws-tab-content" id="wsTab-deadlines"></div>
             <div class="ws-tab-content" id="wsTab-activity"></div>
-            <div class="ws-tab-content" id="wsTab-ia"></div>
           </div>
         </div>
       </div>
@@ -1848,7 +1737,6 @@ async function init() {
 
   // Charger les données (Supabase si orgId disponible, sinon démo)
   await loadData();
-  initWorkspaceUI();
   showPage('dashboard');
 }
 
@@ -1938,383 +1826,113 @@ function _safeSet(id, prop, value) {
 }
 
 function renderDashboard() {
-// ── DASHBOARD WORKSTREAM (Nouvelle implémentation Proposition 1)
-// Historique des dossiers ouverts
-const DASH_HISTORY_KEY = 'juria.dashboard.history.v1';
-
-function _loadDashHistory() {
-  try {
-    const raw = localStorage.getItem(DASH_HISTORY_KEY);
-    if (!raw) return [];
-    const arr = JSON.parse(raw) || [];
-    return arr.filter(item => allFolders.find(f => f.id === item.folderId)); // filtrer les dossiers supprimés
-  } catch (e) { return []; }
-}
-
-function _addToDashHistory(folderId) {
-  if (!folderId || folderId === '__all__') return;
-  try {
-    let hist = _loadDashHistory();
-    hist = hist.filter(item => item.folderId !== folderId);
-    hist.unshift({ folderId, openedAt: new Date().toISOString() });
-    hist = hist.slice(0, 10);
-    localStorage.setItem(DASH_HISTORY_KEY, JSON.stringify(hist));
-  } catch (e) { /* silence */ }
-}
-
-function renderDashboard() {
-  renderDashPriorities();
-  renderDashRecent();
-  renderDashActivity();
-  renderDashFolders();
-  renderDashCriticalRisks();
-  renderDashUpcoming();
-  
-  // Mettre à jour le greeting en fonction de l'heure
-  const hour = new Date().getHours();
-  const sub = document.getElementById('dashGreetingSub');
-  if (sub) {
-    if (hour < 12) sub.textContent = 'Voici ce qui nécessite votre attention ce matin.';
-    else if (hour < 17) sub.textContent = 'Voici ce qui nécessite votre attention cet après-midi.';
-    else sub.textContent = 'Voici ce qui mérite votre attention en cette fin de journée.';
-  }
-}
-
-/**
- * SECTION 1 : Priorités du jour (max 3 cartes)
- */
-function renderDashPriorities() {
-  const container = document.getElementById('dashPriorities');
-  if (!container) return;
-
+  const total = allDocs.length;
+  const analysed = allDocs.filter(d => d.status === 'analysé').length;
+  const highRisks = allRisks.filter(r => r.severity === 'high' || r.severity === 'critical').length;
+  const avgScore = allDocs.filter(d => d.score).length
+    ? (allDocs.filter(d => d.score).reduce((s, d) => s + d.score, 0) / allDocs.filter(d => d.score).length).toFixed(1)
+    : '—';
   const now = new Date();
-  const priorities = [];
+  const in30 = new Date(now.getTime() + 30 * 86400000);
+  const _deadlines = (typeof Store !== 'undefined' && Store.state.deadlines.length)
+    ? Store.state.deadlines
+    : (typeof getDemoDeadlines !== 'undefined' ? getDemoDeadlines() : []);
+  const deadlines30 = _deadlines.filter(d => new Date(d.date) <= in30).length;
 
-  // 1. Risques critiques (CRITICAL ou HIGH)
-  const criticalRisks = allRisks.filter(r => r.severity === 'critical' || r.severity === 'high');
-  if (criticalRisks.length > 0) {
-    const r = criticalRisks[0];
-    const doc = allDocs.find(d => d.id === r.document_id);
-    const folder = allFolders.find(f => f.id === doc?.folder_id);
-    const cp = folder ? allCounterparties.find(c => c.id === folder.counterparty_id) : null;
-    priorities.push({
-      type: 'critical',
-      level: r.severity === 'critical' ? 'CRITIQUE' : 'ÉLEVÉ',
-      icon: '🔴',
-      title: r.title || 'Risque détecté',
-      sub: `${folder?.name || 'Dossier inconnu'} — ${cp?.name || 'Contrepartie inconnue'}`,
-      meta: `Détecté ${_formatTimeAgo(r.created_at)}`,
-      action: 'Relire et évaluer',
-      buttons: [
-        { label: 'Voir le risque', fn: `selectFolder('${folder?.id}')` },
-        { label: 'Assigner à moi', fn: `openRiskDetail('${r.id}')`, primary: true }
-      ]
-    });
+  _safeSet('kpiTotal', 'textContent', total);
+  _safeSet('kpiAnalysed', 'textContent', analysed);
+  _safeSet('kpiHighRisks', 'textContent', highRisks);
+  _safeSet('kpiFolders', 'textContent', allFolders.length);
+  _safeSet('kpiAvgScore', 'textContent', avgScore);
+  _safeSet('kpiCp', 'textContent', allCounterparties.length);
+  _safeSet('kpiDeadlines', 'textContent', deadlines30);
+  renderDashTasks();
+  if (typeof renderDashResolution === 'function') renderDashResolution();
+
+  // Scores par dossier
+  const folderScoresEl = document.getElementById('dashFolderScores');
+  if (folderScoresEl && typeof computeFolderRiskScore !== 'undefined') {
+    folderScoresEl.innerHTML = allFolders.map(f => {
+      const score = computeFolderRiskScore(f.id);
+      return `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:13px;color:var(--slate-700);flex:1">${escHtml(f.name)}</span>
+        ${folderRiskScoreBadge(score)}
+      </div>`;
+    }).join('') || '<div style="font-size:13px;color:var(--slate-400)">Aucun dossier.</div>';
   }
 
-  // 2. Échéances cette semaine
-  const weekAhead = new Date(now.getTime() + 7 * 86400000);
-  const upcomingDeadlines = (Store?.state?.deadlines || [])
-    .filter(d => new Date(d.date) >= now && new Date(d.date) <= weekAhead)
-    .sort((a, b) => new Date(a.date) - new Date(b.date));
-  if (upcomingDeadlines.length > 0) {
-    const d = upcomingDeadlines[0];
-    const daysDiff = Math.ceil((new Date(d.date) - now) / 86400000);
-    priorities.push({
-      type: 'warning',
-      level: daysDiff <= 3 ? 'URGENT' : 'À VENIR',
-      icon: '⏰',
-      title: d.event || 'Échéance',
-      sub: d.doc || 'Document',
-      meta: `Expire dans ${daysDiff} jour${daysDiff > 1 ? 's' : ''}`,
-      action: 'Préparer avant la limite',
-      buttons: [
-        { label: 'Voir le contrat', fn: `showPage('documents')` },
-        { label: 'Repousser la date', fn: `openDeadlineModal('${d.id}')`, primary: true }
-      ]
-    });
-  }
+  // Risques élevés dans dashboard
+  const highR = allRisks.filter(r => r.severity === 'high' || r.severity === 'critical').slice(0, 4);
+  ((document.getElementById('dashRisks') || {})['innerHTML']) = highR.length
+    ? highR.map(r => `<div class="risk-row">
+        <span class="risk-level-badge lvl-high">ÉLEVÉ</span>
+        <span class="risk-name">${escHtml(r.title || '—')}</span>
+        <span class="risk-doc">${escHtml(r.docName || '—')}</span>
+      </div>`).join('') + (allRisks.length > 4 ? `<div style="padding-top:8px;font-size:12px;color:var(--slate-400)">${allRisks.length - 4} autres risques →</div>` : '')
+    : '<div style="font-size:13px;color:var(--slate-400);padding:8px 0">Aucun risque élevé détecté.</div>';
 
-  // 3. Tâches urgentes
-  const overdueTasks = allTasks.filter(t => 
-    t.status !== 'done' && t.status !== 'closed' &&
-    t.due_date && new Date(t.due_date) < now
-  ).sort((a, b) => new Date(a.due_date) - new Date(b.due_date));
-  
-  if (overdueTasks.length > 0) {
-    const t = overdueTasks[0];
-    const folder = t.folder_id ? allFolders.find(f => f.id === t.folder_id) : null;
-    priorities.push({
-      type: 'urgent',
-      level: 'EN RETARD',
-      icon: '✅',
-      title: t.title || 'Tâche sans titre',
-      sub: folder ? `Dossier : ${folder.name}` : '—',
-      meta: `Échéance : ${_formatDate(t.due_date)}`,
-      action: 'Terminer ou reprogrammer',
-      buttons: [
-        { label: 'Reprendre la tâche', fn: `selectFolder('${folder?.id}')` },
-        { label: 'Marquer comme fait', fn: `completeTask('${t.id}')`, primary: true }
-      ]
-    });
-  }
-
-  // Afficher (max 3)
-  const toShow = priorities.slice(0, 3);
-  if (toShow.length === 0) {
-    container.innerHTML = `<div class="dash-empty"><div class="dash-empty-icon">✅</div><div class="dash-empty-text">Aucune priorité immédiate. Bon travail!</div></div>`;
-  } else {
-    container.innerHTML = toShow.map(p => `
-      <div class="dash-priority-card ${p.type}">
-        <span class="dash-priority-level ${p.type}">${p.level}</span>
-        <div class="dash-priority-main">${p.icon} ${p.title}</div>
-        <div class="dash-priority-sub">${escHtml(p.sub)}</div>
-        <div class="dash-priority-meta">${p.meta}</div>
-        <div style="font-size:12px;color:var(--slate-700);margin-bottom:12px;font-weight:500">${p.action}</div>
-        <div class="dash-priority-actions">
-          ${p.buttons.map(btn => `<button class="dash-priority-btn${btn.primary ? ' primary' : ''}" onclick="${btn.fn}">${btn.label}</button>`).join('')}
-        </div>
-      </div>
-    `).join('');
-  }
-}
-
-/**
- * SECTION 2 : Reprendre mon travail (derniers dossiers ouverts)
- */
-function renderDashRecent() {
-  const container = document.getElementById('dashRecent');
-  if (!container) return;
-
-  const hist = _loadDashHistory().slice(0, 3);
-  if (hist.length === 0) {
-    container.innerHTML = `<div class="dash-empty"><div class="dash-empty-icon">📁</div><div class="dash-empty-text">Ouvrez un dossier pour reprendre où vous l'aviez laissé.</div></div>`;
-    return;
-  }
-
-  container.innerHTML = hist.map(item => {
-    const folder = allFolders.find(f => f.id === item.folderId);
-    if (!folder) return '';
-    const cp = allCounterparties.find(c => c.id === folder.counterparty_id);
-    const docs = allDocs.filter(d => d.folder_id === folder.id).length;
-    const timeAgo = _formatTimeAgo(item.openedAt);
-    return `
-      <div class="dash-recent-card" onclick="selectFolder('${folder.id}'); showPage('dossiers')">
-        <div class="dash-recent-left">
-          <div class="dash-recent-title">${escHtml(folder.name)}</div>
-          <div class="dash-recent-time">Repris ${timeAgo}</div>
-        </div>
-        <div class="dash-recent-arrow">→</div>
-      </div>
-    `;
+  // Échéances dans dashboard
+  const dl = getDemoDeadlines().slice(0, 4);
+  ((document.getElementById('dashDeadlines') || {})['innerHTML']) = dl.map(d => {
+    const date = new Date(d.date);
+    const diff = Math.round((date - now) / 86400000);
+    const label = diff <= 7 ? `<span style="color:var(--red);font-weight:700">J-${diff}</span>` : `J-${diff}`;
+    return `<div class="deadline-mini">
+      <div class="deadline-mini-date">${label}</div>
+      <div class="deadline-mini-text">${escHtml(d.event)}<br><span style="font-size:11px;color:var(--slate-400)">${escHtml(d.doc)}</span></div>
+    </div>`;
   }).join('');
-}
 
-/**
- * SECTION 3 : Activité récente (timeline)
- */
-function renderDashActivity() {
-  const container = document.getElementById('dashActivity');
-  if (!container) return;
-
-  // Combiner les activités : documents, risques, tâches (par date)
-  const activities = [];
-
-  // Documents récents
-  allDocs.forEach(d => {
-    activities.push({
-      date: new Date(d.created_at),
-      text: `📄 Vous avez importé <strong>${escHtml(d.name)}</strong>`,
-      folderId: d.folder_id
-    });
-  });
-
-  // Risques récents
-  allRisks.forEach(r => {
-    const doc = allDocs.find(d => d.id === r.document_id);
-    activities.push({
-      date: new Date(r.created_at || new Date()),
-      text: `🚨 Risque <strong>${escHtml(r.title || '—')}</strong> détecté`,
-      folderId: doc?.folder_id
-    });
-  });
-
-  // Tâches récentes
-  allTasks.forEach(t => {
-    activities.push({
-      date: new Date(t.created_at || new Date()),
-      text: `✅ Tâche <strong>${escHtml(t.title || '—')}</strong> créée`,
-      folderId: t.folder_id
-    });
-  });
-
-  // Trier par date décroissante et garder les 8 derniers
-  activities.sort((a, b) => b.date - a.date);
-  const recent = activities.slice(0, 8);
-
-  if (recent.length === 0) {
-    container.innerHTML = `<div class="dash-empty"><div class="dash-empty-icon">🕐</div><div class="dash-empty-text">Aucune activité enregistrée.</div></div>`;
-    return;
-  }
-
-  container.innerHTML = recent.map(a => `
-    <div class="dash-activity-item">
-      ${a.text}
-      <span class="dash-activity-time">${_formatTimeAgo(a.date)}</span>
-    </div>
-  `).join('');
-}
-
-/**
- * SECTION 4 : Dossiers actifs (récemment modifiés)
- */
-function renderDashFolders() {
-  const container = document.getElementById('dashFolders');
-  if (!container) return;
-
-  // Dossiers principaux, triés par "dernière modification" (approximé par les docs)
-  const mainFolders = allFolders.filter(f => !f.parent_id);
-  const folderActivity = mainFolders.map(f => {
-    const docs = allDocs.filter(d => d.folder_id === f.id);
-    const lastMod = docs.length ? Math.max(...docs.map(d => new Date(d.created_at).getTime())) : new Date(f.created_at).getTime();
-    const subs = allFolders.filter(s => s.parent_id === f.id).length;
-    const cp = allCounterparties.find(c => c.id === f.counterparty_id);
-    const highRisks = allRisks.filter(r => {
+  // Contreparties critiques
+  const critCp = allCounterparties.filter(cp => cp.risk_level === 'high').slice(0, 4);
+  const allCpShow = critCp.length ? critCp : allCounterparties.slice(0, 4);
+  ((document.getElementById('dashCp') || {})['innerHTML']) = allCpShow.map(cp => {
+    const cpDocs = allDocs.filter(d => d.counterparty === cp.name || d.counterparty_id === cp.id).length;
+    const cpRisks = allRisks.filter(r => {
       const doc = allDocs.find(d => d.id === r.document_id);
-      return doc && [f.id, ...allFolders.filter(s => s.parent_id === f.id).map(s => s.id)].includes(doc.folder_id);
+      return doc && (doc.counterparty === cp.name);
     }).filter(r => r.severity === 'high' || r.severity === 'critical').length;
-    
-    return { folder: f, cp, docs: docs.length, subs, highRisks, lastMod };
-  }).sort((a, b) => b.lastMod - a.lastMod).slice(0, 5);
+    const cpRisksArr = allRisks.filter(r => {
+      const doc = allDocs.find(d => d.id === r.document_id);
+      return doc && (doc.counterparty === cp.name);
+    });
+    const { score: cpScore } = computeRiskScore(cpRisksArr);
+    const scoreCls2 = getRiskScoreClass(cpScore);
+    return `<div class="cp-mini-row" onclick="openCpDetail('${cp.id}')" style="cursor:pointer">
+      <div class="cp-mini-avatar">${cp.name.charAt(0)}</div>
+      <span class="cp-mini-name">${escHtml(cp.name)}</span>
+      <span class="cp-score-badge cp-score-${scoreCls2}" style="font-size:11px">${cpScore}/100</span>
+    </div>`;
+  }).join('') || '<div style="font-size:13px;color:var(--slate-400);padding:8px 0">Aucune contrepartie.</div>';
 
-  if (folderActivity.length === 0) {
-    container.innerHTML = `<div class="dash-empty"><div class="dash-empty-icon">📁</div><div class="dash-empty-text">Créez un dossier pour commencer.</div></div>`;
-    return;
-  }
-
-  container.innerHTML = `
-    <div style="display:grid;gap:1px;margin-bottom:12px">
-      ${folderActivity.map(item => `
-        <div class="dash-folder-row" onclick="selectFolder('${item.folder.id}'); showPage('dossiers')">
-          <div class="dash-folder-name">${escHtml(item.folder.name)}</div>
-          <div class="dash-folder-cp">${item.cp?.name || '—'}</div>
-          <div class="dash-folder-stat"><span class="number">${item.docs}</span> docs</div>
-          <div class="dash-folder-stat"><span class="number">${item.subs}</span> sous-dos</div>
-          <div class="dash-folder-stat">${item.highRisks ? `<span style="color:var(--red);font-weight:600">${item.highRisks}</span>` : '0'} risques</div>
-        </div>
-      `).join('')}
-    </div>
-  `;
-}
-
-/**
- * SECTION 5 : Risques critiques (top 5)
- */
-function renderDashCriticalRisks() {
-  const container = document.getElementById('dashCriticalRisks');
-  if (!container) return;
-
-  const critical = allRisks
-    .filter(r => r.severity === 'critical' || r.severity === 'high')
-    .sort((a, b) => (b.severity === 'critical' ? 1 : 0) - (a.severity === 'critical' ? 1 : 0))
-    .slice(0, 5);
-
-  if (critical.length === 0) {
-    container.innerHTML = `<div class="dash-empty"><div class="dash-empty-icon">✅</div><div class="dash-empty-text">Aucun risque critique pour le moment.</div></div>`;
-    return;
-  }
-
-  container.innerHTML = critical.map(r => {
-    const doc = allDocs.find(d => d.id === r.document_id);
-    const folder = doc ? allFolders.find(f => f.id === doc.folder_id) : null;
-    const cp = folder ? allCounterparties.find(c => c.id === folder.counterparty_id) : null;
-    return `
-      <div class="dash-risk-card">
-        <div class="dash-risk-header">
-          <div class="dash-risk-title">${escHtml(r.title || 'Risque')}</div>
-          <span class="dash-risk-level ${r.severity}">${r.severity === 'critical' ? 'CRITIQUE' : 'ÉLEVÉ'}</span>
-        </div>
-        <div class="dash-risk-meta">
-          <strong>${folder?.name || 'Dossier inconnu'}</strong> · 🏢 ${cp?.name || 'Contrepartie inconnue'}
-        </div>
-        <div class="dash-risk-action">Action : ${r.mitigation || 'À évaluer'}</div>
-        <div class="dash-risk-buttons">
-          <button class="dash-risk-btn" onclick="selectFolder('${folder?.id}'); showPage('dossiers')">Voir dossier</button>
-          <button class="dash-risk-btn" onclick="openRiskDetail('${r.id}')">Modifier</button>
-          <button class="dash-risk-btn" onclick="closeRisk('${r.id}')">Fermer</button>
-        </div>
+  // Répartition risques mini
+  const types = {};
+  allRisks.forEach(r => { const t = r.risk_type || 'OTHER'; types[t] = (types[t] || 0) + 1; });
+  const sorted = Object.entries(types).sort((a,b) => b[1]-a[1]).slice(0, 5);
+  const maxVal = sorted[0]?.[1] || 1;
+  const colors = { EVENT_OF_DEFAULT:'#ef4444', TERMINATION:'#f97316', FUNDING:'#f59e0b', DEADLOCK:'#8b5cf6', GOVERNANCE:'#3b82f6', DEFAULT:'#6b7280' };
+  ((document.getElementById('dashRiskPortfolio') || {})['innerHTML']) = `
+    <div class="risk-levels" style="margin-bottom:14px">
+      <div class="risk-level-card high" style="flex:1">
+        <div class="risk-level-num">${allRisks.filter(r=>r.severity==='high'||r.severity==='critical').length}</div>
+        <div class="risk-level-lbl">Élevés</div>
       </div>
-    `;
-  }).join('');
-}
-
-/**
- * SECTION 6 : Échéances à venir
- */
-function renderDashUpcoming() {
-  const container = document.getElementById('dashUpcoming');
-  if (!container) return;
-
-  const deadlines = (Store?.state?.deadlines || [])
-    .filter(d => new Date(d.date) >= new Date())
-    .sort((a, b) => new Date(a.date) - new Date(b.date))
-    .slice(0, 5);
-
-  if (deadlines.length === 0) {
-    container.innerHTML = `<div class="dash-empty"><div class="dash-empty-icon">✅</div><div class="dash-empty-text">Aucune échéance programmée.</div></div>`;
-    return;
-  }
-
-  const now = new Date();
-  container.innerHTML = `
-    <div style="display:grid;gap:1px">
-      ${deadlines.map(d => {
-        const diff = Math.ceil((new Date(d.date) - now) / 86400000);
-        const urgent = diff <= 3;
-        return `
-          <div class="dash-deadline-item" onclick="showPage('tasks')">
-            <div>
-              <div class="dash-deadline-name">${escHtml(d.event || 'Échéance')}</div>
-              <div class="dash-deadline-cp">${escHtml(d.doc || '—')}</div>
-            </div>
-            <div class="dash-deadline-date${urgent ? ' soon' : (diff <= 7 ? ' upcoming' : ' far')}">
-              ${urgent ? `<strong style="color:var(--red)">J-${diff}</strong>` : `${_formatDate(d.date)}`}
-            </div>
-          </div>
-        `;
-      }).join('')}
+      <div class="risk-level-card med" style="flex:1">
+        <div class="risk-level-num">${allRisks.filter(r=>r.severity==='medium').length}</div>
+        <div class="risk-level-lbl">Moyens</div>
+      </div>
+      <div class="risk-level-card low" style="flex:1">
+        <div class="risk-level-num">${allRisks.filter(r=>r.severity==='low').length}</div>
+        <div class="risk-level-lbl">Faibles</div>
+      </div>
     </div>
-  `;
-}
-
-// ── Helpers ──
-function _formatDate(dateStr) {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('fr-MA', { day: 'numeric', month: 'short' });
-}
-
-function _formatTimeAgo(dateStr) {
-  const d = new Date(dateStr);
-  const now = new Date();
-  const diff = now - d;
-  const mins = Math.floor(diff / 60000);
-  const hours = Math.floor(diff / 3600000);
-  const days = Math.floor(diff / 86400000);
-  
-  if (mins < 1) return 'à l\'instant';
-  if (mins < 60) return `il y a ${mins} min${mins > 1 ? 's' : ''}`;
-  if (hours < 24) return `il y a ${hours}h`;
-  if (days < 7) return `il y a ${days} jour${days > 1 ? 's' : ''}`;
-  return _formatDate(dateStr);
-}
-
-// Hookintegration : tracker le dossier ouvert
-const _originalSelectFolder = selectFolder;
-function selectFolder(folderId) {
-  _addToDashHistory(folderId);
-  return _originalSelectFolder(folderId);
-}
-
+    <div class="risk-bars">${sorted.map(([type, count]) => `
+      <div class="risk-bar-row">
+        <div class="risk-bar-label" style="font-size:11px">${type.replace(/_/g,' ')}</div>
+        <div class="risk-bar-track"><div class="risk-bar-fill" style="width:${Math.round(count/maxVal*100)}%;background:${colors[type]||colors.DEFAULT}"></div></div>
+        <div class="risk-bar-count">${count}</div>
+      </div>`).join('')}
+    </div>`;
 }
 
 // ── DOSSIERS : WORKSPACE 3 COLONNES ─────────────────────────────
@@ -2558,18 +2176,13 @@ function toggleTreeNode(nodeId) {
  */
 function selectFolder(folderId) {
   wsSelectedFolderId = folderId;
-  // Enregistrer dans les récents (si c'est un dossier principal)
-  const folder = allFolders.find(f => f.id === folderId);
-  if (folder && !folder.parent_id) {
-    RecentWorkspacesService.record(folderId);
-  }
   // Auto-déplier le parent si c'est un sous-dossier
+  const folder = allFolders.find(f => f.id === folderId);
   if (folder?.parent_id) wsExpandedNodes.add(folder.parent_id);
   if (folder?.counterparty_id) wsExpandedNodes.add('cp-' + folder.counterparty_id);
   renderTree(document.getElementById('treeSearch')?.value);
   renderFolderDetail(folderId);
   _saveWsState();
-  renderSidebarWorkspaces();
 }
 
 /**
@@ -2588,10 +2201,15 @@ function selectAllFolders() {
   document.getElementById('wsDetailName').textContent = 'Tous les dossiers';
   document.getElementById('wsDetailBadge').textContent = '';
   document.getElementById('wsAddSubBtn').style.display = 'none';
-  const star = document.getElementById('wsStarBtn');
-  if (star) star.style.display = 'none';
 
-  wsSwitchTab(wsActiveTab === 'ia' ? 'overview' : wsActiveTab);
+  document.getElementById('wsKpiDocs').textContent = allDocs.length;
+  document.getElementById('wsKpiSubs').textContent = allFolders.filter(f => !f.parent_id).length;
+  const allHighR = allRisks.filter(r => r.severity === 'high' || r.severity === 'critical').length;
+  document.getElementById('wsKpiRisks').textContent = allHighR;
+  document.getElementById('wsKpiTasks').textContent = allTasks.filter(t => t.status !== 'done' && t.status !== 'closed').length;
+
+  // Onglet documents = tous les documents
+  wsSwitchTab('docs');
   _saveWsState();
 }
 
@@ -2634,23 +2252,14 @@ function renderFolderDetail(folderId) {
   document.getElementById('wsDetailBadge').textContent = isMain ? 'Dossier' : 'Sous-dossier';
   document.getElementById('wsAddSubBtn').style.display = isMain ? '' : 'none';
 
-  // Étoile favori (uniquement pour les dossiers principaux)
-  const star = document.getElementById('wsStarBtn');
-  if (star) {
-    if (isMain) {
-      star.style.display = '';
-      const fav = FavoritesService.isFavorite(folderId);
-      star.textContent = fav ? '★' : '☆';
-      star.classList.toggle('starred', fav);
-      star.title = fav ? 'Retirer des favoris' : 'Ajouter aux favoris';
-    } else {
-      star.style.display = 'none';
-    }
-  }
+  // KPIs
+  document.getElementById('wsKpiDocs').textContent = docsInFolder.length;
+  document.getElementById('wsKpiSubs').textContent = subs.length;
+  document.getElementById('wsKpiRisks').textContent = highR;
+  document.getElementById('wsKpiTasks').textContent = openTasks;
 
-  // Restaurer l'onglet mémorisé pour ce dossier
-  const tabToShow = isMain ? WorkspaceTabMemory.get(folderId) : 'overview';
-  wsSwitchTab(tabToShow);
+  // Rendu de l'onglet actif
+  wsSwitchTab(wsActiveTab);
 }
 
 /**
@@ -2668,8 +2277,7 @@ function wsSwitchTab(tabName) {
 
   // Déterminer le périmètre documentaire
   let folder = null, docsInScope = [], subs = [];
-  const isAll = wsSelectedFolderId === '__all__';
-  if (isAll) {
+  if (wsSelectedFolderId === '__all__') {
     docsInScope = allDocs;
   } else {
     folder = allFolders.find(f => f.id === wsSelectedFolderId);
@@ -2680,158 +2288,22 @@ function wsSwitchTab(tabName) {
     docsInScope = allDocs.filter(d => relatedIds.includes(d.folder_id) || d.folder === folder.name);
   }
 
-  const scopeRisks = allRisks.filter(r => docsInScope.find(d => d.id === r.document_id));
-
-  if (tabName === 'overview') {
-    document.getElementById('wsTab-overview').innerHTML = renderWsOverview(folder, docsInScope, subs, scopeRisks, isAll);
-  } else if (tabName === 'docs') {
+  if (tabName === 'docs') {
     document.getElementById('wsTab-docs').innerHTML = renderWsDocsTable(docsInScope, subs);
+  } else if (tabName === 'subs') {
+    document.getElementById('wsTab-subs').innerHTML = renderWsSubfolders(folder, subs);
   } else if (tabName === 'risks') {
-    document.getElementById('wsTab-risks').innerHTML = scopeRisks.length
-      ? renderRisksTable(scopeRisks)
+    const risks = allRisks.filter(r => docsInScope.find(d => d.id === r.document_id));
+    document.getElementById('wsTab-risks').innerHTML = risks.length
+      ? renderRisksTable(risks)
       : wsEmptyTab('✅', 'Aucun risque', 'Ce dossier ne contient aucun risque identifié.');
   } else if (tabName === 'tasks') {
     document.getElementById('wsTab-tasks').innerHTML = folder
       ? `<div style="display:flex;justify-content:flex-end;margin-bottom:14px"><button class="ws-action-btn" onclick="openTaskModal(null,null,'${folder.id}')">+ Nouvelle tâche</button></div>` + renderFolderTasks(folder.id)
       : wsEmptyTab('✅', 'Aucune tâche', 'Sélectionnez un dossier pour voir ses tâches.');
-  } else if (tabName === 'deadlines') {
-    document.getElementById('wsTab-deadlines').innerHTML = renderWsDeadlines(folder, docsInScope, isAll);
   } else if (tabName === 'activity') {
     document.getElementById('wsTab-activity').innerHTML = renderWsActivity(docsInScope);
-  } else if (tabName === 'ia') {
-    document.getElementById('wsTab-ia').innerHTML = renderWsIA(folder);
   }
-}
-
-/**
- * Onglet Vue d'ensemble : KPIs + digest (documents récents, risques ouverts).
- */
-function renderWsOverview(folder, docs, subs, risks, isAll) {
-  const highR = risks.filter(r => r.severity === 'high' || r.severity === 'critical').length;
-  const openTasks = folder
-    ? allTasks.filter(t => t.folder_id === folder.id && t.status !== 'done' && t.status !== 'closed').length
-    : allTasks.filter(t => t.status !== 'done' && t.status !== 'closed').length;
-  const subCount = isAll ? allFolders.filter(f => !f.parent_id).length : subs.length;
-
-  const kpi = (label, val, icon, red) =>
-    `<div class="ws-kpi"><div class="ws-kpi-top"><span class="ws-kpi-label">${label}</span><span class="ws-kpi-icon">${icon}</span></div><div class="ws-kpi-val${red ? ' red' : ''}">${val}</div></div>`;
-
-  let html = `<div class="ws-overview-kpis">
-    ${kpi('Documents', docs.length, '📄')}
-    ${kpi(isAll ? 'Dossiers' : 'Sous-dossiers', subCount, '📁')}
-    ${kpi('Risques élevés', highR, '⚠️', highR > 0)}
-    ${kpi('Tâches ouvertes', openTasks, '✅')}
-  </div>`;
-
-  // Documents récents
-  const recentDocs = [...docs].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 4);
-  if (recentDocs.length) {
-    html += `<div class="ws-ov-section-title">Documents récents</div>`;
-    html += `<div style="display:flex;flex-direction:column;gap:1px">`;
-    recentDocs.forEach(d => {
-      html += `<div class="dash-folder-row" style="grid-template-columns:2fr 1fr 1fr" onclick="openDoc('${d.id}')">
-        <div class="dash-folder-name">${escHtml(d.name)}</div>
-        <div class="dash-folder-cp">${(d.file_type || '—').toUpperCase()}</div>
-        <div class="dash-folder-stat secondary">${d.created_at ? new Date(d.created_at).toLocaleDateString('fr-MA') : '—'}</div>
-      </div>`;
-    });
-    html += `</div>`;
-  }
-
-  // Risques ouverts (résumé)
-  const openRisks = risks.filter(r => r.status !== 'closed').slice(0, 3);
-  if (openRisks.length) {
-    html += `<div class="ws-ov-section-title">Risques à traiter</div>`;
-    html += `<div style="display:flex;flex-direction:column;gap:8px">`;
-    openRisks.forEach(r => {
-      const sev = r.severity === 'critical' ? 'critical' : (r.severity === 'high' ? 'high' : '');
-      const sevLabel = r.severity === 'critical' ? 'CRITIQUE' : (r.severity === 'high' ? 'ÉLEVÉ' : (r.severity || '').toUpperCase());
-      html += `<div class="dash-risk-card" style="cursor:pointer" onclick="wsSwitchTab('risks')">
-        <div class="dash-risk-header">
-          <div class="dash-risk-title">${escHtml(r.title || 'Risque')}</div>
-          ${sev ? `<span class="dash-risk-level ${sev}">${sevLabel}</span>` : ''}
-        </div>
-      </div>`;
-    });
-    html += `</div>`;
-  }
-
-  if (!recentDocs.length && !openRisks.length) {
-    html += wsEmptyTab('📂', 'Workspace vide', 'Importez des documents pour commencer à travailler sur ce dossier.');
-  }
-
-  return html;
-}
-
-/**
- * Onglet Échéances du workspace.
- */
-function renderWsDeadlines(folder, docs, isAll) {
-  const allDl = (Store?.state?.deadlines || []);
-  const docIds = docs.map(d => d.id);
-  const docNames = docs.map(d => d.name);
-  // Filtrer par dossier si possible (via document lié), sinon toutes pour la vue globale
-  const dl = isAll
-    ? allDl
-    : allDl.filter(d => (d.document_id && docIds.includes(d.document_id)) || (d.doc && docNames.includes(d.doc)));
-
-  if (!dl.length) {
-    return wsEmptyTab('📅', 'Aucune échéance', isAll ? 'Aucune échéance enregistrée.' : 'Aucune échéance liée à ce dossier.');
-  }
-
-  const now = new Date();
-  const sorted = [...dl].sort((a, b) => new Date(a.date) - new Date(b.date));
-  return `<div style="display:flex;flex-direction:column;gap:1px">
-    ${sorted.map(d => {
-      const diff = Math.ceil((new Date(d.date) - now) / 86400000);
-      const cls = diff <= 3 ? 'soon' : (diff <= 30 ? 'upcoming' : 'far');
-      const label = diff < 0 ? 'Expiré' : (diff <= 30 ? `J-${diff}` : new Date(d.date).toLocaleDateString('fr-MA'));
-      return `<div class="dash-deadline-item">
-        <div>
-          <div class="dash-deadline-name">${escHtml(d.event || 'Échéance')}</div>
-          <div class="dash-deadline-cp">${escHtml(d.doc || '—')}</div>
-        </div>
-        <div class="dash-deadline-date ${cls}">${label}</div>
-      </div>`;
-    }).join('')}
-  </div>`;
-}
-
-/**
- * Onglet IA du workspace : point d'entrée contextuel vers l'assistant.
- */
-function renderWsIA(folder) {
-  const name = folder ? folder.name : 'votre patrimoine juridique';
-  const suggestions = [
-    'Quels sont les risques principaux de ce dossier ?',
-    'Résume les documents de ce dossier',
-    'Quelles clauses méritent mon attention ?',
-    'Y a-t-il des échéances critiques à surveiller ?'
-  ];
-  return `<div class="ws-ia-panel">
-    <div class="ws-ia-hero">
-      <div class="ws-ia-hero-icon">✨</div>
-      <div class="ws-ia-hero-title">Assistant juridique</div>
-      <div class="ws-ia-hero-sub">Posez une question sur ${escHtml(name)}.<br>L'assistant analyse vos documents et la base juridique marocaine.</div>
-    </div>
-    <div class="ws-ia-prompt">
-      <input type="text" id="wsIaInput" placeholder="Posez votre question…" onkeydown="if(event.key==='Enter')wsAskIA()"/>
-      <button class="ws-action-btn" onclick="wsAskIA()">Envoyer</button>
-    </div>
-    <div class="ws-ia-suggestions">
-      ${suggestions.map(s => `<button class="ws-ia-suggestion" onclick="wsAskIA('${s.replace(/'/g, "\\'")}')">${s}</button>`).join('')}
-    </div>
-  </div>`;
-}
-
-function wsAskIA(preset) {
-  const q = preset || document.getElementById('wsIaInput')?.value || '';
-  const folder = allFolders.find(f => f.id === wsSelectedFolderId);
-  // Rediriger vers l'assistant avec le contexte du dossier
-  const params = new URLSearchParams();
-  if (q) params.set('q', q);
-  if (folder) params.set('folder', folder.id);
-  window.location.href = 'chat.html' + (params.toString() ? '?' + params.toString() : '');
 }
 
 /**
@@ -5325,347 +4797,6 @@ document.getElementById('btnLogout').addEventListener('click', async () => { awa
 ['uploadModal','folderModal','cpModal','taskModal'].forEach(id => {
   document.getElementById(id).addEventListener('click', function(e) { if (e.target === this) this.classList.remove('show'); });
 });
-
-// ── Dashboard helpers (pour les actions depuis la vue workstream)
-function completeTask(taskId) {
-  const task = allTasks.find(t => t.id === taskId);
-  if (!task) return;
-  if (_sb) {
-    _sb.from('tasks').update({ status: 'done', completed_at: new Date().toISOString() }).eq('id', taskId).then(() => {
-      loadAllData().then(() => renderDashboard());
-      showToast('Tâche marquée comme faite', 'success');
-    });
-  } else {
-    // Fallback : update local
-    task.status = 'done';
-    renderDashboard();
-    showToast('Tâche marquée comme faite', 'success');
-  }
-}
-
-function closeRisk(riskId) {
-  const risk = allRisks.find(r => r.id === riskId);
-  if (!risk) return;
-  if (_sb) {
-    _sb.from('risks').update({ status: 'closed', closed_at: new Date().toISOString() }).eq('id', riskId).then(() => {
-      loadAllData().then(() => renderDashboard());
-      showToast('Risque fermé', 'success');
-    });
-  } else {
-    risk.status = 'closed';
-    renderDashboard();
-    showToast('Risque fermé', 'success');
-  }
-}
-
-function openRiskDetail(riskId) {
-  showPage('risques');
-  setTimeout(() => {
-    const el = document.querySelector(`[data-risk-id="${riskId}"]`);
-    if (el) el.scrollIntoView({ behavior: 'smooth' });
-  }, 50);
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// JURIA WORKSPACE ENGINE — Utilise les services
-// ══════════════════════════════════════════════════════════════════════════════
-
-// État local pour Command Palette
-let cmdkSelectedIndex = 0;
-let cmdkFlatResults = [];
-let portfolioTab = 'risks';
-
-/**
- * ══ OUVERTURE D'UN WORKSPACE ══
- * Point d'entrée unique pour ouvrir un dossier en tant que Workspace.
- */
-function openWorkspace(folderId) {
-  RecentWorkspacesService.record(folderId);
-  selectFolder(folderId);
-  showPage('dossiers');
-  const tab = WorkspaceTabMemory.get(folderId);
-  setTimeout(() => wsSwitchTab(tab), 20);
-  renderSidebarWorkspaces();
-}
-
-/**
- * ══ RENDER SIDEBAR : Favoris + Récents ══
- */
-function renderSidebarWorkspaces() {
-  const favSection = document.getElementById('navFavSection');
-  const favContainer = document.getElementById('navFavorites');
-  const recentSection = document.getElementById('navRecentSection');
-  const recentContainer = document.getElementById('navRecents');
-
-  if (!favContainer || !recentContainer) return;
-
-  // Favoris
-  const favs = FavoritesService.list();
-  if (favs.length) {
-    favSection.style.display = '';
-    favContainer.innerHTML = favs.map(folderId => {
-      const f = allFolders.find(ff => ff.id === folderId);
-      const active = wsSelectedFolderId === folderId ? ' active' : '';
-      return `<button class="nav-ws-item${active}" onclick="openWorkspace('${folderId}')">
-        <span class="nav-ws-icon">📁</span>
-        <span class="nav-ws-name">${escHtml(f?.name || '?')}</span>
-        <span class="nav-ws-star starred" onclick="event.stopPropagation();toggleFavoriteFromSidebar('${folderId}')" title="Retirer des favoris">★</span>
-      </button>`;
-    }).join('');
-  } else {
-    favSection.style.display = 'none';
-    favContainer.innerHTML = '';
-  }
-
-  // Récents (non-dupliqués avec favoris)
-  const recents = RecentWorkspacesService.list(5);
-  if (recents.length) {
-    recentSection.style.display = '';
-    recentContainer.innerHTML = recents.map(item => {
-      const f = allFolders.find(ff => ff.id === item.folderId);
-      const active = wsSelectedFolderId === item.folderId ? ' active' : '';
-      const starred = FavoritesService.isFavorite(item.folderId);
-      return `<button class="nav-ws-item${active}" onclick="openWorkspace('${item.folderId}')">
-        <span class="nav-ws-icon">🕐</span>
-        <span class="nav-ws-name">${escHtml(f?.name || '?')}</span>
-        <span class="nav-ws-star${starred ? ' starred' : ''}" onclick="event.stopPropagation();toggleFavoriteFromSidebar('${item.folderId}')" title="${starred ? 'Retirer des' : 'Ajouter aux'} favoris">${starred ? '★' : '☆'}</span>
-      </button>`;
-    }).join('');
-  } else {
-    recentSection.style.display = 'none';
-    recentContainer.innerHTML = '';
-  }
-}
-
-/**
- * ══ TOGGLE FAVORI (depuis la sidebar ou le header) ══
- */
-function toggleFavoriteFromSidebar(folderId) {
-  const newState = FavoritesService.toggle(folderId);
-  renderSidebarWorkspaces();
-  // Si on a un header étoile visible, le mettre à jour aussi
-  const star = document.getElementById('wsStarBtn');
-  if (star && folderId === wsSelectedFolderId) {
-    star.textContent = newState ? '★' : '☆';
-    star.classList.toggle('starred', newState);
-  }
-}
-
-function toggleFavorite() {
-  if (wsSelectedFolderId && wsSelectedFolderId !== '__all__') {
-    toggleFavoriteFromSidebar(wsSelectedFolderId);
-  }
-}
-
-/**
- * ══ COMMAND PALETTE : Ouverture & Fermeture ══
- */
-function openCommandPalette() {
-  const overlay = document.getElementById('cmdkOverlay');
-  if (!overlay) return;
-  overlay.classList.add('show');
-  const input = document.getElementById('cmdkInput');
-  input?.focus();
-  cmdkSelectedIndex = 0;
-  renderCommandResults();
-}
-
-function closeCommandPalette() {
-  const overlay = document.getElementById('cmdkOverlay');
-  if (overlay) overlay.classList.remove('show');
-}
-
-/**
- * ══ COMMAND PALETTE : Rendu des résultats ══
- */
-function renderCommandResults() {
-  const q = (document.getElementById('cmdkInput')?.value || '').toLowerCase().trim();
-  const results = document.getElementById('cmdkResults');
-  if (!results) return;
-
-  const groups = CommandPaletteService.search(q);
-  cmdkFlatResults = [];
-
-  if (!groups.length || (groups.length === 1 && !groups[0].items.length)) {
-    results.innerHTML = `<div class="cmdk-empty">Aucun résultat pour « ${escHtml(q)} »</div>`;
-    return;
-  }
-
-  let html = '';
-  let flatIdx = 0;
-
-  groups.forEach(g => {
-    if (!g.items.length) return;
-    html += `<div class="cmdk-group-label">${escHtml(g.label)}</div>`;
-    g.items.forEach(item => {
-      cmdkFlatResults.push(item);
-      const sel = flatIdx === cmdkSelectedIndex ? ' selected' : '';
-      html += `<div class="cmdk-item${sel}" data-idx="${flatIdx}" onclick="cmdkExecute(${flatIdx})" onmouseenter="cmdkHover(${flatIdx})">
-        <span class="cmdk-item-icon">${item.icon}</span>
-        <div class="cmdk-item-main">
-          <div class="cmdk-item-title">${escHtml(item.title)}</div>
-          ${item.sub ? `<div class="cmdk-item-sub">${escHtml(item.sub)}</div>` : ''}
-        </div>
-        ${item.type ? `<span class="cmdk-item-type">${escHtml(item.type)}</span>` : ''}
-      </div>`;
-      flatIdx++;
-    });
-  });
-  results.innerHTML = html;
-}
-
-function cmdkHover(idx) {
-  cmdkSelectedIndex = idx;
-  _cmdkUpdateSelection();
-}
-
-function _cmdkUpdateSelection() {
-  document.querySelectorAll('.cmdk-item').forEach(el => {
-    el.classList.toggle('selected', parseInt(el.dataset.idx) === cmdkSelectedIndex);
-  });
-  const sel = document.querySelector('.cmdk-item.selected');
-  if (sel) sel.scrollIntoView({ block: 'nearest' });
-}
-
-function cmdkExecute(idx) {
-  const item = cmdkFlatResults[idx];
-  if (item && item.fn) item.fn();
-}
-
-/**
- * ══ PORTEFEUILLE : Ouverture & Fermeture ══
- */
-function openPortfolio() {
-  const overlay = document.getElementById('portfolioOverlay');
-  const panel = document.getElementById('portfolioPanel');
-  if (overlay) overlay.classList.add('show');
-  if (panel) panel.classList.add('show');
-  switchPortfolioTab('risks');
-}
-
-function closePortfolio() {
-  const overlay = document.getElementById('portfolioOverlay');
-  const panel = document.getElementById('portfolioPanel');
-  if (overlay) overlay.classList.remove('show');
-  if (panel) panel.classList.remove('show');
-}
-
-function switchPortfolioTab(tab) {
-  portfolioTab = tab;
-  document.querySelectorAll('.portfolio-tab').forEach(t => t.classList.remove('active'));
-  const btn = document.querySelector(`.portfolio-tab[onclick="switchPortfolioTab('${tab}')"]`);
-  if (btn) btn.classList.add('active');
-  const body = document.getElementById('portfolioBody');
-  if (!body) return;
-
-  if (tab === 'risks') {
-    const critical = (allRisks || []).filter(r => r.status !== 'closed').sort((a, b) =>
-      (b.severity === 'critical' ? 2 : b.severity === 'high' ? 1 : 0) - (a.severity === 'critical' ? 2 : a.severity === 'high' ? 1 : 0)
-    );
-    body.innerHTML = critical.length ? renderRisksTable(critical)
-      : wsEmptyTab('✅', 'Aucun risque ouvert', 'Tous les risques sont traités.');
-  } else if (tab === 'tasks') {
-    const openT = (allTasks || []).filter(t => t.status !== 'done' && t.status !== 'closed');
-    body.innerHTML = openT.length ? renderTasksTableGlobal(openT)
-      : wsEmptyTab('✅', 'Aucune tâche ouverte', 'Rien à faire pour le moment.');
-  } else if (tab === 'deadlines') {
-    body.innerHTML = renderWsDeadlines(null, [], true);
-  }
-}
-
-function renderTasksTableGlobal(tasks) {
-  const now = new Date();
-  return `<div style="display:flex;flex-direction:column;gap:8px">
-    ${tasks.map(t => {
-      const folder = t.folder_id ? allFolders.find(f => f.id === t.folder_id) : null;
-      const overdue = t.due_date && new Date(t.due_date) < now;
-      return `<div class="dash-risk-card" style="cursor:pointer" onclick="closePortfolio();${folder ? `openWorkspace('${folder.id}')` : ''}">
-        <div class="dash-risk-header">
-          <div class="dash-risk-title">${escHtml(t.title || 'Tâche')}</div>
-          ${overdue ? '<span class="dash-risk-level critical">EN RETARD</span>' : ''}
-        </div>
-        <div class="dash-risk-meta">${folder ? escHtml(folder.name) : '—'}${t.due_date ? ' · Échéance ' + new Date(t.due_date).toLocaleDateString('fr-MA') : ''}</div>
-      </div>`;
-    }).join('')}
-  </div>`;
-}
-
-/**
- * ══ WORKSPACE : Mettre en jour l'onglet actif ══
- * Override de wsSwitchTab pour mémoriser l'onglet actif par dossier
- */
-const _originalWsSwitchTab = typeof wsSwitchTab !== 'undefined' ? wsSwitchTab : null;
-
-function wsSwitchTabWithMemory(tabName) {
-  if (wsSelectedFolderId && wsSelectedFolderId !== '__all__') {
-    WorkspaceTabMemory.save(wsSelectedFolderId, tabName);
-  }
-  // Appeler la fonction originale si elle existe
-  if (_originalWsSwitchTab && typeof _originalWsSwitchTab === 'function') {
-    return _originalWsSwitchTab(tabName);
-  }
-}
-
-// Remplacer wsSwitchTab si elle existe
-if (typeof wsSwitchTab === 'function') {
-  const _old = wsSwitchTab;
-  window.wsSwitchTab = function(tabName) {
-    wsSwitchTabWithMemory(tabName);
-  };
-}
-
-/**
- * ══ CLAVIER GLOBAL : ⌘K, Esc, navigation cmdk ══
- */
-document.addEventListener('keydown', (e) => {
-  // ⌘K ou Ctrl+K : toggle command palette
-  if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-    e.preventDefault();
-    const overlay = document.getElementById('cmdkOverlay');
-    if (overlay?.classList.contains('show')) {
-      closeCommandPalette();
-    } else {
-      openCommandPalette();
-    }
-    return;
-  }
-
-  // Navigation dans command palette (si ouverte)
-  const cmdkOpen = document.getElementById('cmdkOverlay')?.classList.contains('show');
-  if (cmdkOpen) {
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      closeCommandPalette();
-    } else if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      cmdkSelectedIndex = Math.min(cmdkSelectedIndex + 1, cmdkFlatResults.length - 1);
-      _cmdkUpdateSelection();
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      cmdkSelectedIndex = Math.max(cmdkSelectedIndex - 1, 0);
-      _cmdkUpdateSelection();
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      cmdkExecute(cmdkSelectedIndex);
-    }
-    return;
-  }
-
-  // Fermeture portefeuille avec Esc
-  if (e.key === 'Escape') {
-    if (document.getElementById('portfolioPanel')?.classList.contains('show')) {
-      closePortfolio();
-    }
-  }
-});
-
-/**
- * ══ INIT WORKSPACE : appelée après loadAllData ══
- */
-function initWorkspaceUI() {
-  renderSidebarWorkspaces();
-}
-
 
 init();
 </script>
