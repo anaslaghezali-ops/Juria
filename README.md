@@ -1,4 +1,2 @@
 # Juria
 Juria 
-Juria
-Juria
