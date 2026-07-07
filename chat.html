@@ -470,13 +470,28 @@ const ConversationManager = {
           }
         };
 
-        input.addEventListener('blur', finishRename);
+        let isFinishing = false;
+        input.addEventListener('blur', (e) => {
+          if (!isFinishing) {
+            isFinishing = true;
+            finishRename();
+          }
+        });
+
         input.addEventListener('keydown', (e) => {
+          e.stopPropagation();
           if (e.key === 'Enter') {
+            e.preventDefault();
+            isFinishing = true;
             finishRename();
           } else if (e.key === 'Escape') {
+            e.preventDefault();
             ConversationManager.updateUI();
           }
+        });
+
+        input.addEventListener('click', (e) => {
+          e.stopPropagation();
         });
       });
 
