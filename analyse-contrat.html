@@ -964,8 +964,8 @@ function renderComparison(result) {
       if (change.impact === 'majeur') html += '<span style="font-size:11px;background:#fef2f2;color:#991b1b;padding:2px 8px;border-radius:99px;font-weight:600;">Impact majeur</span>';
       html += '</div>';
       if (change.description) html += '<div style="font-size:12px;color:var(--slate-600);margin-bottom:8px;font-style:italic;">' + change.description + '</div>';
-      if (change.v1) html += '<div style="font-size:12px;color:var(--slate-500);margin-bottom:4px;"><strong>V1:</strong> ' + (change.v1.length > 150 ? change.v1.substring(0, 150) + '...' : change.v1) + '</div>';
-      if (change.v2) html += '<div style="font-size:12px;color:var(--slate-700);"><strong>V2:</strong> ' + (change.v2.length > 150 ? change.v2.substring(0, 150) + '...' : change.v2) + '</div>';
+      if (change.v1) html += '<div style="font-size:12px;color:var(--slate-500);margin-bottom:4px;white-space:pre-wrap;line-height:1.6;"><strong>V1:</strong> ' + change.v1 + '</div>';
+      if (change.v2) html += '<div style="font-size:12px;color:var(--slate-700);white-space:pre-wrap;line-height:1.6;"><strong>V2:</strong> ' + change.v2 + '</div>';
       html += '</div>';
     });
     html += '</div>';
@@ -993,8 +993,8 @@ window.exportComparePDF = function exportComparePDF() {
       '<strong style="color:' + color + '">[' + label + ']</strong> ' + (c.clause || '') +
       (c.impact === 'majeur' ? ' <span style="background:#fef2f2;color:#991b1b;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600;">Impact majeur</span>' : '') +
       (c.description ? '<div style="font-size:12px;color:#555;margin-top:6px;font-style:italic;">' + c.description + '</div>' : '') +
-      (c.v1 ? '<div style="font-size:12px;color:#666;margin-top:6px;"><strong>V1:</strong> ' + (c.v1.length > 200 ? c.v1.substring(0, 200) + '...' : c.v1) + '</div>' : '') +
-      (c.v2 ? '<div style="font-size:12px;color:#333;margin-top:4px;"><strong>V2:</strong> ' + (c.v2.length > 200 ? c.v2.substring(0, 200) + '...' : c.v2) + '</div>' : '') +
+      (c.v1 ? '<div style="font-size:12px;color:#666;margin-top:6px;white-space:pre-wrap;"><strong>V1:</strong> ' + c.v1 + '</div>' : '') +
+      (c.v2 ? '<div style="font-size:12px;color:#333;margin-top:4px;white-space:pre-wrap;"><strong>V2:</strong> ' + c.v2 + '</div>' : '') +
       '</div>';
   }).join('');
   

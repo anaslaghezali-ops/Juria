@@ -293,6 +293,8 @@ serve(async (req) => {
         "",
         "Types UNIQUEMENT: ajout, suppression, modification. Impact: majeur, mineur, neutre. PAS de 'deletion', 'added', 'changed'.",
         "Chaque changement DOIT avoir: type, clause, v1, v2, impact, description",
+        "",
+        "🔴 RÈGLE SUR v1 ET v2: cite le TEXTE INTÉGRAL de la clause concernée, mot pour mot, tel qu'il apparaît dans le contrat. NE RÉSUME PAS, NE PARAPHRASE PAS, NE TRONQUE PAS. Pour une suppression: v1 = texte complet de la clause supprimée. Pour un ajout: v2 = texte complet de la clause ajoutée. Pour une modification: cite les passages complets concernés dans v1 et v2.",
         "Si aucune différence trouvée: {\"summary\": \"Aucune différence\", \"changes\": []}",
       ].join("\n");
 
@@ -301,7 +303,7 @@ serve(async (req) => {
         { role: "user", content: "CONTRAT V1 (original):\n" + v1.slice(0, 8000) + "\n\n---SÉPARATEUR---\n\nCONTRAT V2 (modifié):\n" + v2.slice(0, 8000) }
       ];
 
-      const rawResult = await callOpenAIMessages(compareMessages, 1500);
+      const rawResult = await callOpenAIMessages(compareMessages, 4000);
       let compareData = { summary: "", changes: [] };
       try {
         const answer = rawResult.answer || JSON.stringify(rawResult);
