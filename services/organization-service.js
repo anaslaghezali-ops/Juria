@@ -175,7 +175,6 @@ class OrganizationService extends BaseService {
         last_name: last_name || null,
         role,
         invited_by: invited_by || null,
-        invited_at: NOW(),
         is_active: true,
       }])
       .select()
