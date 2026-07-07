@@ -59,23 +59,30 @@ serve(async (req) => {
 
     let userId = existingUsers?.users?.find((u) => u.email === email)?.id;
 
-    // If user doesn't exist, invite them by email.
-    // This creates the user AND sends them an email with a link
-    // where they choose their own password.
+    // Temporary password (communicated manually to the user for now).
+    // Will be replaced by an email-invitation flow later.
+    let tempPassword = null;
+
+    // If user doesn't exist, create them directly with a temp password.
     if (!userId) {
-      const { data: invited, error: inviteError } =
-        await supabase.auth.admin.inviteUserByEmail(email, {
-          data: {
+      tempPassword = `Juria-${Math.random().toString(36).slice(2, 10)}!`;
+
+      const { data: newUser, error: createError } =
+        await supabase.auth.admin.createUser({
+          email,
+          password: tempPassword,
+          user_metadata: {
             full_name: `${firstName || ""} ${lastName || ""}`.trim(),
             org_id: orgId,
           },
+          email_confirm: true,
         });
 
-      if (inviteError) {
-        throw inviteError;
+      if (createError) {
+        throw createError;
       }
 
-      userId = invited.user.id;
+      userId = newUser.user.id;
     }
 
     // Check if already a member of this organization
@@ -120,6 +127,7 @@ serve(async (req) => {
         message: "User invited successfully",
         userId,
         member,
+        tempPassword, // null if the user already existed
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
