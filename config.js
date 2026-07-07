@@ -1,22 +1,13 @@
 // ================================================
 // JURIA — CONFIGURATION GLOBALE
 // ================================================
-// Load Supabase config from window._SECRETS (set by secrets.js)
-// secrets.js must be loaded BEFORE this file
+// NOTE: The Supabase ANON_KEY is safe to expose in frontend code.
+// It only allows access permitted by your Row-Level Security (RLS) policies.
+// This is the standard, documented way to use Supabase from a browser.
 
 const JURIA_CONFIG = {
-  SUPABASE_URL: 'https://dnrudcpaqcqyybpbbrum.supabase.co',
-  // SUPABASE_ANON_KEY loaded from secrets.js below
-  SUPABASE_ANON_KEY: undefined,
-
+  SUPABASE_URL:      'https://dnrudcpaqcqyybpbbrum.supabase.co',
+  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRucnVkY3BhcWNxeXlicGJicnVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyODQwMjMsImV4cCI6MjA5Njg2MDAyM30.f6_byMzZBE2SQH2XjNmRQFQpRkRIfXE2OC0mNxQt5z4',
   EDGE_FUNCTION_URL: 'https://dnrudcpaqcqyybpbbrum.supabase.co/functions/v1/smart-endpoint',
-  CHAT_DOC_URL: 'https://dnrudcpaqcqyybpbbrum.supabase.co/functions/v1/chat-with-doc',
+  CHAT_DOC_URL:      'https://dnrudcpaqcqyybpbbrum.supabase.co/functions/v1/chat-with-doc',
 };
-
-// Load ANON_KEY from window._SECRETS (populated by secrets.js)
-if (typeof window._SECRETS !== 'undefined' && window._SECRETS.SUPABASE_ANON_KEY) {
-  JURIA_CONFIG.SUPABASE_ANON_KEY = window._SECRETS.SUPABASE_ANON_KEY;
-  console.info('✅ Supabase ANON_KEY loaded from secrets.js');
-} else {
-  console.error('❌ SUPABASE_ANON_KEY not found! Make sure secrets.js is loaded before config.js');
-}
