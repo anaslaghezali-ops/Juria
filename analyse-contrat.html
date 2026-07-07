@@ -1494,8 +1494,8 @@ async function saveAnalysisToDatabase(analysisResult, selectedFile, extractedTex
         document_id: docId,
         organization_id: orgId,
         clause_name: issue.clause || null,
-        clause_ref: issue.clause_ref || null,
-        paragraph_id: null,
+        clause_ref: issue.paragraph_id ? `[${issue.paragraph_id}]` : null,
+        paragraph_id: issue.paragraph_id || null,
         problem: issue.problem || '',
         suggestion: issue.suggestion || null,
         severity: normalizeSeverity(issue.severity),  // MODIFIÉ : normaliser
