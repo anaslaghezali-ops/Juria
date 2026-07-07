@@ -56,9 +56,14 @@
     .chat-item:hover { background: var(--slate-100); color: var(--slate-900); }
     .chat-item.active { background: var(--indigo-bg); color: var(--indigo-text); font-weight: 500; }
     .chat-item-text { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; }
-    .chat-item-delete { opacity: 0; width: 20px; height: 20px; background: none; border: none; color: var(--slate-400); cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; border-radius: 4px; transition: all 0.15s; }
-    .chat-item:hover .chat-item-delete { opacity: 1; }
+    .chat-item-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s; }
+    .chat-item:hover .chat-item-actions { opacity: 1; }
+    .chat-item-edit { width: 20px; height: 20px; background: none; border: none; color: var(--slate-400); cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; border-radius: 4px; transition: all 0.15s; }
+    .chat-item-edit:hover { background: var(--indigo-bg); color: var(--indigo); }
+    .chat-item-delete { width: 20px; height: 20px; background: none; border: none; color: var(--slate-400); cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; border-radius: 4px; transition: all 0.15s; }
     .chat-item-delete:hover { background: var(--red-bg); color: var(--red); }
+    .chat-item-input { flex: 1; border: 1px solid var(--indigo); background: var(--white); border-radius: 4px; padding: 4px 8px; font-size: 13px; font-family: var(--font); color: var(--slate-900); outline: none; }
+    .chat-item-input:focus { border-color: var(--indigo-light); box-shadow: 0 0 0 2px var(--indigo-bg); }
     .chat-empty { padding: 16px; text-align: center; color: var(--slate-400); font-size: 12px; }
     .chat-container { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
     .topbar { height: 52px; background: var(--white); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; gap: 12px; flex-shrink: 0; }
@@ -400,6 +405,19 @@ const ConversationManager = {
     this.updateUI();
   },
 
+  // Renommer une conversation
+  rename: function(conversationId, newTitle) {
+    const conv = allConversations.find(c => c.id === conversationId);
+    if (conv && newTitle.trim()) {
+      conv.title = newTitle.trim();
+      conv.updated_at = new Date().toISOString();
+      this.saveToStorage(allConversations);
+      this.updateUI();
+      // Sauvegarder dans Supabase en arrière-plan
+      persistConversationToSupabase(conv).catch(e => console.warn('Supabase sync error:', e));
+    }
+  },
+
   // Mettre à jour l'UI de la liste des conversations
   updateUI: function() {
     const list = document.getElementById('chatList');
@@ -420,6 +438,48 @@ const ConversationManager = {
       text.title = conv.title;
       text.textContent = conv.title;
 
+      const actions = document.createElement('div');
+      actions.className = 'chat-item-actions';
+
+      const editBtn = document.createElement('button');
+      editBtn.className = 'chat-item-edit';
+      editBtn.innerHTML = '✏️';
+      editBtn.title = 'Renommer';
+      editBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+
+        // Remplacer le texte par un input
+        const input = document.createElement('input');
+        input.className = 'chat-item-input';
+        input.type = 'text';
+        input.value = conv.title;
+        input.maxLength = 100;
+
+        // Remplacer le contenu du bouton
+        item.innerHTML = '';
+        item.appendChild(input);
+        input.focus();
+        input.select();
+
+        const finishRename = () => {
+          const newTitle = input.value.trim();
+          if (newTitle) {
+            ConversationManager.rename(conv.id, newTitle);
+          } else {
+            ConversationManager.updateUI();
+          }
+        };
+
+        input.addEventListener('blur', finishRename);
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            finishRename();
+          } else if (e.key === 'Escape') {
+            ConversationManager.updateUI();
+          }
+        });
+      });
+
       const deleteBtn = document.createElement('button');
       deleteBtn.className = 'chat-item-delete';
       deleteBtn.innerHTML = '🗑️';
@@ -431,8 +491,10 @@ const ConversationManager = {
         }
       });
 
+      actions.appendChild(editBtn);
+      actions.appendChild(deleteBtn);
       item.appendChild(text);
-      item.appendChild(deleteBtn);
+      item.appendChild(actions);
       item.addEventListener('click', () => {
         ConversationManager.load(conv.id);
       });
