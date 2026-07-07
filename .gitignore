@@ -1,0 +1,52 @@
+# Environment Variables
+.env
+.env.local
+.env.*.local
+.env.production.local
+
+# Node modules
+node_modules/
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+
+# Supabase local
+.supabase/
+supabase/.env.local
+
+# Build artifacts
+dist/
+build/
+.next/
+*.tsbuildinfo
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+coverage/
+.nyc_output/
+
+# Logs
+logs/
+*.log
+
+# Secrets (sensitive files that may be accidentally added)
+*.pem
+*.key
+*.pub
+credentials.json
+secrets.json
+
+# Development
+.env.development.local
+dev-env.js
+
+# OS
+.DS_Store
+Thumbs.db
