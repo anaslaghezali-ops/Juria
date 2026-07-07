@@ -1,18 +1,28 @@
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS'
-}
+import { getCorsHeaders, handleCorsPreFlight } from "../_shared/cors.ts";
+import { authenticateRequest, errorResponse } from "../_shared/auth.ts";
 
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
+  const corsHeaders = getCorsHeaders(req.headers.get("Origin"));
+
+  // Handle CORS preflight
+  const preflightResponse = handleCorsPreFlight(req);
+  if (preflightResponse) return preflightResponse;
 
   try {
-    const { text } = await req.json()
+    // ✅ AUTHENTICATION REQUIRED
+    await authenticateRequest(req);
+
+    const { text } = await req.json();
+
+    // ✅ INPUT VALIDATION
+    if (!text || typeof text !== 'string') {
+      return errorResponse(400, 'text is required', corsHeaders);
+    }
+    if (text.length > 32000) {
+      return errorResponse(400, 'text is too long (max 32KB)', corsHeaders);
+    }
 
     const response = await fetch('https://api.openai.com/v1/embeddings', {
       method: 'POST',

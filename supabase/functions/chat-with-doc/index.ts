@@ -1,39 +1,67 @@
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS'
-}
+import { getCorsHeaders, handleCorsPreFlight } from "../_shared/cors.ts";
+import { authenticateRequest, errorResponse } from "../_shared/auth.ts";
 
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
 
 async function callGPT(messages: object[], maxTokens = 1024, temperature = 0.1, topP = 0.1): Promise<string> {
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${OPENAI_API_KEY}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      max_tokens: maxTokens,
-      temperature,
-      top_p: topP,
-      messages
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        max_tokens: maxTokens,
+        temperature,
+        top_p: topP,
+        messages
+      }),
+      signal: controller.signal,
     })
-  })
-  const data = await response.json()
-  if (!response.ok) throw new Error(data.error?.message || 'Erreur OpenAI')
-  return data.choices[0].message.content
+
+    const data = await response.json()
+    if (!response.ok) {
+      const errorMsg = data.error?.message || 'OpenAI API error';
+      throw new Error(`OpenAI error (${response.status}): ${errorMsg}`);
+    }
+    return data.choices[0].message.content
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
+  const corsHeaders = getCorsHeaders(req.headers.get("Origin"));
+
+  // Handle CORS preflight
+  const preflightResponse = handleCorsPreFlight(req);
+  if (preflightResponse) return preflightResponse;
 
   try {
+    // ✅ AUTHENTICATION REQUIRED
+    const { userId } = await authenticateRequest(req);
+
     const body = await req.json()
     const { mode, question, context } = body
+
+    // ✅ BASIC INPUT VALIDATION
+    if (!mode || typeof mode !== 'string') {
+      return errorResponse(400, 'mode is required', corsHeaders);
+    }
+    if (!question || typeof question !== 'string' || question.length > 2000) {
+      return errorResponse(400, 'question is required and must be < 2000 chars', corsHeaders);
+    }
+    if (context && typeof context !== 'string') {
+      return errorResponse(400, 'context must be a string', corsHeaders);
+    }
+    if (context && context.length > 50000) {
+      return errorResponse(400, 'context is too large (max 50KB)', corsHeaders);
+    }
     let answer = ''
 
     // ── MODE CLASSIFIER ──────────────────────────────────────────

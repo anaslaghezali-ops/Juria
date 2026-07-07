@@ -1,14 +1,27 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.0'
+import { getCorsHeaders, handleCorsPreFlight } from '../_shared/cors.ts';
+import { authenticateRequest, errorResponse } from '../_shared/auth.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS'
-}
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.0'
 
 interface ProcessChunksRequest {
   document_id: string
   chunk_version: number
+}
+
+// ✅ OWNERSHIP CHECK: Verify user owns the document
+async function verifyDocumentOwnership(
+  documentId: string,
+  userId: string,
+  sb: any
+): Promise<boolean> {
+  const { data } = await sb
+    .from('documents')
+    .select('user_id')
+    .eq('id', documentId)
+    .eq('user_id', userId)
+    .single();
+
+  return !!data;
 }
 
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
@@ -98,23 +111,36 @@ async function processChunks(request: ProcessChunksRequest) {
 }
 
 Deno.serve(async (req) => {
-  // Gérer la requête preflight CORS
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
+  const corsHeaders = getCorsHeaders(req.headers.get("Origin"));
+
+  // Handle CORS preflight
+  const preflightResponse = handleCorsPreFlight(req);
+  if (preflightResponse) return preflightResponse;
 
   if (req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405, headers: corsHeaders })
+    return errorResponse(405, 'Method not allowed', corsHeaders);
   }
 
   try {
+    // ✅ AUTHENTICATION REQUIRED
+    const { userId } = await authenticateRequest(req);
+
     const body = await req.json() as ProcessChunksRequest
 
-    if (!body.document_id || body.chunk_version === undefined) {
-      return new Response(
-        JSON.stringify({ error: 'Missing required fields: document_id, chunk_version' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    // ✅ INPUT VALIDATION
+    if (!body.document_id || typeof body.document_id !== 'string') {
+      return errorResponse(400, 'document_id is required', corsHeaders);
+    }
+    if (body.chunk_version === undefined || typeof body.chunk_version !== 'number') {
+      return errorResponse(400, 'chunk_version is required', corsHeaders);
+    }
+
+    // ✅ OWNERSHIP CHECK - Prevent User A from processing User B's documents
+    const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const isOwner = await verifyDocumentOwnership(body.document_id, userId, sb);
+
+    if (!isOwner) {
+      return errorResponse(403, 'Forbidden: You do not have access to this document', corsHeaders);
     }
 
     const result = await processChunks(body)
@@ -125,9 +151,6 @@ Deno.serve(async (req) => {
     )
   } catch (error) {
     console.error('Edge Function error:', error)
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    return errorResponse(500, 'Internal server error', corsHeaders);
   }
 })
