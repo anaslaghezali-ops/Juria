@@ -2765,19 +2765,46 @@ function renderRisks(filter) {
 }
 
 function renderRisksTable(risks) {
-  return `<table class="risks-table">
-    <thead><tr><th>Niveau</th><th>Type</th><th>Risque</th><th>Clause</th></tr></thead>
-    <tbody>${risks.map(r => {
+  if (!risks || risks.length === 0) {
+    return '<div style="text-align:center;padding:40px;color:var(--slate-400)">Aucun risque identifié pour ce dossier</div>';
+  }
+
+  // Grouper les risques par document
+  const risksByDoc = {};
+  risks.forEach(r => {
+    const docKey = r.document_id || 'unknown';
+    if (!risksByDoc[docKey]) {
+      risksByDoc[docKey] = { docName: r.docName || '—', risks: [] };
+    }
+    risksByDoc[docKey].risks.push(r);
+  });
+
+  let html = '<table class="risks-table"><thead><tr><th>Document</th><th>Niveau</th><th>Type</th><th>Risque</th><th>Clause</th></tr></thead><tbody>';
+
+  Object.entries(risksByDoc).forEach(([docId, group]) => {
+    // En-tête du document
+    html += `<tr style="background:var(--indigo-bg);cursor:default">
+      <td colspan="5" style="padding:12px 14px;font-weight:600;color:var(--indigo-text);font-size:13px">
+        📄 ${escHtml(group.docName)}
+      </td>
+    </tr>`;
+
+    // Risques du document
+    html += group.risks.map(r => {
       const lvlCls = r.severity === 'high' || r.severity === 'critical' ? 'lvl-high' : 'lvl-med';
       const lvlLabel = r.severity === 'high' || r.severity === 'critical' ? 'ÉLEVÉ' : 'MOYEN';
-      return `<tr>
+      return `<tr style="cursor:pointer" onclick="openRiskPanel('${r.id}')">
+        <td style="font-size:12px;color:var(--slate-500)"></td>
         <td><span class="risk-level-badge ${lvlCls}">${lvlLabel}</span></td>
         <td><span class="type-chip">${escHtml(r.risk_type || 'OTHER')}</span></td>
         <td style="font-size:13px">${escHtml(r.title || '—')}</td>
         <td><span class="clause-ref">${escHtml(r.clause_reference || '—')}</span></td>
       </tr>`;
-    }).join('')}
-    </tbody></table>`;
+    }).join('');
+  });
+
+  html += '</tbody></table>';
+  return html;
 }
 
 function filterRisks(level, btn) {
