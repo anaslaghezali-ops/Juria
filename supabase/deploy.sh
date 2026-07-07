@@ -31,29 +31,33 @@ if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
 fi
 
 # Deploy functions
-echo "📤 Deploying smart-endpoint function..."
-supabase functions deploy smart-endpoint --project-ref $PROJECT_ID
+echo "📤 Deploying Edge Functions..."
+echo ""
 
+echo "1️⃣  Deploying smart-endpoint..."
+supabase functions deploy smart-endpoint --project-ref $PROJECT_ID
+echo "   ✅ smart-endpoint deployed"
 echo ""
-echo "✅ Deployment successful!"
+
+echo "2️⃣  Deploying embed-articles..."
+supabase functions deploy embed-articles --project-ref $PROJECT_ID
+echo "   ✅ embed-articles deployed"
 echo ""
-echo "📋 Function Details:"
-echo "   Name: smart-endpoint"
-echo "   URL: https://$PROJECT_ID.supabase.co/functions/v1/smart-endpoint"
-echo "   Method: POST"
+
+echo "✅ All Edge Functions deployed successfully!"
 echo ""
-echo "🔑 Required Headers:"
-echo "   Authorization: Bearer <user-jwt-token>"
-echo "   Content-Type: application/json"
+echo "📋 Available Functions:"
 echo ""
-echo "📝 Example Request:"
-echo '{
-  "operation": "read",
-  "table": "folders",
-  "filters": { "id": "fold_123" },
-  "orgId": "org_123",
-  "userId": "user_456"
-}'
+echo "  1. smart-endpoint (General Database Operations)"
+echo "     URL: https://$PROJECT_ID.supabase.co/functions/v1/smart-endpoint"
+echo "     Method: POST"
+echo "     Purpose: Secure CRUD operations with org-level access control"
+echo ""
+echo "  2. embed-articles (AI Embeddings)"
+echo "     URL: https://$PROJECT_ID.supabase.co/functions/v1/embed-articles"
+echo "     Method: POST"
+echo "     Purpose: Generate OpenAI embeddings for legal articles"
+echo ""
 echo ""
 echo "💡 Next steps:"
 echo "   1. Set SUPABASE_ACCESS_TOKEN environment variable"

@@ -2,9 +2,9 @@
 
 Server-side secure operations for Juria application.
 
-## Functions
+## Available Functions
 
-### `smart-endpoint`
+### 1. `smart-endpoint`
 
 Unified endpoint for protected database operations. All operations enforce organization-level access control.
 
@@ -143,7 +143,99 @@ These are automatically available to Edge Functions via environment variables.
 
 ## Development
 
-### Local Testing
+#---
+
+### 2. `embed-articles`
+
+Generate OpenAI embeddings for legal articles to enable semantic search.
+
+**Purpose:**
+- Batch process articles without embeddings
+- Generate vector embeddings via OpenAI API
+- Store embeddings for semantic search queries
+
+**Features:**
+- Processes articles in batches of 50
+- Enriches content (code + book + title + chapter + contenu)
+- Uses OpenAI `text-embedding-3-small` model
+- Reports progress (remaining articles)
+- Automatic retry with reasonable error handling
+
+**Deployment:**
+
+```bash
+supabase functions deploy embed-articles --project-ref <project-id>
+```
+
+**Environment Variables:**
+- `OPENAI_API_KEY`: OpenAI API key with embedding model access
+
+**Trigger:**
+
+```bash
+# Manual trigger
+curl -X POST https://[project].supabase.co/functions/v1/embed-articles \
+  -H "Authorization: Bearer [service_role_key]"
+
+# Or schedule via cron job (every hour, for example)
+```
+
+**Response:**
+
+```json
+{
+  "message": "25 embeddings générés",
+  "remaining": 150,
+  "done": false
+}
+```
+
+**Usage Example:**
+
+```javascript
+// Trigger embedding generation
+const response = await fetch(
+  'https://project.supabase.co/functions/v1/embed-articles',
+  {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${serviceRoleKey}`,
+    },
+  }
+);
+
+const result = await response.json();
+console.log(`Generated: ${result.message}, Remaining: ${result.remaining}`);
+```
+
+**Database Setup:**
+
+```sql
+-- Ensure embedding column exists
+ALTER TABLE articles_juridiques 
+ADD COLUMN IF NOT EXISTS embedding vector(1536);
+
+-- Optional: create index for fast search
+CREATE INDEX ON articles_juridiques USING ivfflat (embedding vector_cosine_ops);
+```
+
+**Semantic Search Example:**
+
+```javascript
+// Once embeddings are generated, search like this:
+const query = "droits du travail";
+const { data: results } = await supabase
+  .from('articles_juridiques')
+  .select('id, numero_article, title')
+  .order('embedding <-> ${queryEmbedding}', { ascending: true })
+  .limit(10);
+```
+
+See `supabase/functions/embed-articles/README.md` for detailed documentation.
+
+---
+
+## Local Testing
 
 1. Start local Supabase instance:
 ```bash
