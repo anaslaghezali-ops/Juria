@@ -544,11 +544,31 @@ async function submitInvite() {
   try {
     document.getElementById('btnSubmitInvite').disabled = true;
 
-    // TODO: Appeler une Edge Function pour créer l'utilisateur et l'inviter
-    // Pour l'instant, on affiche un message d'implémentation
+    const response = await fetch(JURIA_CONFIG.INVITE_USER_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${(await window._sb.auth.getSession()).data.session.access_token}`,
+      },
+      body: JSON.stringify({
+        email,
+        firstName,
+        lastName,
+        role,
+        orgId: currentOrg.id,
+        invitedBy: currentUser.id,
+      }),
+    });
 
-    alert('Feature d\'invitation en cours d\'implémentation.\nVeuillez créer l\'utilisateur manuellement dans Supabase.');
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Erreur lors de l\'invitation');
+    }
+
+    const result = await response.json();
+    alert('Utilisateur invité avec succès!');
     closeInviteModal();
+    await loadMembers();
   } catch (err) {
     alert('Erreur: ' + err.message);
   } finally {
