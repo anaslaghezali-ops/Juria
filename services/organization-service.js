@@ -13,24 +13,48 @@ class OrganizationService extends BaseService {
   // ── Organization Management ───────────────────────────────────────────
 
   /**
-   * Get current organization (from user metadata)
+   * Get current organization (from user metadata or by querying organization_users)
    * @param {Object} user - auth.users object
    * @returns {Promise<Object|null>}
    */
   async getCurrentOrganization(user) {
-    if (!user?.user_metadata?.org_id) return null;
+    // First try getting from user metadata
+    if (user?.user_metadata?.org_id) {
+      const { data, error } = await this._sb
+        .from(this._orgTable)
+        .select('*')
+        .eq('id', user.user_metadata.org_id)
+        .single();
 
-    const { data, error } = await this._sb
-      .from(this._orgTable)
-      .select('*')
-      .eq('id', user.user_metadata.org_id)
+      if (!error) return data;
+    }
+
+    // Fallback: find organization by querying organization_users table
+    const { data: memberData, error: memberError } = await this._sb
+      .from(this._table)
+      .select('organization_id')
+      .eq('user_id', user.id)
+      .limit(1)
       .single();
 
-    if (error) {
-      this._handleError('getCurrentOrganization', error);
+    if (memberError || !memberData?.organization_id) {
+      this._handleError('getCurrentOrganization', memberError || new Error('No organization found'));
       return null;
     }
-    return data;
+
+    // Get the organization
+    const { data: org, error: orgError } = await this._sb
+      .from(this._orgTable)
+      .select('*')
+      .eq('id', memberData.organization_id)
+      .single();
+
+    if (orgError) {
+      this._handleError('getCurrentOrganization', orgError);
+      return null;
+    }
+
+    return org;
   }
 
   /**
