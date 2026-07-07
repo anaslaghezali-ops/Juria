@@ -4498,13 +4498,21 @@ async function saveTask() {
 
   if (Services?.tasks) {
     if (editId) {
-      await Services.tasks.updateTask(editId, payload, currentUser?.id);
+      const updated = await Services.tasks.updateTask(editId, payload, currentUser?.id);
+      if (updated && allTasks) {
+        const idx = allTasks.findIndex(t => t.id === editId);
+        if (idx !== -1) allTasks[idx] = { ...allTasks[idx], ...updated };
+      }
       showToast('Tâche mise à jour.', 'success');
     } else {
-      await Services.tasks.createTask(payload, currentOrgId, currentUser?.id);
+      const created = await Services.tasks.createTask(payload, currentOrgId, currentUser?.id);
+      if (created) {
+        // Ajouter la tâche créée directement à allTasks
+        if (!allTasks) allTasks = [];
+        allTasks.unshift(created);
+      }
       showToast('Tâche créée.', 'success');
     }
-    allTasks = Store.state.tasks;
   } else {
     // Fallback local
     if (editId) {
@@ -4518,6 +4526,7 @@ async function saveTask() {
   }
 
   closeTaskModal();
+  if (!allTasks) allTasks = [];
   document.getElementById('navTasksCount').textContent = getTasksStats(allTasks).open;
   const activePage = document.querySelector('.page.active');
   if (activePage) {
