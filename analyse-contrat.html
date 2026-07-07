@@ -429,8 +429,13 @@ async function startAnalysis() {
       var ext = selectedFile.name.split('.').pop().toLowerCase();
       if (ext === 'pdf') {
         extractedText = await extractPDFText(selectedFile);
-      } else {
+      } else if (ext === 'docx') {
         extractedText = await extractDOCXText(selectedFile);
+      } else if (ext === 'doc') {
+        // mammoth.js ne supporte que le .docx (XML), pas l'ancien .doc binaire
+        throw new Error('Le format .doc (ancien Word) n\'est pas pris en charge. Merci de convertir le document en PDF ou .docx puis de le re-uploader.');
+      } else {
+        throw new Error('Format non supporté : .' + ext + '. Utilisez PDF ou DOCX.');
       }
     }
 
