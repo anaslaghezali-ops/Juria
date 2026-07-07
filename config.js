@@ -11,15 +11,23 @@
 //
 // Setup: supabase secrets set SUPABASE_ANON_KEY="..."
 
+// Load from environment variables (injected by build system or .env.local)
+// For development: Create .env.local with VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY
 const JURIA_CONFIG = {
-  // Supabase Credentials
-  SUPABASE_URL: 'https://dnrudcpaqcqyybpbbrum.supabase.co',
-  // Get this from Supabase Project → Settings → API → anon public key
-  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRucnVkY3BhcWNxeXlic3BiYnJ1bSIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzE5NjAzOTk3LCJleHAiOjIwMzUxNzk5OTd9.Qyq9_EGzqf_dUTLiXvqKxW63gJnG9aMJDYjRCeJ3sxc',
+  SUPABASE_URL: import.meta?.env?.VITE_SUPABASE_URL || 'https://dnrudcpaqcqyybpbbrum.supabase.co',
+  SUPABASE_ANON_KEY: import.meta?.env?.VITE_SUPABASE_ANON_KEY || undefined,
 
-  // All API calls go through Edge Functions (defined in functions/ directory)
   EDGE_FUNCTION_URL: 'https://dnrudcpaqcqyybpbbrum.supabase.co/functions/v1/smart-endpoint',
   CHAT_DOC_URL: 'https://dnrudcpaqcqyybpbbrum.supabase.co/functions/v1/chat-with-doc',
 };
 
-console.info('ℹ️  Supabase credentials loaded from secure storage (Vault/Secrets)');
+// Fallback for vanilla JS without build process: read from window._SECRETS
+if (!JURIA_CONFIG.SUPABASE_ANON_KEY && typeof window._SECRETS !== 'undefined') {
+  JURIA_CONFIG.SUPABASE_ANON_KEY = window._SECRETS.SUPABASE_ANON_KEY;
+}
+
+if (JURIA_CONFIG.SUPABASE_ANON_KEY) {
+  console.info('ℹ️  Supabase credentials loaded from environment');
+} else {
+  console.warn('⚠️  SUPABASE_ANON_KEY not found. Create .env.local or set window._SECRETS');
+}

@@ -42,6 +42,7 @@ logs/
 *.pub
 credentials.json
 secrets.json
+secrets.js
 
 # Development
 .env.development.local
