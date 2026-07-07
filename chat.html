@@ -1348,7 +1348,7 @@ async function handleRagQuestion(question, token) {
   var result = await _sb.rpc('match_document_chunks', {
     document_id: ragDocId,
     query_embedding: embedding,
-    match_count: 5
+    match_count: 10
   });
 
   if (result.error) throw new Error('Erreur recherche: ' + result.error.message);
