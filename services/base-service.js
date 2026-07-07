@@ -111,11 +111,12 @@ class BaseService {
   /**
    * Met à jour un enregistrement.
    * @param {string} id
+   * @param {string} orgId  — vérification d'organisation (sécurité)
    * @param {Object} payload  — uniquement les champs à modifier
    * @param {Object} options — { skipUpdatedAt: boolean }
    * @returns {Promise<Object|null>}
    */
-  async update(id, payload, options = {}) {
+  async update(id, orgId, payload, options = {}) {
     const updateData = { ...payload };
     if (!options.skipUpdatedAt) {
       updateData.updated_at = new Date().toISOString();
@@ -125,6 +126,7 @@ class BaseService {
       .from(this._table)
       .update(updateData)
       .eq('id', id)
+      .eq('organization_id', orgId)
       .select()
       .single();
 

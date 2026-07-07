@@ -41,13 +41,29 @@ async function fetchSafe(url, options = {}) {
 }
 
 /**
- * Escape HTML to prevent XSS
+ * Escape HTML to prevent XSS in content
  */
 function escapeHTML(str) {
   if (!str) return '';
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
+}
+
+/**
+ * Échappe une chaîne pour utilisation sécurisée en attribut HTML (onclick, href, etc).
+ * Prévient les injections XSS via les événements.
+ * @param {string} str - Chaîne à échapper
+ * @returns {string} - Chaîne échappée sûre pour les attributs
+ */
+function escapeAttr(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/'/g, '&#39;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
 
 /**

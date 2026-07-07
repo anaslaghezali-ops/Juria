@@ -96,15 +96,16 @@ class TaskService extends BaseService {
   /**
    * Met à jour une tâche.
    * @param {string} taskId
+   * @param {string} orgId
    * @param {Object} payload
    * @param {string} userId
    * @returns {Promise<Object|null>}
    */
-  async updateTask(taskId, payload, userId) {
+  async updateTask(taskId, orgId, payload, userId) {
     // Optimistic update
     this._store.upsertTask({ id: taskId, ...payload });
 
-    const updated = await this.update(taskId, { ...payload, updated_by: userId || null });
+    const updated = await this.update(taskId, orgId, { ...payload, updated_by: userId || null });
 
     if (!updated) {
       // Recharger depuis le Store pour annuler l'optimistic update
@@ -121,11 +122,12 @@ class TaskService extends BaseService {
   /**
    * Marque une tâche comme terminée ou la réouvre.
    * @param {string} taskId
+   * @param {string} orgId
    * @param {boolean} done
    * @param {string} userId
    * @returns {Promise<boolean>}
    */
-  async setDone(taskId, done, userId) {
+  async setDone(taskId, orgId, done, userId) {
     const payload = done
       ? { status: 'done', completed_at: new Date().toISOString(), completed_by: userId || null }
       : { status: 'todo', completed_at: null, completed_by: null };
@@ -133,7 +135,7 @@ class TaskService extends BaseService {
     // Optimistic
     this._store.setTaskDone(taskId, done, userId);
 
-    const updated = await this.update(taskId, payload);
+    const updated = await this.update(taskId, orgId, payload);
     if (!updated) {
       // Rollback
       this._store.setTaskDone(taskId, !done, null);

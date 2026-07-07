@@ -76,11 +76,12 @@ class FolderService extends BaseService {
   /**
    * Met à jour un dossier.
    * @param {string} folderId
+   * @param {string} orgId
    * @param {Object} payload
    * @returns {Promise<Object|null>}
    */
-  async updateFolder(folderId, payload) {
-    const updated = await this.update(folderId, payload);
+  async updateFolder(folderId, orgId, payload) {
+    const updated = await this.update(folderId, orgId, payload);
     if (!updated) return null;
     this._store.upsertFolder(updated);
     return updated;
