@@ -45,7 +45,22 @@
     .btn-icon:hover { background: var(--slate-100); color: var(--slate-700); }
     .btn-logout { margin-left: auto; background: none; border: none; color: var(--slate-400); cursor: pointer; font-size: 13px; padding: 4px; border-radius: 6px; transition: all 0.15s; }
     .btn-logout:hover { background: var(--slate-100); color: var(--slate-700); }
-    .main { flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; min-width: 0; }
+    .main { flex: 1; display: flex; flex-direction: row; height: 100vh; overflow: hidden; min-width: 0; }
+    .chat-sidebar { width: 220px; background: var(--white); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden; }
+    .chat-sidebar-header { padding: 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .chat-sidebar-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--slate-400); flex: 1; }
+    .chat-sidebar-newbtn { background: var(--indigo); color: #fff; border: none; border-radius: 6px; width: 28px; height: 28px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; }
+    .chat-sidebar-newbtn:hover { background: var(--indigo-light); }
+    .chat-sidebar-list { flex: 1; overflow-y: auto; padding: 6px; display: flex; flex-direction: column; gap: 2px; }
+    .chat-item { padding: 9px 10px; border-radius: 8px; font-size: 13px; cursor: pointer; transition: all 0.15s; color: var(--slate-600); background: transparent; border: none; width: 100%; text-align: left; display: flex; align-items: center; justify-content: space-between; group: 'chat-item'; }
+    .chat-item:hover { background: var(--slate-100); color: var(--slate-900); }
+    .chat-item.active { background: var(--indigo-bg); color: var(--indigo-text); font-weight: 500; }
+    .chat-item-text { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+    .chat-item-delete { opacity: 0; width: 20px; height: 20px; background: none; border: none; color: var(--slate-400); cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; border-radius: 4px; transition: all 0.15s; }
+    .chat-item:hover .chat-item-delete { opacity: 1; }
+    .chat-item-delete:hover { background: var(--red-bg); color: var(--red); }
+    .chat-empty { padding: 16px; text-align: center; color: var(--slate-400); font-size: 12px; }
+    .chat-container { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
     .topbar { height: 52px; background: var(--white); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; gap: 12px; flex-shrink: 0; }
     .topbar-menu { display: none; background: none; border: none; color: var(--slate-500); cursor: pointer; padding: 4px; border-radius: 6px; }
     .topbar-title { font-size: 13.5px; font-weight: 500; color: var(--slate-700); flex: 1; }
@@ -106,6 +121,8 @@
       .topbar-menu { display: flex; }
       .suggestions { grid-template-columns: 1fr; }
       .msg-body { max-width: 90%; }
+      .chat-sidebar { display: none; }
+      .main { flex-direction: column; }
     }
     ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-thumb { background: var(--slate-300); border-radius: 10px; }
@@ -183,7 +200,18 @@
 </aside>
 
 <main class="main">
-  <header class="topbar">
+  <aside class="chat-sidebar" id="chatSidebar">
+    <div class="chat-sidebar-header">
+      <div class="chat-sidebar-title">Discussions</div>
+      <button class="chat-sidebar-newbtn" id="newChatBtn" title="Nouvelle discussion">+</button>
+    </div>
+    <div class="chat-sidebar-list" id="chatList">
+      <div class="chat-empty">Pas de discussions</div>
+    </div>
+  </aside>
+
+  <div class="chat-container">
+    <header class="topbar">
     <button class="topbar-menu" id="btnMenu">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
     </button>
@@ -235,6 +263,7 @@
     </div>
     <p class="input-hint">Entrée pour envoyer · Shift+Entrée pour saut de ligne · 📎 pour analyser un contrat</p>
   </div>
+  </div>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -256,6 +285,162 @@
 let currentUser = null;
 let userProfile = null;
 let isLoading   = false;
+let currentConversationId = null;
+let allConversations = []; // Cache local
+
+// ---- GESTION DES CONVERSATIONS ----
+const ConversationManager = {
+  // Clé localStorage pour stocker les conversations
+  STORAGE_KEY: 'juria_conversations',
+
+  // Charger les conversations du localStorage
+  loadFromStorage: function() {
+    try {
+      const stored = localStorage.getItem(this.STORAGE_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch(e) {
+      console.warn('Failed to load conversations from storage:', e);
+      return [];
+    }
+  },
+
+  // Sauvegarder les conversations dans localStorage
+  saveToStorage: function(conversations) {
+    try {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(conversations));
+    } catch(e) {
+      console.warn('Failed to save conversations to storage:', e);
+    }
+  },
+
+  // Créer une nouvelle conversation
+  createNew: function() {
+    const id = 'conv_' + Date.now();
+    const conversation = {
+      id: id,
+      title: 'Nouvelle discussion',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      messages: []
+    };
+    allConversations.unshift(conversation);
+    this.saveToStorage(allConversations);
+    return conversation;
+  },
+
+  // Charger une conversation
+  load: function(conversationId) {
+    const conv = allConversations.find(c => c.id === conversationId);
+    if (conv) {
+      currentConversationId = conversationId;
+      chatMessages.innerHTML = '';
+      if (conv.messages && conv.messages.length > 0) {
+        conversationHistory = conv.messages.filter(m => m.role !== 'loading');
+        conv.messages.forEach(msg => {
+          if (msg.role !== 'loading') {
+            appendMsg(msg.role, msg.content, msg.citations || [], false, msg.deliverables || []);
+          }
+        });
+      } else {
+        // Afficher le welcome screen
+        chatMessages.innerHTML = '<div class="welcome" id="welcomeState"><div class="welcome-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><h1 class="welcome-title">Bonjour, je suis Juria</h1><p class="welcome-sub">Posez-moi une question juridique. Je réponds en citant les textes officiels marocains et mes connaissances du droit marocain.</p><div class="suggestions"><button class="suggestion">Quelles sont les obligations d\'un commerçant ?</button><button class="suggestion">Comment se constitue un fonds de commerce ?</button><button class="suggestion">Quelles sont les règles du chèque ?</button><button class="suggestion">Qu\'est-ce que la lettre de change ?</button></div></div>';
+        document.querySelectorAll('.suggestion').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            userInput.value = btn.textContent.trim();
+            userInput.dispatchEvent(new Event('input'));
+            sendMessage();
+          });
+        });
+      }
+    }
+    this.updateUI();
+  },
+
+  // Ajouter un message à la conversation actuelle
+  addMessage: function(role, content, citations, deliverables) {
+    if (!currentConversationId) return;
+    const conv = allConversations.find(c => c.id === currentConversationId);
+    if (conv) {
+      if (!conv.messages) conv.messages = [];
+      conv.messages.push({
+        role: role,
+        content: content,
+        citations: citations || [],
+        deliverables: deliverables || [],
+        created_at: new Date().toISOString()
+      });
+      // Mettre à jour le titre si c'est le premier message utilisateur
+      if (conv.messages.length === 1 && role === 'user') {
+        conv.title = content.slice(0, 50) + (content.length > 50 ? '...' : '');
+      }
+      conv.updated_at = new Date().toISOString();
+      this.saveToStorage(allConversations);
+      this.updateUI();
+
+      // Sauvegarder dans Supabase en arrière-plan
+      persistConversationToSupabase(conv).catch(e => console.warn('Supabase sync error:', e));
+    }
+  },
+
+  // Supprimer une conversation
+  delete: function(conversationId) {
+    allConversations = allConversations.filter(c => c.id !== conversationId);
+    this.saveToStorage(allConversations);
+    if (currentConversationId === conversationId) {
+      currentConversationId = null;
+      chatMessages.innerHTML = '<div class="welcome" id="welcomeState"><div class="welcome-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><h1 class="welcome-title">Bonjour, je suis Juria</h1><p class="welcome-sub">Posez-moi une question juridique. Je réponds en citant les textes officiels marocains et mes connaissances du droit marocain.</p><div class="suggestions"><button class="suggestion">Quelles sont les obligations d\'un commerçant ?</button><button class="suggestion">Comment se constitue un fonds de commerce ?</button><button class="suggestion">Quelles sont les règles du chèque ?</button><button class="suggestion">Qu\'est-ce que la lettre de change ?</button></div></div>';
+      document.querySelectorAll('.suggestion').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          userInput.value = btn.textContent.trim();
+          userInput.dispatchEvent(new Event('input'));
+          sendMessage();
+        });
+      });
+    }
+    this.updateUI();
+  },
+
+  // Mettre à jour l'UI de la liste des conversations
+  updateUI: function() {
+    const list = document.getElementById('chatList');
+    if (!list) return;
+
+    if (allConversations.length === 0) {
+      list.innerHTML = '<div class="chat-empty">Pas de discussions</div>';
+      return;
+    }
+
+    list.innerHTML = '';
+    allConversations.forEach(conv => {
+      const item = document.createElement('button');
+      item.className = 'chat-item' + (conv.id === currentConversationId ? ' active' : '');
+
+      const text = document.createElement('span');
+      text.className = 'chat-item-text';
+      text.title = conv.title;
+      text.textContent = conv.title;
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'chat-item-delete';
+      deleteBtn.innerHTML = '🗑️';
+      deleteBtn.title = 'Supprimer';
+      deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (confirm('Supprimer cette discussion ?')) {
+          ConversationManager.delete(conv.id);
+        }
+      });
+
+      item.appendChild(text);
+      item.appendChild(deleteBtn);
+      item.addEventListener('click', () => {
+        ConversationManager.load(conv.id);
+      });
+
+      list.appendChild(item);
+    });
+  }
+};
 
 // ---- MODE RAG (chat sur un document spécifique) ----
 const ragDocId = new URLSearchParams(window.location.search).get('id');
@@ -325,9 +510,138 @@ async function init() {
     console.warn('Failed to load user profile:', e);
     userProfile = { plan: 'trial', questions_used: 0, questions_limit: 20 };
   }
+
+  // Synchroniser avec Supabase en arrière-plan
+  syncConversationsWithSupabase().then(() => {
+    // Charger la conversation la plus récente ou en créer une nouvelle
+    if (allConversations.length > 0 && !currentConversationId) {
+      ConversationManager.load(allConversations[0].id);
+    } else if (!currentConversationId) {
+      const conv = ConversationManager.createNew();
+      ConversationManager.load(conv.id);
+    }
+  }).catch(e => {
+    console.warn('Error during sync:', e);
+    // Fallback: charger depuis localStorage
+    if (allConversations.length > 0 && !currentConversationId) {
+      ConversationManager.load(allConversations[0].id);
+    } else if (!currentConversationId) {
+      const conv = ConversationManager.createNew();
+      ConversationManager.load(conv.id);
+    }
+  });
 }
 
+// ---- SYNC AVEC SUPABASE ----
+async function syncConversationsWithSupabase() {
+  if (!currentUser || !_sb) return;
+  try {
+    // Charger les conversations depuis Supabase
+    const { data: convs, error } = await _sb
+      .from('chat_conversations')
+      .select('*')
+      .eq('user_id', currentUser.id)
+      .order('updated_at', { ascending: false })
+      .limit(50);
+
+    if (!error && convs && convs.length > 0) {
+      // Charger les messages pour chaque conversation
+      for (let conv of convs) {
+        const { data: msgs, error: msgsError } = await _sb
+          .from('chat_messages')
+          .select('*')
+          .eq('conversation_id', conv.id)
+          .order('created_at', { ascending: true });
+
+        if (!msgsError && msgs) {
+          conv.messages = msgs;
+        }
+      }
+
+      // Fusionner avec localStorage: garder les plus récentes
+      const localConvs = ConversationManager.loadFromStorage();
+      const merged = [...convs];
+
+      localConvs.forEach(localConv => {
+        const found = merged.find(c => c.id === localConv.id);
+        if (!found) {
+          merged.push(localConv);
+        } else if (new Date(localConv.updated_at) > new Date(found.updated_at)) {
+          Object.assign(found, localConv);
+        }
+      });
+
+      merged.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+      allConversations = merged;
+      ConversationManager.saveToStorage(allConversations);
+      ConversationManager.updateUI();
+    }
+  } catch(e) {
+    console.warn('Sync with Supabase failed:', e);
+  }
+}
+
+// Sauvegarder une conversation dans Supabase (async)
+async function persistConversationToSupabase(conversation) {
+  if (!currentUser || !_sb) return;
+  try {
+    const convData = {
+      id: conversation.id,
+      user_id: currentUser.id,
+      title: conversation.title,
+      updated_at: conversation.updated_at
+    };
+
+    // Insérer ou mettre à jour la conversation
+    const { error: convError } = await _sb
+      .from('chat_conversations')
+      .upsert([convData], { onConflict: 'id' });
+
+    if (convError) throw convError;
+
+    // Insérer les messages
+    if (conversation.messages && conversation.messages.length > 0) {
+      const msgData = conversation.messages.map(msg => ({
+        conversation_id: conversation.id,
+        role: msg.role,
+        content: msg.content,
+        created_at: msg.created_at || new Date().toISOString()
+      }));
+
+      // Vérifier quels messages existent déjà
+      const { data: existingMsgs } = await _sb
+        .from('chat_messages')
+        .select('id, created_at')
+        .eq('conversation_id', conversation.id);
+
+      // Insérer seulement les nouveaux messages
+      const newMsgs = msgData.filter(m =>
+        !existingMsgs || !existingMsgs.some(e => e.created_at === m.created_at)
+      );
+
+      if (newMsgs.length > 0) {
+        const { error: msgsError } = await _sb
+          .from('chat_messages')
+          .insert(newMsgs);
+
+        if (msgsError) console.warn('Failed to insert messages:', msgsError);
+      }
+    }
+  } catch(e) {
+    console.warn('Failed to persist conversation to Supabase:', e);
+  }
+}
+
+// ---- INIT CONVERSATIONS ----
+allConversations = ConversationManager.loadFromStorage();
+ConversationManager.updateUI();
+
 // ---- EVENTS ----
+document.getElementById('newChatBtn').addEventListener('click', function() {
+  const conv = ConversationManager.createNew();
+  ConversationManager.load(conv.id);
+});
+
 userInput.addEventListener('input', function() {
   userInput.style.height = 'auto';
   userInput.style.height = Math.min(userInput.scrollHeight, 120) + 'px';
@@ -368,7 +682,15 @@ async function sendMessage() {
   }
 
   document.getElementById('welcomeState') && document.getElementById('welcomeState').remove();
+
+  // Créer une conversation si ce n'est pas le cas
+  if (!currentConversationId) {
+    const conv = ConversationManager.createNew();
+    ConversationManager.load(conv.id);
+  }
+
   appendMsg('user', question);
+  ConversationManager.addMessage('user', question, [], []);
   userInput.value = '';
   userInput.style.height = 'auto';
   charCount.textContent = '0 / 600';
@@ -402,7 +724,7 @@ async function sendMessage() {
     } else if (ragMode) {
       // MODE RAG : question sur document analysé (depuis document-view.html)
       var answer = await askDocumentRAG(question);
-      appendMsg('assistant', answer, [], false, []);
+      addAndDisplayMsg('assistant', answer, [], false, []);
       conversationHistory.push({ role: 'assistant', content: answer });
       if (conversationHistory.length > 6) conversationHistory = conversationHistory.slice(-6);
       await saveConversation(question, answer, []);
@@ -413,7 +735,7 @@ async function sendMessage() {
       var result = await askAI(question, contractText);
       var citations = (result.needs_clarification) ? [] : (result.citations || []);
       var deliverables = (result.needs_clarification) ? [] : (result.deliverables || []);
-      appendMsg('assistant', result.answer, citations, false, deliverables);
+      addAndDisplayMsg('assistant', result.answer, citations, false, deliverables);
       conversationHistory.push({ role: 'assistant', content: result.answer });
       if (conversationHistory.length > 6) conversationHistory = conversationHistory.slice(-6);
       await saveConversation(question, result.answer, []);
@@ -422,6 +744,7 @@ async function sendMessage() {
       // GÉNÉRATION DE CONTRAT
       var result = await askAI(question);
       appendContractReady(result.answer);
+      ConversationManager.addMessage('assistant', result.answer, [], []);
       await saveConversation(question, result.answer, []);
 
     } else {
@@ -430,7 +753,7 @@ async function sendMessage() {
       // Si Juria demande une clarification, ne pas afficher de citations
       var citations = (result.needs_clarification) ? [] : (result.citations || []);
       var deliverables = (result.needs_clarification) ? [] : (result.deliverables || []);
-      appendMsg('assistant', result.answer, citations, false, deliverables);
+      addAndDisplayMsg('assistant', result.answer, citations, false, deliverables);
       // Ajouter la réponse à l'historique
       conversationHistory.push({ role: 'assistant', content: result.answer });
       if (conversationHistory.length > 6) conversationHistory = conversationHistory.slice(-6);
@@ -529,6 +852,14 @@ async function saveConversation(question, answer, articles) {
 }
 
 // ---- DISPLAY ----
+// Helper pour ajouter et sauvegarder un message
+function addAndDisplayMsg(role, text, citations, isContract, deliverables) {
+  appendMsg(role, text, citations, isContract, deliverables);
+  if (role === 'assistant') {
+    ConversationManager.addMessage('assistant', text, citations, deliverables);
+  }
+}
+
 function appendMsg(role, text, citations, isContract, deliverables) {
   citations = citations || [];
   isContract = isContract || false;
