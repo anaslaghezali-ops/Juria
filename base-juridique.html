@@ -189,18 +189,35 @@ function filterByCode(code) {
 }
 
 async function loadByCode(code) {
-  document.getElementById('codesOverview').style.display = 'none';
-  document.getElementById('searchResults').style.display = 'block';
-  document.getElementById('resultsList').innerHTML = '<div class="loading-bar">Chargement...</div>';
+  try {
+    document.getElementById('codesOverview').style.display = 'none';
+    document.getElementById('searchResults').style.display = 'block';
+    document.getElementById('resultsList').innerHTML = '<div class="loading-bar">Chargement des articles...</div>';
 
-  var query = _sb.from('articles_juridiques_legacy')
-    .select('id, code, numero_article, contenu, book, title')
-    .eq('code', code)
-    .order('id')
-    .limit(50);
+    const { data, error } = await _sb
+      .from('articles_juridiques_legacy')
+      .select('id, code, numero_article, contenu, book, title')
+      .eq('code', code)
+      .order('id')
+      .limit(50);
 
-  var { data, error, count } = await query;
-  renderResults(data || [], code + ' — 50 premiers articles');
+    if (error) {
+      console.error('Erreur chargement articles:', error);
+      document.getElementById('resultsList').innerHTML = '<div class="empty"><div class="empty-icon">❌</div>Erreur lors du chargement: ' + error.message + '</div>';
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      document.getElementById('resultsList').innerHTML = '<div class="empty"><div class="empty-icon">📭</div>Aucun article trouvé pour ce code.</div>';
+      return;
+    }
+
+    console.log('✓ Chargé', data.length, 'articles pour', code);
+    renderResults(data, code + ' — ' + data.length + ' articles');
+  } catch (err) {
+    console.error('Exception loadByCode:', err);
+    document.getElementById('resultsList').innerHTML = '<div class="empty"><div class="empty-icon">❌</div>Erreur: ' + err.message + '</div>';
+  }
 }
 
 async function doSearch() {
