@@ -123,7 +123,7 @@ class DocumentService extends BaseService {
 
     onProgress?.(70);
 
-    const updated = await this.update(inserted.id, { storage_path: storagePath });
+    const updated = await this.update(inserted.id, orgId, { storage_path: storagePath });
     onProgress?.(100);
 
     const finalDoc = this._normalize({ ...(updated || inserted), storage_path: storagePath });
@@ -145,7 +145,7 @@ class DocumentService extends BaseService {
 
     const ok = hardDelete
       ? await this.delete(docId, orgId)
-      : !!(await this.update(docId, { is_archived: true }));
+      : !!(await this.update(docId, orgId, { is_archived: true }));
 
     if (ok) {
       this._store.removeDocument(docId);

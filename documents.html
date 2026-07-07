@@ -3171,7 +3171,7 @@ async function saveEditedFolder(folderId, name, newCounterpartyId, isSubFolder) 
   if (isSubFolder) {
     try {
       if (Services?.folders) {
-        const updated = await Services.folders.updateFolder(folderId, { name, description });
+        const updated = await Services.folders.updateFolder(folderId, currentOrgId, { name, description });
         if (!updated) throw new Error('Mise à jour échouée');
         allFolders = Store.state.folders;
       } else {
@@ -3230,7 +3230,7 @@ async function saveEditedFolder(folderId, name, newCounterpartyId, isSubFolder) 
   try {
     // 1. Mise à jour du dossier principal
     if (Services?.folders) {
-      const updated = await Services.folders.updateFolder(folderId, updatePayload);
+      const updated = await Services.folders.updateFolder(folderId, currentOrgId, updatePayload);
       if (!updated) throw new Error('Mise à jour du dossier échouée');
       allFolders = Store.state.folders;
     } else {
@@ -4308,7 +4308,7 @@ async function toggleTaskDone(taskId) {
   const newDone = task.status !== 'done';
 
   if (Services?.tasks) {
-    await Services.tasks.setDone(taskId, newDone, currentUser?.id);
+    await Services.tasks.setDone(taskId, currentOrgId, newDone, currentUser?.id);
     allTasks = Store.state.tasks;
   } else {
     task.status       = newDone ? 'done' : 'todo';
@@ -4447,7 +4447,7 @@ async function saveTask() {
 
   if (Services?.tasks) {
     if (editId) {
-      await Services.tasks.updateTask(editId, payload, currentUser?.id);
+      await Services.tasks.updateTask(editId, currentOrgId, payload, currentUser?.id);
       showToast('Tâche mise à jour.', 'success');
     } else {
       await Services.tasks.createTask(payload, currentOrgId, currentUser?.id);
@@ -4671,7 +4671,7 @@ function closeRiskPanel(e) {
 
 async function setRiskStatus(riskId, status) {
   if (Services?.risks) {
-    await Services.risks.updateRiskStatus(riskId, status, currentUser?.id);
+    await Services.risks.updateRiskStatus(riskId, currentOrgId, status, currentUser?.id);
     allRisks = Store.state.risks;
   } else {
     // Fallback local

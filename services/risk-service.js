@@ -106,7 +106,7 @@ class RiskService extends BaseService {
 
   // ── Statut ────────────────────────────────────────────────────────────
 
-  async updateRiskStatus(riskId, status, userId) {
+  async updateRiskStatus(riskId, orgId, status, userId) {
     const VALID = ['open', 'review', 'mitigated', 'accepted', 'closed'];
     if (!VALID.includes(status)) return false;
 
@@ -125,7 +125,7 @@ class RiskService extends BaseService {
       payload.resolved_at = null;
     }
 
-    const updated = await this.update(riskId, payload);
+    const updated = await this.update(riskId, orgId, payload);
     if (!updated) return false;
 
     this._store.setRiskStatus(riskId, status, userId);
