@@ -77,6 +77,27 @@ Or via CLI:
 supabase projects list
 ```
 
+## Step 2.5: Setup Database Schema
+
+Initialize the Supabase database with required tables and policies:
+
+1. Go to Supabase Dashboard → SQL Editor
+2. Copy all content from `supabase/schema.sql`
+3. Paste and run the SQL
+4. This creates:
+   - `user_profiles` - User subscription and quota data
+   - `documents` - Uploaded documents for RAG
+   - `document_chunks` - Document chunks with embeddings
+   - `articles_juridiques` - Legal articles database
+   - RLS policies for security
+   - Auto-creation trigger for new users
+
+Alternatively, run via CLI:
+```bash
+psql -h [project].supabase.co -U postgres < supabase/schema.sql
+# Enter password when prompted
+```
+
 ## Step 3: Local Development Setup
 
 1. **Copy environment template:**
@@ -222,10 +243,12 @@ console.log(result); // Should have { success: true, data: [...] }
 
 - [ ] Supabase Vault secrets configured
 - [ ] GitHub Secrets added (SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_ID)
+- [ ] Database schema initialized (run `supabase/schema.sql`)
 - [ ] `.env.local` created and filled
 - [ ] Local dev server runs: `npm run dev`
 - [ ] Edge Functions deployed: `supabase functions list`
-- [ ] RLS enabled on tables
+- [ ] RLS enabled on tables (included in schema.sql)
+- [ ] User profile auto-creation trigger active
 - [ ] API call test succeeds
 - [ ] GitHub Actions workflow triggered on push
 - [ ] No deployment errors in GitHub Actions

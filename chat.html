@@ -216,9 +216,7 @@
 // ================================================
 
 // ✅ Fix #11: Use global _sb from init-common.js
-// JURIA_CONFIG loaded from config.js
-// Add chat-specific URLs if needed
-const CHAT_DOC_URL = JURIA_CONFIG.EDGE_FUNCTION_URL.replace('smart-endpoint', 'chat-with-doc');
+// JURIA_CONFIG loaded from config.js with CHAT_DOC_URL pre-configured
 
 let currentUser = null;
 let userProfile = null;
@@ -270,16 +268,30 @@ async function init() {
   document.getElementById('sidebarAvatar').textContent = initials;
   document.getElementById('sidebarName').textContent   = name;
 
-  const { data: profile } = await _sb.from('user_profiles').select('*').eq('id', currentUser.id).single();
-  userProfile = profile;
+  try {
+    const { data: profile, error } = await _sb.from('user_profiles').select('*').eq('id', currentUser.id).single();
+    if (error && error.code === 'PGRST116') {
+      // Table doesn't exist - gracefully fall back to default profile
+      console.warn('user_profiles table not found. Run supabase/schema.sql to set up database.');
+      userProfile = { plan: 'trial', questions_used: 0, questions_limit: 20 };
+    } else if (error) {
+      console.error('Error loading profile:', error);
+      userProfile = null;
+    } else {
+      userProfile = profile;
+    }
 
-  if (profile) {
-    const used  = profile.questions_used  || 0;
-    const limit = profile.questions_limit || 20;
-    document.getElementById('topbarQuota').textContent = used + ' / ' + limit + ' questions';
-    const planMap = { trial:'Essai gratuit', essential:'Essentiel', pro:'Pro', cabinet:'Cabinet' };
-    document.getElementById('sidebarPlan').textContent = planMap[profile.plan] || 'Essai gratuit';
-    if (used >= limit * 0.8) document.getElementById('quotaWarning').classList.add('show');
+    if (userProfile) {
+      const used  = userProfile.questions_used  || 0;
+      const limit = userProfile.questions_limit || 20;
+      document.getElementById('topbarQuota').textContent = used + ' / ' + limit + ' questions';
+      const planMap = { trial:'Essai gratuit', essential:'Essentiel', pro:'Pro', cabinet:'Cabinet' };
+      document.getElementById('sidebarPlan').textContent = planMap[userProfile.plan] || 'Essai gratuit';
+      if (used >= limit * 0.8) document.getElementById('quotaWarning').classList.add('show');
+    }
+  } catch (e) {
+    console.warn('Failed to load user profile:', e);
+    userProfile = { plan: 'trial', questions_used: 0, questions_limit: 20 };
   }
 }
 
