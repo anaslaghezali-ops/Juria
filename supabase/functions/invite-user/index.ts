@@ -1,9 +1,20 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
 serve(async (req) => {
+  // Handle CORS preflight
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
   if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405 });
+    return new Response("Method not allowed", { status: 405, headers: corsHeaders });
   }
 
   try {
@@ -20,7 +31,7 @@ serve(async (req) => {
     if (!email || !orgId || !invitedBy) {
       return new Response(
         JSON.stringify({ error: "Missing required fields" }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -95,7 +106,7 @@ serve(async (req) => {
         userId,
         member,
       }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
     console.error("Error:", error);
@@ -103,7 +114,7 @@ serve(async (req) => {
       JSON.stringify({
         error: error instanceof Error ? error.message : "Unknown error",
       }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
