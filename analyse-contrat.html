@@ -896,7 +896,30 @@ window.startComparison = async function startComparison() {
     if (!sessionData.data.session) { alert('Session expirée'); window.location.href = 'auth.html'; return; }
     var token = sessionData.data.session.access_token;
     
-    var prompt = 'Tu es expert juridique. Compare ces deux versions de contrat. Retourne UNIQUEMENT un JSON valide sans markdown: {"summary": "resume", "changes": [{"type": "modification", "clause": "Salaire", "v1": "3000 MAD", "v2": "3500 MAD", "impact": "majeur"}]}. Types: ajout, suppression, modification. Impact: majeur, mineur, neutre.';
+    var prompt = `Tu es expert juridique. Compare ces deux versions de contrat ligne par ligne et clause par clause.
+
+IMPORTANT - Détection des SUPPRESSIONS:
+- Identifie CHAQUE clause présente en V1 mais absente en V2
+- Une suppression peut être: une clause entière, un paragraphe, une condition, une obligation, une clause de protection
+- Même si une clause est reformulée différemment, si elle disparaît conceptuellement, c'est une suppression
+- Cherche les absences de: conditions d'emploi, durée, salaire, congés, assurances, responsabilités, conditions de résiliation, clauses de confidentialité, délais de préavis, etc.
+
+DÉTAILS REQUIS pour chaque changement:
+- type: "ajout" | "suppression" | "modification"
+- clause: nom/titre de la clause concernée
+- v1: texte/description en V1
+- v2: texte/description en V2 (ou vide si suppression)
+- impact: "majeur" | "mineur" | "neutre"
+- description: courte explication du changement
+
+Retourne UNIQUEMENT un JSON valide sans markdown:
+{
+  "summary": "résumé global des changements",
+  "changes": [
+    {"type": "suppression", "clause": "Clause de confidentialité", "v1": "Confidentialité pendant 2 ans après la résiliation", "v2": "", "impact": "majeur", "description": "Clause entièrement supprimée"},
+    {"type": "modification", "clause": "Salaire", "v1": "3000 MAD", "v2": "3500 MAD", "impact": "mineur", "description": "Augmentation du salaire de base"}
+  ]
+}`;
     
     var res = await fetch(EDGE_URL, {
       method: 'POST',
@@ -960,13 +983,14 @@ function renderComparison(result) {
       var label = typeLabels[change.type] || change.type;
       var bg = impactColors[change.impact] || '#f9fafb';
       html += '<div style="padding:16px;border-radius:10px;margin-bottom:12px;background:' + bg + ';border-left:4px solid ' + color + ';">';
-      html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">';
+      html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">';
       html += '<span style="font-size:12px;font-weight:700;color:' + color + ';">' + label + '</span>';
       html += '<span style="font-size:12px;font-weight:600;color:var(--slate-700);">' + (change.clause || '') + '</span>';
       if (change.impact === 'majeur') html += '<span style="font-size:11px;background:#fef2f2;color:#991b1b;padding:2px 8px;border-radius:99px;font-weight:600;">Impact majeur</span>';
       html += '</div>';
-      if (change.v1) html += '<div style="font-size:12px;color:var(--slate-500);margin-bottom:4px;"><strong>V1:</strong> ' + change.v1 + '</div>';
-      if (change.v2) html += '<div style="font-size:12px;color:var(--slate-700);"><strong>V2:</strong> ' + change.v2 + '</div>';
+      if (change.description) html += '<div style="font-size:12px;color:var(--slate-600);margin-bottom:8px;font-style:italic;">' + change.description + '</div>';
+      if (change.v1) html += '<div style="font-size:12px;color:var(--slate-500);margin-bottom:4px;"><strong>V1:</strong> ' + (change.v1.length > 150 ? change.v1.substring(0, 150) + '...' : change.v1) + '</div>';
+      if (change.v2) html += '<div style="font-size:12px;color:var(--slate-700);"><strong>V2:</strong> ' + (change.v2.length > 150 ? change.v2.substring(0, 150) + '...' : change.v2) + '</div>';
       html += '</div>';
     });
     html += '</div>';
@@ -990,10 +1014,12 @@ window.exportComparePDF = function exportComparePDF() {
   var changesHtml = changes.map(function(c) {
     var color = c.type === 'ajout' ? '#10b981' : c.type === 'suppression' ? '#ef4444' : '#f59e0b';
     var label = c.type === 'ajout' ? 'Ajout' : c.type === 'suppression' ? 'Suppression' : 'Modification';
-    return '<div style="padding:12px;border-left:4px solid ' + color + ';margin-bottom:10px;background:#f9fafb;">' +
+    return '<div style="padding:14px;border-left:4px solid ' + color + ';margin-bottom:12px;background:#f9fafb;">' +
       '<strong style="color:' + color + '">[' + label + ']</strong> ' + (c.clause || '') +
-      (c.v1 ? '<div style="font-size:12px;color:#666;margin-top:4px">V1: ' + c.v1 + '</div>' : '') +
-      (c.v2 ? '<div style="font-size:12px;color:#333;margin-top:2px">V2: ' + c.v2 + '</div>' : '') +
+      (c.impact === 'majeur' ? ' <span style="background:#fef2f2;color:#991b1b;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600;">Impact majeur</span>' : '') +
+      (c.description ? '<div style="font-size:12px;color:#555;margin-top:6px;font-style:italic;">' + c.description + '</div>' : '') +
+      (c.v1 ? '<div style="font-size:12px;color:#666;margin-top:6px;"><strong>V1:</strong> ' + (c.v1.length > 200 ? c.v1.substring(0, 200) + '...' : c.v1) + '</div>' : '') +
+      (c.v2 ? '<div style="font-size:12px;color:#333;margin-top:4px;"><strong>V2:</strong> ' + (c.v2.length > 200 ? c.v2.substring(0, 200) + '...' : c.v2) + '</div>' : '') +
       '</div>';
   }).join('');
   

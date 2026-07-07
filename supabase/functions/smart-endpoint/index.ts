@@ -276,17 +276,29 @@ serve(async (req) => {
       const v2 = parts[1] ? parts[1].replace("CONTRAT V2:", "").trim() : "";
 
       const compareSystem = [
-        "Tu es expert juridique marocain. Compare ces deux versions de contrat.",
-        "Identifie TOUTES les differences: clauses modifiees, ajoutees, supprimees.",
-        "Retourne UNIQUEMENT un JSON valide sans markdown ni explication:",
-        '{"summary": "resume court", "changes": [{"type": "modification", "clause": "nom de la clause", "v1": "texte original", "v2": "nouveau texte", "impact": "majeur"}]}',
-        "Types possibles UNIQUEMENT: ajout (nouvelle clause), suppression (clause supprimee), modification (clause modifiee). Impact: majeur, mineur, neutre. N utilise PAS addition, added, deleted, changed.",
-        "Si aucune difference: changes = tableau vide.",
-      ].join(" ");
+        "Tu es expert juridique marocain. Compare LIGNE PAR LIGNE ces deux versions de contrat.",
+        "",
+        "🔴 PRIORITÉ ABSOLUE - DÉTECTER LES SUPPRESSIONS:",
+        "- Identifie CHAQUE clause, paragraphe ou section présent en V1 mais ABSENT en V2",
+        "- Les suppressions incluent: clauses de confidentialité, délais de préavis, congés payés, assurances, responsabilités, durée du contrat, salaire, conditions de résiliation, garanties, conditions d'emploi",
+        "- Si V1 contient une clause et V2 ne la contient pas (même reformulée), c'est une SUPPRESSION",
+        "- Cherche: 'ABSENT en V2', 'NON MENTIONNÉ dans V2', 'RETIRÉ', 'NE FIGURE PLUS'",
+        "",
+        "📝 FORMAT REQUIS - Retourne UNIQUEMENT JSON valide:",
+        '{"summary": "résumé global", "changes": [',
+        '  {"type": "suppression", "clause": "Nom clause", "v1": "texte V1", "v2": "", "impact": "majeur", "description": "Explication"},',
+        '  {"type": "modification", "clause": "Nom clause", "v1": "texte V1", "v2": "texte V2", "impact": "majeur", "description": "Explication"},',
+        '  {"type": "ajout", "clause": "Nom clause", "v1": "", "v2": "texte V2", "impact": "mineur", "description": "Explication"}',
+        "]}",
+        "",
+        "Types UNIQUEMENT: ajout, suppression, modification. Impact: majeur, mineur, neutre. PAS de 'deletion', 'added', 'changed'.",
+        "Chaque changement DOIT avoir: type, clause, v1, v2, impact, description",
+        "Si aucune différence trouvée: {\"summary\": \"Aucune différence\", \"changes\": []}",
+      ].join("\n");
 
       const compareMessages: any[] = [
         { role: "system", content: compareSystem },
-        { role: "user", content: "CONTRAT V1 (original):\n" + v1.slice(0, 4000) + "\n\nCONTRAT V2 (modifie):\n" + v2.slice(0, 4000) }
+        { role: "user", content: "CONTRAT V1 (original):\n" + v1.slice(0, 8000) + "\n\n---SÉPARATEUR---\n\nCONTRAT V2 (modifié):\n" + v2.slice(0, 8000) }
       ];
 
       const rawResult = await callOpenAIMessages(compareMessages, 1500);
