@@ -29,16 +29,24 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
 
+    console.log("Env check:", {
+      url: supabaseUrl ? `${supabaseUrl.substring(0, 20)}...` : "MISSING",
+      key: serviceKey ? `${serviceKey.substring(0, 20)}...` : "MISSING",
+    })
+
     if (!supabaseUrl || !serviceKey) {
       throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY")
     }
 
+    console.log("Creating Supabase client...")
     const supabase = createClient(supabaseUrl, serviceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     })
+    console.log("Supabase client created successfully")
 
     const tempPassword = `Juria-${Math.random().toString(36).slice(2, 10)}!`
 
+    console.log("Attempting createUser with:", { email, password: "***", metadata: { full_name: `${firstName} ${lastName}`, org_id: orgId } })
     const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
       email,
       password: tempPassword,
