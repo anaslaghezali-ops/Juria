@@ -269,14 +269,11 @@ async function init() {
   document.getElementById('sidebarName').textContent   = name;
 
   try {
-    const { data: profile, error } = await _sb.from('user_profiles').select('*').eq('id', currentUser.id).single();
-    if (error && error.code === 'PGRST116') {
-      // Table doesn't exist - gracefully fall back to default profile
-      console.warn('user_profiles table not found. Run supabase/schema.sql to set up database.');
+    const { data: profile, error } = await _sb.from('user_profiles_legacy').select('*').eq('id', currentUser.id).single();
+    if (error) {
+      // Gracefully fall back to default profile
+      console.warn('user_profiles_legacy query:', error?.message);
       userProfile = { plan: 'trial', questions_used: 0, questions_limit: 20 };
-    } else if (error) {
-      console.error('Error loading profile:', error);
-      userProfile = null;
     } else {
       userProfile = profile;
     }
@@ -485,7 +482,7 @@ async function saveConversation(question, answer, articles) {
     });
     if (userProfile) {
       userProfile.questions_used = (userProfile.questions_used || 0) + 1;
-      await _sb.from('user_profiles').update({ questions_used: userProfile.questions_used }).eq('id', currentUser.id);
+      await _sb.from('user_profiles_legacy').update({ questions_used: userProfile.questions_used }).eq('id', currentUser.id);
       var used  = userProfile.questions_used;
       var limit = userProfile.questions_limit || 20;
       document.getElementById('topbarQuota').textContent = used + ' / ' + limit + ' questions';
