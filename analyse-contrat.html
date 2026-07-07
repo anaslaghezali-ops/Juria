@@ -896,36 +896,11 @@ window.startComparison = async function startComparison() {
     if (!sessionData.data.session) { alert('Session expirée'); window.location.href = 'auth.html'; return; }
     var token = sessionData.data.session.access_token;
     
-    var prompt = `Tu es expert juridique. Compare ces deux versions de contrat ligne par ligne et clause par clause.
-
-IMPORTANT - Détection des SUPPRESSIONS:
-- Identifie CHAQUE clause présente en V1 mais absente en V2
-- Une suppression peut être: une clause entière, un paragraphe, une condition, une obligation, une clause de protection
-- Même si une clause est reformulée différemment, si elle disparaît conceptuellement, c'est une suppression
-- Cherche les absences de: conditions d'emploi, durée, salaire, congés, assurances, responsabilités, conditions de résiliation, clauses de confidentialité, délais de préavis, etc.
-
-DÉTAILS REQUIS pour chaque changement:
-- type: "ajout" | "suppression" | "modification"
-- clause: nom/titre de la clause concernée
-- v1: texte/description en V1
-- v2: texte/description en V2 (ou vide si suppression)
-- impact: "majeur" | "mineur" | "neutre"
-- description: courte explication du changement
-
-Retourne UNIQUEMENT un JSON valide sans markdown:
-{
-  "summary": "résumé global des changements",
-  "changes": [
-    {"type": "suppression", "clause": "Clause de confidentialité", "v1": "Confidentialité pendant 2 ans après la résiliation", "v2": "", "impact": "majeur", "description": "Clause entièrement supprimée"},
-    {"type": "modification", "clause": "Salaire", "v1": "3000 MAD", "v2": "3500 MAD", "impact": "mineur", "description": "Augmentation du salaire de base"}
-  ]
-}`;
-    
     var res = await fetch(EDGE_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
       body: JSON.stringify({
-        question: prompt,
+        question: 'Comparer les deux versions de contrat',
         document_context: 'CONTRAT V1:\n' + contractText1 + '\n\n---\n\nCONTRAT V2:\n' + contractText2,
         mode: 'compare',
         history: []
