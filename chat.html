@@ -27,9 +27,14 @@
     .logo-name { font-family: var(--serif); font-size: 18px; color: var(--slate-900); }
     .sidebar-nav { padding: 12px; flex: 1; overflow-y: auto; }
     .sidebar-section { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--slate-400); padding: 12px 8px 6px; }
+    .nav-section { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--slate-400); padding: 16px 8px 6px; }
     .nav-item { display: flex; align-items: center; gap: 9px; padding: 9px 10px; border-radius: 8px; border: none; background: none; width: 100%; text-align: left; font-family: var(--font); font-size: 13.5px; color: var(--slate-500); cursor: pointer; transition: all 0.15s; text-decoration: none; }
     .nav-item:hover { background: var(--slate-100); color: var(--slate-900); }
     .nav-item.active { background: var(--indigo-bg); color: var(--indigo-text); font-weight: 500; }
+    .nav-item .nav-icon { font-size: 16px; width: 20px; text-align: center; flex-shrink: 0; }
+    .nav-count { margin-left: auto; font-size: 11px; background: var(--slate-100); color: var(--slate-500); padding: 1px 7px; border-radius: 99px; font-weight: 600; }
+    .nav-item.active .nav-count { background: #c7d2fe; color: var(--indigo-text); }
+    .nav-badge-red { background: #fef2f2; color: #991b1b; }
     .sidebar-footer { padding: 14px; border-top: 1px solid var(--border); }
     .user-row { display: flex; align-items: center; gap: 9px; }
     .user-avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--indigo-bg); color: var(--indigo-text); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; }
@@ -38,6 +43,8 @@
     .user-plan { font-size: 11px; color: var(--slate-400); }
     .btn-icon { background: none; border: none; cursor: pointer; color: var(--slate-400); padding: 4px; border-radius: 6px; transition: all 0.15s; }
     .btn-icon:hover { background: var(--slate-100); color: var(--slate-700); }
+    .btn-logout { margin-left: auto; background: none; border: none; color: var(--slate-400); cursor: pointer; font-size: 13px; padding: 4px; border-radius: 6px; transition: all 0.15s; }
+    .btn-logout:hover { background: var(--slate-100); color: var(--slate-700); }
     .main { flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; min-width: 0; }
     .topbar { height: 52px; background: var(--white); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; gap: 12px; flex-shrink: 0; }
     .topbar-menu { display: none; background: none; border: none; color: var(--slate-500); cursor: pointer; padding: 4px; border-radius: 6px; }
@@ -108,41 +115,66 @@
 
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-top">
-    <a href="dashboard.html" class="sidebar-logo">
+    <a href="documents.html" class="sidebar-logo">
       <div class="logo-mark">J</div>
       <span class="logo-name">Juria</span>
     </a>
   </div>
-  <div class="sidebar-nav">
-    <div class="sidebar-section">Navigation</div>
-    <a href="dashboard.html" class="nav-item">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-      Tableau de bord
+  <nav class="sidebar-nav">
+    <div class="nav-section">Principal</div>
+    <a href="documents.html" class="nav-item">
+      <span class="nav-icon">📊</span> Dashboard
     </a>
+    <a href="documents.html" class="nav-item">
+      <span class="nav-icon">🏢</span> Contreparties
+      <span class="nav-count" id="navCpCount">—</span>
+    </a>
+    <a href="documents.html" class="nav-item">
+      <span class="nav-icon">📁</span> Dossiers
+      <span class="nav-count" id="navFolderCount">—</span>
+    </a>
+    <a href="documents.html" class="nav-item">
+      <span class="nav-icon">📄</span> Documents
+      <span class="nav-count" id="navTotalCount">—</span>
+    </a>
+
+    <div class="nav-section">Analyse</div>
+    <a href="documents.html" class="nav-item">
+      <span class="nav-icon">⚠️</span> Risques
+      <span class="nav-count nav-badge-red" id="navRisksCount">—</span>
+    </a>
+    <a href="documents.html" class="nav-item">
+      <span class="nav-icon">📅</span> Échéances
+    </a>
+    <a href="documents.html" class="nav-item">
+      <span class="nav-icon">🕐</span> Timeline
+    </a>
+    <a href="documents.html" class="nav-item">
+      <span class="nav-icon">✅</span> Tâches
+      <span class="nav-count nav-badge-red" id="navTasksCount">—</span>
+    </a>
+
+    <div class="nav-section">Outils</div>
     <a href="chat.html" class="nav-item active">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-      Assistant Juria
+      <span class="nav-icon">💬</span> Assistant IA
     </a>
-    <div class="sidebar-section">Codes</div>
-    <div class="nav-item active" style="cursor:default;">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-      Code de Commerce
-    </div>
-    <div class="nav-item" style="cursor:default;opacity:.5;">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-      Code du Travail — bientôt
-    </div>
-  </div>
+    <a href="base-juridique.html" class="nav-item">
+      <span class="nav-icon">📚</span> Base juridique
+    </a>
+
+    <div class="nav-section">Organisation</div>
+    <a href="documents.html" class="nav-item">
+      <span class="nav-icon">⚙️</span> Administration
+    </a>
+  </nav>
   <div class="sidebar-footer">
     <div class="user-row">
       <div class="user-avatar" id="sidebarAvatar">?</div>
-      <div class="user-info">
+      <div>
         <div class="user-name" id="sidebarName">…</div>
         <div class="user-plan" id="sidebarPlan">Essai gratuit</div>
       </div>
-      <button class="btn-icon" id="btnLogout" title="Déconnexion">
-        🚪 Déconnexion
-      </button>
+      <button class="btn-logout" id="btnLogout" title="Déconnexion">🚪 Déconnexion</button>
     </div>
   </div>
 </aside>
