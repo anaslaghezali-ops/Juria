@@ -28,7 +28,7 @@ serve(async (req) => {
 
     // Récupérer les articles sans keywords_enriched (batch de 20)
     const { data: articles, error } = await supabaseAdmin
-      .from("articles_juridiques")
+      .from("articles_juridiques_legacy")
       .select("id, code, numero_article, contenu, book, title, mots_cles")
       .is("keywords_enriched", null)
       .limit(20);
@@ -81,7 +81,7 @@ serve(async (req) => {
 
         // Sauvegarder les mots-clés
         await supabaseAdmin
-          .from("articles_juridiques")
+          .from("articles_juridiques_legacy")
           .update({ keywords_enriched: keywords })
           .eq("id", article.id);
 
@@ -96,7 +96,7 @@ serve(async (req) => {
 
     // Compter combien il en reste
     const { count } = await supabaseAdmin
-      .from("articles_juridiques")
+      .from("articles_juridiques_legacy")
       .select("id", { count: "exact", head: true })
       .is("keywords_enriched", null);
 

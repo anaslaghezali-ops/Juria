@@ -193,7 +193,7 @@ async function loadByCode(code) {
   document.getElementById('searchResults').style.display = 'block';
   document.getElementById('resultsList').innerHTML = '<div class="loading-bar">Chargement...</div>';
 
-  var query = _sb.from('articles_juridiques')
+  var query = _sb.from('articles_juridiques_legacy')
     .select('id, code, numero_article, contenu, book, title')
     .eq('code', code)
     .order('id')
@@ -211,7 +211,7 @@ async function doSearch() {
   document.getElementById('searchResults').style.display = 'block';
   document.getElementById('resultsList').innerHTML = '<div class="loading-bar">Recherche en cours...</div>';
 
-  var query = _sb.from('articles_juridiques')
+  var query = _sb.from('articles_juridiques_legacy')
     .select('id, code, numero_article, contenu, book, title')
     .or('contenu.ilike.%' + q + '%,numero_article.ilike.%' + q + '%')
     .limit(30);

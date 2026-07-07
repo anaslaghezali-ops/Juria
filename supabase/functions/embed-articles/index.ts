@@ -27,7 +27,7 @@ serve(async (req) => {
 
     // Récupérer les articles sans embedding (par batch de 50)
     const { data: articles, error } = await supabaseAdmin
-      .from("articles_juridiques")
+      .from("articles_juridiques_legacy")
       .select("id, numero_article, contenu, code, book, title, chapter")
       .is("embedding", null)
       .limit(50);
@@ -75,7 +75,7 @@ serve(async (req) => {
     let updated = 0;
     for (let i = 0; i < articles.length; i++) {
       const { error: updateError } = await supabaseAdmin
-        .from("articles_juridiques")
+        .from("articles_juridiques_legacy")
         .update({ embedding: embeddings[i].embedding })
         .eq("id", articles[i].id);
 
@@ -84,7 +84,7 @@ serve(async (req) => {
 
     // Compter combien il en reste
     const { count } = await supabaseAdmin
-      .from("articles_juridiques")
+      .from("articles_juridiques_legacy")
       .select("id", { count: "exact", head: true })
       .is("embedding", null);
 
