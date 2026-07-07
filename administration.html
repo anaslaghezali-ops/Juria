@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Juria — Administration</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --indigo: #4f46e5; --indigo-light: #6366f1; --indigo-bg: #eef2ff; --indigo-text: #3730a3;
+      --slate-900: #0f1117; --slate-700: #374151; --slate-500: #6b7280; --slate-400: #9ca3af;
+      --slate-300: #d1d5db; --slate-100: #f3f4f6; --border: #e5e7eb; --white: #ffffff;
+      --green: #10b981; --green-bg: #ecfdf5; --green-text: #065f46;
+      --amber: #f59e0b; --amber-bg: #fffbeb; --amber-text: #92400e;
+      --red: #ef4444; --red-bg: #fef2f2; --red-text: #991b1b;
+      --font: 'Inter', sans-serif; --serif: 'DM Serif Display', Georgia, serif;
+    }
+
+    html { font-size: 15px; }
+    body { font-family: var(--font); color: var(--slate-900); background: #f8f9fb; display: flex; height: 100vh; overflow: hidden; }
+
+    /* Sidebar Principal */
+    .sidebar { width: 260px; background: var(--white); border-right: 1px solid var(--border); display: flex; flex-direction: column; height: 100vh; flex-shrink: 0; transition: transform 0.25s ease; }
+    .sidebar-top { padding: 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .sidebar-logo { display: flex; align-items: center; gap: 9px; text-decoration: none; }
+    .logo-mark { width: 28px; height: 28px; background: var(--indigo); color: #fff; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-family: var(--serif); font-size: 16px; }
+    .logo-name { font-family: var(--serif); font-size: 18px; color: var(--slate-900); }
+    .sidebar-nav { padding: 12px; flex: 1; overflow-y: auto; }
+    .nav-section { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--slate-400); padding: 16px 8px 6px; }
+    .nav-item { display: flex; align-items: center; gap: 9px; padding: 9px 10px; border-radius: 8px; border: none; background: none; width: 100%; text-align: left; font-family: var(--font); font-size: 13.5px; color: var(--slate-500); cursor: pointer; transition: all 0.15s; text-decoration: none; }
+    .nav-item:hover { background: var(--slate-100); color: var(--slate-900); }
+    .nav-item.active { background: var(--indigo-bg); color: var(--indigo-text); font-weight: 500; }
+    .nav-item .nav-icon { font-size: 16px; width: 20px; text-align: center; flex-shrink: 0; }
+    .sidebar-footer { padding: 14px; border-top: 1px solid var(--border); }
+    .user-row { display: flex; align-items: center; gap: 9px; }
+    .user-avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--indigo-bg); color: var(--indigo-text); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+    .user-info { flex: 1; min-width: 0; }
+    .user-name { font-size: 13px; font-weight: 500; color: var(--slate-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user-plan { font-size: 11px; color: var(--slate-400); }
+    .btn-logout { margin-left: auto; background: none; border: none; color: var(--slate-400); cursor: pointer; font-size: 13px; padding: 4px; border-radius: 6px; transition: all 0.15s; }
+    .btn-logout:hover { background: var(--slate-100); color: var(--slate-700); }
+
+    /* Main */
+    .main { flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; min-width: 0; }
+    .topbar { height: 52px; background: var(--white); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; gap: 12px; flex-shrink: 0; }
+    .topbar-title { font-size: 13.5px; font-weight: 500; color: var(--slate-700); flex: 1; }
+    .btn-menu { display: none; background: none; border: none; color: var(--slate-500); cursor: pointer; padding: 4px; border-radius: 6px; }
+
+    /* Content */
+    .content { flex: 1; overflow-y: auto; padding: 24px; }
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+    .page-title { font-family: var(--serif); font-size: 28px; color: var(--slate-900); }
+    .page-sub { font-size: 13px; color: var(--slate-500); margin-top: 4px; }
+
+    /* License Banner */
+    .license-banner { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 24px; }
+    .license-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .license-info { display: flex; align-items: center; gap: 12px; }
+    .license-icon { font-size: 24px; }
+    .license-text { font-size: 13px; color: var(--slate-700); }
+    .license-text strong { color: var(--slate-900); font-weight: 600; }
+    .license-bar-wrap { margin-top: 12px; }
+    .license-bar-bg { height: 8px; background: var(--slate-100); border-radius: 99px; overflow: hidden; margin-bottom: 6px; }
+    .license-bar-fill { height: 100%; background: var(--green); border-radius: 99px; transition: width 0.3s; }
+    .license-bar-text { font-size: 12px; color: var(--slate-500); display: flex; justify-content: space-between; }
+
+    /* Invite Button */
+    .btn-invite { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; background: var(--indigo); color: #fff; border-radius: 8px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; font-family: var(--font); transition: background 0.15s; }
+    .btn-invite:hover { background: var(--indigo-light); }
+
+    /* Table */
+    .members-section { background: var(--white); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .members-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .members-title { font-size: 14px; font-weight: 600; color: var(--slate-900); }
+    .members-table { width: 100%; }
+    .members-table th { text-align: left; padding: 12px 20px; font-size: 11px; font-weight: 600; color: var(--slate-500); text-transform: uppercase; letter-spacing: 0.05em; background: var(--slate-50); border-bottom: 1px solid var(--border); }
+    .members-table td { padding: 12px 20px; border-bottom: 1px solid var(--slate-100); font-size: 13px; vertical-align: middle; }
+    .members-table tr:last-child td { border-bottom: none; }
+    .members-table tr:hover td { background: var(--slate-50); }
+
+    /* Table Cells */
+    .cell-user { display: flex; align-items: center; gap: 10px; }
+    .cell-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--indigo-bg); color: var(--indigo-text); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+    .cell-user-info { display: flex; flex-direction: column; gap: 2px; }
+    .cell-name { font-weight: 500; color: var(--slate-900); }
+    .cell-email { font-size: 12px; color: var(--slate-500); }
+
+    /* Status Badge */
+    .badge { display: inline-flex; align-items: center; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+    .badge-active { background: var(--green-bg); color: var(--green-text); }
+    .badge-inactive { background: var(--slate-100); color: var(--slate-500); }
+
+    /* Role Select */
+    .role-select { padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; background: var(--white); color: var(--slate-900); font-family: var(--font); cursor: pointer; }
+    .role-select:hover { border-color: var(--indigo); }
+
+    /* Actions */
+    .actions { display: flex; gap: 4px; }
+    .action-btn { width: 32px; height: 32px; border: 1px solid var(--border); background: var(--white); border-radius: 6px; color: var(--slate-500); cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+    .action-btn:hover { border-color: var(--slate-300); color: var(--slate-700); }
+    .action-btn.danger:hover { border-color: var(--red); color: var(--red); background: var(--red-bg); }
+
+    /* Modal */
+    .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+    .modal.show { display: flex; }
+    .modal-content { background: var(--white); border-radius: 12px; padding: 28px; width: 90%; max-width: 450px; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
+    .modal-header { margin-bottom: 20px; }
+    .modal-title { font-size: 18px; font-weight: 600; color: var(--slate-900); }
+    .modal-body { margin-bottom: 24px; }
+    .form-group { margin-bottom: 16px; display: flex; flex-direction: column; gap: 6px; }
+    .form-label { font-size: 13px; font-weight: 500; color: var(--slate-900); }
+    .form-input, .form-select { padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; font-family: var(--font); color: var(--slate-900); background: var(--white); }
+    .form-input:focus, .form-select:focus { outline: none; border-color: var(--indigo); box-shadow: 0 0 0 3px var(--indigo-bg); }
+    .modal-footer { display: flex; gap: 8px; justify-content: flex-end; }
+    .btn-cancel { padding: 8px 16px; border: 1px solid var(--border); background: var(--white); color: var(--slate-700); border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: var(--font); }
+    .btn-cancel:hover { background: var(--slate-100); }
+    .btn-submit { padding: 8px 16px; background: var(--indigo); color: #fff; border-radius: 8px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; font-family: var(--font); transition: background 0.15s; }
+    .btn-submit:hover { background: var(--indigo-light); }
+    .btn-submit:disabled { background: var(--slate-300); cursor: not-allowed; }
+
+    /* Empty State */
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--slate-400); }
+    .empty-icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-title { font-size: 16px; font-weight: 600; color: var(--slate-600); margin-bottom: 6px; }
+
+    /* Responsive */
+    @media (max-width: 680px) {
+      .sidebar { position: fixed; left: 0; top: 0; transform: translateX(-100%); z-index: 100; }
+      .sidebar.open { transform: translateX(0); box-shadow: 4px 0 20px rgba(0,0,0,0.1); }
+      .btn-menu { display: flex; }
+      .members-table { font-size: 12px; }
+      .members-table th, .members-table td { padding: 8px 12px; }
+      .cell-user-info { gap: 1px; }
+      .cell-name { font-size: 13px; }
+      .cell-email { font-size: 11px; }
+    }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: var(--slate-300); border-radius: 10px; }
+  </style>
+</head>
+<body>
+
+<!-- Sidebar Principal -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-top">
+    <a href="documents.html" class="sidebar-logo">
+      <div class="logo-mark">J</div>
+      <span class="logo-name">Juria</span>
+    </a>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">Principal</div>
+    <a href="documents.html" class="nav-item">
+      <span class="nav-icon">📊</span> Dashboard
+    </a>
+    <a href="documents.html" class="nav-item">
+      <span class="nav-icon">🏢</span> Contreparties
+      <span style="margin-left:auto;font-size:11px;background:var(--slate-100);color:var(--slate-500);padding:1px 7px;border-radius:99px;font-weight:600;">—</span>
+    </a>
+    <a href="documents.html" class="nav-item">
+      <span class="nav-icon">📁</span> Dossiers
+      <span style="margin-left:auto;font-size:11px;background:var(--slate-100);color:var(--slate-500);padding:1px 7px;border-radius:99px;font-weight:600;">—</span>
+    </a>
+    <a href="documents.html" class="nav-item">
+      <span class="nav-icon">📄</span> Documents
+      <span style="margin-left:auto;font-size:11px;background:var(--slate-100);color:var(--slate-500);padding:1px 7px;border-radius:99px;font-weight:600;">—</span>
+    </a>
+
+    <div class="nav-section">Analyse</div>
+    <a href="documents.html" class="nav-item">
+      <span class="nav-icon">⚠️</span> Risques
+    </a>
+    <a href="documents.html" class="nav-item">
+      <span class="nav-icon">📅</span> Échéances
+    </a>
+    <a href="documents.html" class="nav-item">
+      <span class="nav-icon">🕐</span> Timeline
+    </a>
+    <a href="documents.html" class="nav-item">
+      <span class="nav-icon">✅</span> Tâches
+    </a>
+
+    <div class="nav-section">Outils</div>
+    <a href="chat.html" class="nav-item">
+      <span class="nav-icon">💬</span> Assistant IA
+    </a>
+    <a href="base-juridique.html" class="nav-item">
+      <span class="nav-icon">📚</span> Base juridique
+    </a>
+    <a href="comparaison-contrats.html" class="nav-item">
+      <span class="nav-icon">🔍</span> Comparaison
+    </a>
+
+    <div class="nav-section">Organisation</div>
+    <a href="administration.html" class="nav-item active">
+      <span class="nav-icon">⚙️</span> Administration
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-row">
+      <div class="user-avatar" id="sidebarAvatar">?</div>
+      <div class="user-info">
+        <div class="user-name" id="sidebarName">…</div>
+        <div class="user-plan" id="sidebarPlan">Essai gratuit</div>
+      </div>
+      <button class="btn-logout" id="btnLogout" title="Déconnexion">🚪</button>
+    </div>
+  </div>
+</aside>
+
+<main class="main">
+  <header class="topbar">
+    <button class="btn-menu" id="btnMenu">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="topbar-title">⚙️ Administration</div>
+  </header>
+
+  <div class="content">
+    <!-- Page Header -->
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Paramètres</h1>
+        <p class="page-sub">Gérez les utilisateurs de votre organisation</p>
+      </div>
+      <button class="btn-invite" id="btnInvite">
+        <span>➕</span> Inviter un utilisateur
+      </button>
+    </div>
+
+    <!-- License Banner -->
+    <div class="license-banner">
+      <div class="license-top">
+        <div class="license-info">
+          <div class="license-icon">📊</div>
+          <div>
+            <div class="license-text">
+              <strong id="activeMembersCount">0</strong> / <strong id="maxUsersCount">5</strong> licences utilisées
+            </div>
+            <div style="font-size:12px;color:var(--slate-400);margin-top:2px;">
+              <span id="remainingCount">5</span> licence(s) disponible(s)
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="license-bar-wrap">
+        <div class="license-bar-bg"><div class="license-bar-fill" id="licenseBar" style="width:0%"></div></div>
+        <div class="license-bar-text">
+          <span>Utilisation</span>
+          <span id="licensePercent">0%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Members Table -->
+    <div class="members-section" id="membersSection">
+      <div class="members-header">
+        <div class="members-title">Utilisateurs</div>
+      </div>
+      <table class="members-table">
+        <thead>
+          <tr>
+            <th style="width:30%;">Utilisateur</th>
+            <th style="width:20%;">Email</th>
+            <th style="width:15%;">Rôle</th>
+            <th style="width:15%;">Statut</th>
+            <th style="width:15%;">Dernière connexion</th>
+            <th style="width:5%;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="membersTableBody">
+          <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--slate-400);">Chargement…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Empty State -->
+    <div id="emptyState" class="empty-state" style="display:none;">
+      <div class="empty-icon">👥</div>
+      <div class="empty-title">Aucun utilisateur</div>
+      <p style="font-size:13px;margin-bottom:16px;">Commencez par inviter les premiers membres de votre organisation.</p>
+      <button class="btn-invite" id="btnInviteEmpty">➕ Inviter un utilisateur</button>
+    </div>
+
+  </div>
+</main>
+
+<!-- Modal Invitation -->
+<div class="modal" id="inviteModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 class="modal-title">Inviter un utilisateur</h2>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Prénom</label>
+        <input type="text" class="form-input" id="inviteFirstName" placeholder="Ex: Jean" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nom</label>
+        <input type="text" class="form-input" id="inviteLastName" placeholder="Ex: Dupont" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" class="form-input" id="inviteEmail" placeholder="Ex: jean@example.com" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Rôle</label>
+        <select class="form-select" id="inviteRole">
+          <option value="member">Membre</option>
+          <option value="admin">Administrateur</option>
+          <option value="viewer">Lecteur</option>
+        </select>
+      </div>
+      <div style="font-size:12px;color:var(--slate-500);background:var(--slate-50);padding:12px;border-radius:6px;">
+        ℹ️ Un email d'invitation sera envoyé à l'utilisateur.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" id="btnCancelInvite">Annuler</button>
+      <button class="btn-submit" id="btnSubmitInvite" disabled>Envoyer l'invitation</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="init-common.js"></script>
+<script src="auth-guard.js"></script>
+<script src="services/base-service.js"></script>
+<script src="services/organization-service.js"></script>
+<script>
+
+let currentUser = null;
+let currentOrg = null;
+let orgService = null;
+
+// ── INIT ──
+async function init() {
+  const session = await requireAuth();
+  if (!session) return;
+
+  currentUser = session.user;
+  const name = currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];
+  const initials = name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
+
+  document.getElementById('sidebarAvatar').textContent = initials;
+  document.getElementById('sidebarName').textContent = name;
+  document.getElementById('sidebarPlan').textContent = 'Essai gratuit';
+
+  // Initialiser le service
+  orgService = new OrganizationService(window._sb, null);
+
+  // Charger l'organisation de l'utilisateur
+  currentOrg = await orgService.getCurrentOrganization(currentUser);
+  if (!currentOrg) {
+    alert('Erreur: Aucune organisation trouvée');
+    return;
+  }
+
+  // Charger les données
+  await loadMembers();
+}
+
+// ── LOAD MEMBERS ──
+async function loadMembers() {
+  const members = await orgService.getMembers(currentOrg.id);
+  const license = await orgService.checkLicenseAvailability(currentOrg.id);
+
+  // Update license banner
+  document.getElementById('activeMembersCount').textContent = license.activeCount;
+  document.getElementById('maxUsersCount').textContent = license.maxUsers;
+  document.getElementById('remainingCount').textContent = license.remaining;
+
+  const percent = Math.round((license.activeCount / license.maxUsers) * 100);
+  document.getElementById('licensePercent').textContent = percent + '%';
+  document.getElementById('licenseBar').style.width = percent + '%';
+
+  // Render table
+  const tbody = document.getElementById('membersTableBody');
+  if (members.length === 0) {
+    document.getElementById('emptyState').style.display = 'block';
+    document.getElementById('membersSection').style.display = 'none';
+    tbody.innerHTML = '';
+    return;
+  }
+
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('membersSection').style.display = 'block';
+
+  tbody.innerHTML = members.map(m => `
+    <tr>
+      <td>
+        <div class="cell-user">
+          <div class="cell-avatar">${(m.first_name || 'U')[0]}</div>
+          <div class="cell-user-info">
+            <div class="cell-name">${m.first_name || '—'} ${m.last_name || '—'}</div>
+            <div class="cell-email">${m.email}</div>
+          </div>
+        </div>
+      </td>
+      <td>${m.email}</td>
+      <td>
+        <select class="role-select" onchange="changeRole('${m.id}', this.value)" ${currentUser.id !== currentOrg.created_by ? 'disabled' : ''}>
+          <option value="viewer" ${m.role === 'viewer' ? 'selected' : ''}>Lecteur</option>
+          <option value="member" ${m.role === 'member' ? 'selected' : ''}>Membre</option>
+          <option value="admin" ${m.role === 'admin' ? 'selected' : ''}>Admin</option>
+        </select>
+      </td>
+      <td>
+        <span class="badge ${m.is_active ? 'badge-active' : 'badge-inactive'}">
+          ${m.is_active ? '✓ Actif' : '✕ Inactif'}
+        </span>
+      </td>
+      <td>${m.last_login_at ? new Date(m.last_login_at).toLocaleDateString('fr-FR') : '—'}</td>
+      <td>
+        <div class="actions">
+          ${m.is_active ? `
+            <button class="action-btn" onclick="deactivateMember('${m.id}')" title="Désactiver">⊗</button>
+          ` : `
+            <button class="action-btn" onclick="reactivateMember('${m.id}')" title="Réactiver">↻</button>
+          `}
+          <button class="action-btn danger" onclick="deleteMember('${m.id}')" title="Supprimer">🗑️</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// ── ACTIONS ──
+async function changeRole(memberId, newRole) {
+  try {
+    const result = await orgService.changeMemberRole(memberId, newRole);
+    if (result) {
+      await loadMembers();
+    }
+  } catch (err) {
+    alert('Erreur: ' + err.message);
+  }
+}
+
+async function deactivateMember(memberId) {
+  if (!confirm('Désactiver cet utilisateur? Cela libérera une licence.')) return;
+  try {
+    const result = await orgService.deactivateMember(memberId);
+    if (result) {
+      await loadMembers();
+    }
+  } catch (err) {
+    alert('Erreur: ' + err.message);
+  }
+}
+
+async function reactivateMember(memberId) {
+  try {
+    const result = await orgService.reactivateMember(memberId);
+    if (result) {
+      await loadMembers();
+    }
+  } catch (err) {
+    alert('Erreur: ' + err.message);
+  }
+}
+
+async function deleteMember(memberId) {
+  if (!confirm('Supprimer définitivement cet utilisateur?')) return;
+  try {
+    const result = await orgService.deleteMember(memberId);
+    if (result) {
+      await loadMembers();
+    }
+  } catch (err) {
+    alert('Erreur: ' + err.message);
+  }
+}
+
+// ── MODAL INVITATION ──
+function openInviteModal() {
+  document.getElementById('inviteModal').classList.add('show');
+  document.getElementById('inviteFirstName').focus();
+}
+
+function closeInviteModal() {
+  document.getElementById('inviteModal').classList.remove('show');
+  document.getElementById('inviteFirstName').value = '';
+  document.getElementById('inviteLastName').value = '';
+  document.getElementById('inviteEmail').value = '';
+  document.getElementById('inviteRole').value = 'member';
+  document.getElementById('btnSubmitInvite').disabled = true;
+}
+
+async function submitInvite() {
+  const firstName = document.getElementById('inviteFirstName').value.trim();
+  const lastName = document.getElementById('inviteLastName').value.trim();
+  const email = document.getElementById('inviteEmail').value.trim();
+  const role = document.getElementById('inviteRole').value;
+
+  if (!firstName || !lastName || !email) {
+    alert('Veuillez remplir tous les champs');
+    return;
+  }
+
+  if (!email.includes('@')) {
+    alert('Email invalide');
+    return;
+  }
+
+  try {
+    document.getElementById('btnSubmitInvite').disabled = true;
+
+    // TODO: Appeler une Edge Function pour créer l'utilisateur et l'inviter
+    // Pour l'instant, on affiche un message d'implémentation
+
+    alert('Feature d\'invitation en cours d\'implémentation.\nVeuillez créer l\'utilisateur manuellement dans Supabase.');
+    closeInviteModal();
+  } catch (err) {
+    alert('Erreur: ' + err.message);
+  } finally {
+    document.getElementById('btnSubmitInvite').disabled = false;
+  }
+}
+
+// ── EVENTS ──
+document.getElementById('btnInvite').addEventListener('click', openInviteModal);
+document.getElementById('btnInviteEmpty').addEventListener('click', openInviteModal);
+document.getElementById('btnCancelInvite').addEventListener('click', closeInviteModal);
+document.getElementById('btnSubmitInvite').addEventListener('click', submitInvite);
+
+document.getElementById('btnMenu').addEventListener('click', function() {
+  document.getElementById('sidebar').classList.toggle('open');
+});
+
+document.getElementById('btnLogout').addEventListener('click', async function() {
+  await window._sb.auth.signOut();
+  window.location.href = 'auth.html';
+});
+
+// Valider le formulaire
+['inviteFirstName', 'inviteLastName', 'inviteEmail'].forEach(id => {
+  document.getElementById(id).addEventListener('input', function() {
+    const canSubmit = document.getElementById('inviteFirstName').value.trim() &&
+                     document.getElementById('inviteLastName').value.trim() &&
+                     document.getElementById('inviteEmail').value.trim();
+    document.getElementById('btnSubmitInvite').disabled = !canSubmit;
+  });
+});
+
+// Close modal when clicking outside
+document.getElementById('inviteModal').addEventListener('click', function(e) {
+  if (e.target === this) closeInviteModal();
+});
+
+init();
+</script>
+</body>
+</html>
