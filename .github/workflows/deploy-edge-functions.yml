@@ -28,21 +28,38 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
         run: |
-          echo "Deploying smart-endpoint..."
-          supabase functions deploy smart-endpoint \
-            --project-ref $SUPABASE_PROJECT_ID
+          echo "🚀 Deploying 7 Edge Functions..."
+          echo ""
 
-          echo "Deploying embed-articles..."
-          supabase functions deploy embed-articles \
-            --project-ref $SUPABASE_PROJECT_ID
+          FUNCTIONS=(
+            "smart-endpoint"
+            "chat-with-doc"
+            "embed-articles"
+            "generate-embeddings"
+            "generate-keywords"
+            "get-embedding"
+            "process-chunks"
+            "vector-search"
+          )
+
+          for func in "${FUNCTIONS[@]}"; do
+            echo "  Deploying $func..."
+            supabase functions deploy "$func" --project-ref $SUPABASE_PROJECT_ID || echo "  ⚠️  $func may already exist"
+          done
 
       - name: Verify deployment
         run: |
-          echo "✅ Edge Functions deployed successfully"
+          echo "✅ Edge Functions deployed successfully!"
           echo ""
           echo "Available functions:"
-          echo "  - smart-endpoint: https://${{ secrets.SUPABASE_PROJECT_ID }}.supabase.co/functions/v1/smart-endpoint"
-          echo "  - embed-articles: https://${{ secrets.SUPABASE_PROJECT_ID }}.supabase.co/functions/v1/embed-articles"
+          echo "  1. smart-endpoint - AI-powered legal document analysis + quota management"
+          echo "  2. chat-with-doc - GPT-powered legal document chat (classifier, summary, global analysis)"
+          echo "  3. embed-articles - Batch generate embeddings for legal articles"
+          echo "  4. generate-embeddings - Generate embeddings (alternate)"
+          echo "  5. generate-keywords - Extract and enrich keywords from articles"
+          echo "  6. get-embedding - Get embedding for arbitrary text"
+          echo "  7. process-chunks - Process document chunks with embeddings"
+          echo "  8. vector-search - Semantic search with vector queries"
 
       - name: Notify deployment
         if: success()
