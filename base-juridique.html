@@ -161,9 +161,34 @@
 
 var activeCode = 'all';
 
+console.log('✓ base-juridique.html loaded, _sb =', typeof window._sb);
+
 async function init() {
-  const { data: { session } } = await _sb.auth.getSession();
-  if (!session) { window.location.href = 'auth.html'; return; }
+  try {
+    if (!window._sb) {
+      console.error('❌ _sb not initialized! Waiting...');
+      // Attendre que _sb soit initialisé
+      for (let i = 0; i < 20; i++) {
+        await new Promise(r => setTimeout(r, 100));
+        if (window._sb) break;
+      }
+    }
+    if (!window._sb) {
+      console.error('❌ _sb still not available after waiting');
+      return;
+    }
+    console.log('✓ _sb initialized:', typeof window._sb);
+
+    const { data: { session } } = await _sb.auth.getSession();
+    if (!session) {
+      console.log('⚠️ No session, redirecting to auth.html');
+      window.location.href = 'auth.html';
+      return;
+    }
+    console.log('✓ Session found:', session.user.email);
+  } catch (err) {
+    console.error('Error in init():', err);
+  }
 }
 init();
 
@@ -180,11 +205,13 @@ function setFilter(btn, code) {
 }
 
 function filterByCode(code) {
+  console.log('🔍 filterByCode called with code:', code);
   activeCode = code;
   document.querySelectorAll('.filter-btn').forEach(function(b) {
     b.classList.toggle('active', b.dataset.code === code);
   });
   document.getElementById('searchInput').value = '';
+  console.log('📡 Calling loadByCode...');
   loadByCode(code);
 }
 
