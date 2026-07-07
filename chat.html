@@ -404,9 +404,14 @@ async function sendMessage() {
 async function searchArticles(question) {
   try {
     // Recherche vectorielle via Edge Function
-    var res = await fetch('https://dnrudcpaqcqyybpbbrum.supabase.co/functions/v1/vector-search', {
+    const sessionData = await _sb.auth.getSession();
+    const token = sessionData.data?.session?.access_token;
+    var res = await fetch(JURIA_CONFIG.SUPABASE_URL + '/functions/v1/vector-search', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': 'Bearer ' + token })
+      },
       body: JSON.stringify({ query: question })
     });
 

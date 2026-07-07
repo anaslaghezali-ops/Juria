@@ -1611,10 +1611,10 @@ async function saveAnalysisToDatabase(analysisResult, selectedFile, extractedTex
         // Déclencher l'Edge Function pour calculer les embeddings
         try {
           const response = await fetch(
-            'https://dnrudcpaqcqyybpbbrum.supabase.co/functions/v1/process-chunks',
+            JURIA_CONFIG.SUPABASE_URL + '/functions/v1/process-chunks',
             {
               method: 'POST',
-              headers: { 
+              headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${(await _sb.auth.getSession()).data.session.access_token}`
               },
