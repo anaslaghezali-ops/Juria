@@ -30,16 +30,17 @@ serve(async (req) => {
     // Validate inputs
     if (!email || !orgId || !invitedBy) {
       return new Response(
-        JSON.stringify({ error: "Missing required fields" }),
+        JSON.stringify({ error: "Missing required fields: email, orgId, invitedBy" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 
     if (!supabaseUrl || !serviceKey) {
-      throw new Error("Missing Supabase configuration");
+      console.error("Missing env vars:", { supabaseUrl: !!supabaseUrl, serviceKey: !!serviceKey });
+      throw new Error("Missing Supabase configuration (env vars not set in Edge Function)");
     }
 
     const supabase = createClient(supabaseUrl, serviceKey, {
@@ -49,41 +50,29 @@ serve(async (req) => {
       },
     });
 
-    // Check if user already exists
-    const { data: existingUsers, error: listError } =
-      await supabase.auth.admin.listUsers();
+    // Temporary password
+    const tempPassword = `Juria-${Math.random().toString(36).slice(2, 10)}!`;
 
-    if (listError) {
-      throw listError;
+    console.log("[invite-user] Creating user:", { email, org_id: orgId });
+
+    const { data: newUser, error: createError } =
+      await supabase.auth.admin.createUser({
+        email,
+        password: tempPassword,
+        user_metadata: {
+          full_name: `${firstName || ""} ${lastName || ""}`.trim(),
+          org_id: orgId,
+        },
+        email_confirm: true,
+      });
+
+    if (createError) {
+      console.error("[invite-user] createUser error:", createError);
+      throw createError;
     }
 
-    let userId = existingUsers?.users?.find((u) => u.email === email)?.id;
-
-    // Temporary password (communicated manually to the user for now).
-    // Will be replaced by an email-invitation flow later.
-    let tempPassword = null;
-
-    // If user doesn't exist, create them directly with a temp password.
-    if (!userId) {
-      tempPassword = `Juria-${Math.random().toString(36).slice(2, 10)}!`;
-
-      const { data: newUser, error: createError } =
-        await supabase.auth.admin.createUser({
-          email,
-          password: tempPassword,
-          user_metadata: {
-            full_name: `${firstName || ""} ${lastName || ""}`.trim(),
-            org_id: orgId,
-          },
-          email_confirm: true,
-        });
-
-      if (createError) {
-        throw createError;
-      }
-
-      userId = newUser.user.id;
-    }
+    const userId = newUser.user.id;
+    console.log("[invite-user] User created:", userId);
 
     // Check if already a member of this organization
     const { data: existingMember } = await supabase
