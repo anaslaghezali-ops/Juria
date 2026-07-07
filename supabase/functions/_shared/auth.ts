@@ -41,7 +41,7 @@ export async function authenticateRequest(
   );
 
   const { data: profile } = await supabaseAdmin
-    .from("user_profiles")
+    .from("user_profiles_compat")
     .select("*")
     .eq("id", user.id)
     .single();

@@ -95,13 +95,13 @@ serve(async (req) => {
     }
 
     const { data: profile } = await supabaseAdmin
-      .from("user_profiles")
+      .from("user_profiles_compat")
       .select("plan, questions_used, questions_limit, trial_ends_at")
       .eq("id", user.id)
       .single();
 
     if (!profile) {
-      await supabaseAdmin.from("user_profiles").insert({
+      await supabaseAdmin.from("user_profiles_compat").insert({
         id: user.id, plan: "trial", questions_used: 0, questions_limit: 20,
         trial_ends_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       });
@@ -134,7 +134,7 @@ serve(async (req) => {
 
     const incrementQuota = async () => {
       await supabaseAdmin
-        .from("user_profiles")
+        .from("user_profiles_compat")
         .update({ questions_used: currentProfile.questions_used + 1 })
         .eq("id", user.id);
     };

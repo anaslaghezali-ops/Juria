@@ -229,7 +229,7 @@ async function init() {
   document.getElementById('userName').textContent = name.charAt(0).toUpperCase() + name.slice(1);
 
   // Charger le profil
-  const { data: profile } = await _sb.from('user_profiles')
+  const { data: profile } = await _sb.from('user_profiles_compat')
     .select('plan, questions_used, questions_limit')
     .eq('id', user.id)
     .single();
