@@ -2717,30 +2717,51 @@ function renderRisks(filter) {
   if (table) table.style.display = '';
   if (empty) empty.style.display = 'none';
 
-  body.innerHTML = risks.map(r => {
-    const lvlCls  = r.severity === 'high' || r.severity === 'critical' ? 'lvl-high' : r.severity === 'medium' ? 'lvl-med' : 'lvl-low';
-    const lvlLabel= r.severity === 'high' || r.severity === 'critical' ? 'ÉLEVÉ' : r.severity === 'medium' ? 'MOYEN' : 'FAIBLE';
-    const taskCount = allTasks.filter(t => t.risk_id === r.id).length;
-    const commentCount = (riskComments[r.id] || []).length;
-    return `<tr style="cursor:pointer" onclick="openRiskPanel('${r.id}')">
-      <td><span class="risk-level-badge ${lvlCls}">${lvlLabel}</span></td>
-      <td>${riskStatusBadge(r.status || 'open')}</td>
-      <td><span class="type-chip" onclick="event.stopPropagation();openRiskTypeModal('${r.id}','${(r.risk_type || 'AUTRE').replace(/'/g, "\\'")}','${escHtml(r.title || '—').replace(/'/g, "\\'")}')" style="cursor:pointer;transition:opacity 0.15s" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">${escHtml(r.risk_type || 'AUTRE')}</span></td>
-      <td style="font-size:13px;font-weight:500;color:var(--slate-900);max-width:220px">
-        ${escHtml(r.title || '—')}
-        ${commentCount > 0 ? '<span style="font-size:11px;color:var(--slate-400);margin-left:4px">💬 ' + commentCount + '</span>' : ''}
-      </td>
-      <td style="font-size:12px;color:var(--slate-500)">
-        <div>${escHtml(r.folderName || '—')}</div>
-        <div style="color:var(--slate-300)">${escHtml(r.docName || '—')}</div>
-      </td>
-      <td><span class="clause-ref">${escHtml(r.clause_reference || '—')}</span></td>
-      <td style="font-size:12px;color:var(--slate-500)">${escHtml(r.assignee || '—')}</td>
-      <td>
-        ${taskCount > 0 ? '<span style="font-size:11px;color:var(--green);font-weight:700">✅ ' + taskCount + ' action(s)</span>' : '<button class="create-task-btn" onclick="event.stopPropagation();openTaskModal(null,\'' + r.id + '\')">+ Action</button>'}
+  // Grouper les risques par document
+  const risksByDoc = {};
+  risks.forEach(r => {
+    const docKey = r.document_id || 'unknown';
+    if (!risksByDoc[docKey]) {
+      risksByDoc[docKey] = { docName: r.docName || '—', folderName: r.folderName || '—', risks: [] };
+    }
+    risksByDoc[docKey].risks.push(r);
+  });
+
+  // Rendu groupé par document
+  let html = '';
+  Object.entries(risksByDoc).forEach(([docId, group]) => {
+    // En-tête du document
+    html += `<tr style="background:var(--indigo-bg);cursor:default" onclick="event.stopPropagation()">
+      <td colspan="8" style="padding:12px 14px;font-weight:600;color:var(--indigo-text);font-size:13px">
+        📄 ${escHtml(group.docName)} ${group.folderName !== '—' ? `<span style="color:var(--slate-500);font-weight:400">·</span> ${escHtml(group.folderName)}` : ''}
       </td>
     </tr>`;
-  }).join('');
+
+    // Risques du document
+    html += group.risks.map(r => {
+      const lvlCls  = r.severity === 'high' || r.severity === 'critical' ? 'lvl-high' : r.severity === 'medium' ? 'lvl-med' : 'lvl-low';
+      const lvlLabel= r.severity === 'high' || r.severity === 'critical' ? 'ÉLEVÉ' : r.severity === 'medium' ? 'MOYEN' : 'FAIBLE';
+      const taskCount = allTasks.filter(t => t.risk_id === r.id).length;
+      const commentCount = (riskComments[r.id] || []).length;
+      return `<tr style="cursor:pointer" onclick="openRiskPanel('${r.id}')">
+        <td><span class="risk-level-badge ${lvlCls}">${lvlLabel}</span></td>
+        <td>${riskStatusBadge(r.status || 'open')}</td>
+        <td><span class="type-chip" onclick="event.stopPropagation();openRiskTypeModal('${r.id}','${(r.risk_type || 'AUTRE').replace(/'/g, "\\'")}','${escHtml(r.title || '—').replace(/'/g, "\\'")}')" style="cursor:pointer;transition:opacity 0.15s" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">${escHtml(r.risk_type || 'AUTRE')}</span></td>
+        <td style="font-size:13px;font-weight:500;color:var(--slate-900);max-width:220px">
+          ${escHtml(r.title || '—')}
+          ${commentCount > 0 ? '<span style="font-size:11px;color:var(--slate-400);margin-left:4px">💬 ' + commentCount + '</span>' : ''}
+        </td>
+        <td style="font-size:12px;color:var(--slate-500)"></td>
+        <td><span class="clause-ref">${escHtml(r.clause_reference || '—')}</span></td>
+        <td style="font-size:12px;color:var(--slate-500)">${escHtml(r.assignee || '—')}</td>
+        <td>
+          ${taskCount > 0 ? '<span style="font-size:11px;color:var(--green);font-weight:700">✅ ' + taskCount + ' action(s)</span>' : '<button class="create-task-btn" onclick="event.stopPropagation();openTaskModal(null,\'' + r.id + '\')">+ Action</button>'}
+        </td>
+      </tr>`;
+    }).join('');
+  });
+
+  body.innerHTML = html;
 }
 
 function renderRisksTable(risks) {
