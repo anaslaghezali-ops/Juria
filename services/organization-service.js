@@ -6,7 +6,7 @@
 
 class OrganizationService extends BaseService {
   constructor(supabaseClient, store) {
-    super(supabaseClient, 'organization_members', store);
+    super(supabaseClient, 'organization_users', store);
     this._orgTable = 'organizations';
   }
 
@@ -61,14 +61,19 @@ class OrganizationService extends BaseService {
   async createOrganization(data, userId) {
     const { name, description, max_users } = data;
 
+    // Build insert data with only required and existing fields
+    const insertData = {
+      name,
+      max_users: max_users || 5,
+    };
+
+    // Add optional fields if they exist in schema
+    if (description) insertData.description = description;
+    if (userId) insertData.created_by = userId;
+
     const { data: org, error: orgError } = await this._sb
       .from(this._orgTable)
-      .insert([{
-        name,
-        description: description || null,
-        max_users: max_users || 5,
-        created_by: userId,
-      }])
+      .insert([insertData])
       .select()
       .single();
 
@@ -78,12 +83,15 @@ class OrganizationService extends BaseService {
     }
 
     // Add creator as admin
-    await this.addMember(org.id, userId, {
-      email: (await this._sb.auth.admin.getUserById(userId))?.user?.email,
-      first_name: null,
-      last_name: null,
-      role: 'admin',
-    });
+    try {
+      const user = await this._sb.auth.admin.getUserById(userId);
+      await this.addMember(org.id, userId, {
+        email: user?.user?.email,
+        role: 'admin',
+      });
+    } catch (err) {
+      console.warn('Failed to add creator as admin:', err);
+    }
 
     return org;
   }
@@ -165,18 +173,25 @@ class OrganizationService extends BaseService {
       throw new Error(`Organization has reached maximum users (${license.maxUsers})`);
     }
 
+    // Build insert object only with fields that exist
+    const insertData = {
+      organization_id: orgId,
+      user_id: userId,
+      role: role || 'member',
+    };
+
+    // Add optional fields if provided
+    if (email) insertData.email = email;
+    if (first_name) insertData.first_name = first_name;
+    if (last_name) insertData.last_name = last_name;
+    if (invited_by) insertData.invited_by = invited_by;
+
+    // is_active and invited_at have defaults in the schema
+    insertData.is_active = true;
+
     const { data: member, error } = await this._sb
       .from(this._table)
-      .insert([{
-        organization_id: orgId,
-        user_id: userId,
-        email,
-        first_name: first_name || null,
-        last_name: last_name || null,
-        role,
-        invited_by: invited_by || null,
-        is_active: true,
-      }])
+      .insert([insertData])
       .select()
       .single();
 

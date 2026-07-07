@@ -120,6 +120,10 @@
     .btn-submit { padding: 8px 16px; background: var(--indigo); color: #fff; border-radius: 8px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; font-family: var(--font); transition: background 0.15s; }
     .btn-submit:hover { background: var(--indigo-light); }
     .btn-submit:disabled { background: var(--slate-300); cursor: not-allowed; }
+    .btn-invite:disabled { background: var(--slate-300); cursor: not-allowed; opacity: 0.6; }
+    .role-select:disabled { background: var(--slate-100); cursor: not-allowed; color: var(--slate-400); border-color: var(--slate-200); }
+    .action-btn:disabled { background: var(--slate-100); cursor: not-allowed; color: var(--slate-300); border-color: var(--slate-200); }
+    .action-btn:disabled:hover { border-color: var(--slate-200); color: var(--slate-300); }
 
     /* Empty State */
     .empty-state { text-align: center; padding: 60px 20px; color: var(--slate-400); }
@@ -338,6 +342,7 @@
 let currentUser = null;
 let currentOrg = null;
 let orgService = null;
+let isCurrentUserAdmin = false;
 
 // ── INIT ──
 async function init() {
@@ -361,6 +366,13 @@ async function init() {
     alert('Erreur: Aucune organisation trouvée');
     return;
   }
+
+  // Vérifier si l'utilisateur actuel est admin
+  isCurrentUserAdmin = await orgService.isAdmin(currentOrg.id, currentUser.id);
+
+  // Désactiver les boutons si pas admin
+  document.getElementById('btnInvite').disabled = !isCurrentUserAdmin;
+  document.getElementById('btnInviteEmpty').disabled = !isCurrentUserAdmin;
 
   // Charger les données
   await loadMembers();
@@ -405,7 +417,7 @@ async function loadMembers() {
       </td>
       <td>${m.email}</td>
       <td>
-        <select class="role-select" onchange="changeRole('${m.id}', this.value)" ${currentUser.id !== currentOrg.created_by ? 'disabled' : ''}>
+        <select class="role-select" onchange="changeRole('${m.id}', this.value)" ${!isCurrentUserAdmin ? 'disabled' : ''}>
           <option value="viewer" ${m.role === 'viewer' ? 'selected' : ''}>Lecteur</option>
           <option value="member" ${m.role === 'member' ? 'selected' : ''}>Membre</option>
           <option value="admin" ${m.role === 'admin' ? 'selected' : ''}>Admin</option>
@@ -420,11 +432,11 @@ async function loadMembers() {
       <td>
         <div class="actions">
           ${m.is_active ? `
-            <button class="action-btn" onclick="deactivateMember('${m.id}')" title="Désactiver">⊗</button>
+            <button class="action-btn" onclick="deactivateMember('${m.id}')" title="Désactiver" ${!isCurrentUserAdmin ? 'disabled' : ''}>⊗</button>
           ` : `
-            <button class="action-btn" onclick="reactivateMember('${m.id}')" title="Réactiver">↻</button>
+            <button class="action-btn" onclick="reactivateMember('${m.id}')" title="Réactiver" ${!isCurrentUserAdmin ? 'disabled' : ''}>↻</button>
           `}
-          <button class="action-btn danger" onclick="deleteMember('${m.id}')" title="Supprimer">🗑️</button>
+          <button class="action-btn danger" onclick="deleteMember('${m.id}')" title="Supprimer" ${!isCurrentUserAdmin ? 'disabled' : ''}>🗑️</button>
         </div>
       </td>
     </tr>
@@ -433,6 +445,10 @@ async function loadMembers() {
 
 // ── ACTIONS ──
 async function changeRole(memberId, newRole) {
+  if (!isCurrentUserAdmin) {
+    alert('Vous n\'avez pas les permissions pour modifier les rôles');
+    return;
+  }
   try {
     const result = await orgService.changeMemberRole(memberId, newRole);
     if (result) {
@@ -444,6 +460,10 @@ async function changeRole(memberId, newRole) {
 }
 
 async function deactivateMember(memberId) {
+  if (!isCurrentUserAdmin) {
+    alert('Vous n\'avez pas les permissions pour désactiver des utilisateurs');
+    return;
+  }
   if (!confirm('Désactiver cet utilisateur? Cela libérera une licence.')) return;
   try {
     const result = await orgService.deactivateMember(memberId);
@@ -456,6 +476,10 @@ async function deactivateMember(memberId) {
 }
 
 async function reactivateMember(memberId) {
+  if (!isCurrentUserAdmin) {
+    alert('Vous n\'avez pas les permissions pour réactiver des utilisateurs');
+    return;
+  }
   try {
     const result = await orgService.reactivateMember(memberId);
     if (result) {
@@ -467,6 +491,10 @@ async function reactivateMember(memberId) {
 }
 
 async function deleteMember(memberId) {
+  if (!isCurrentUserAdmin) {
+    alert('Vous n\'avez pas les permissions pour supprimer des utilisateurs');
+    return;
+  }
   if (!confirm('Supprimer définitivement cet utilisateur?')) return;
   try {
     const result = await orgService.deleteMember(memberId);
@@ -480,6 +508,10 @@ async function deleteMember(memberId) {
 
 // ── MODAL INVITATION ──
 function openInviteModal() {
+  if (!isCurrentUserAdmin) {
+    alert('Vous n\'avez pas les permissions pour inviter des utilisateurs');
+    return;
+  }
   document.getElementById('inviteModal').classList.add('show');
   document.getElementById('inviteFirstName').focus();
 }
