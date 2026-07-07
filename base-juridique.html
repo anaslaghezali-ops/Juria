@@ -197,11 +197,18 @@ document.getElementById('searchInput').addEventListener('keydown', function(e) {
 });
 
 function setFilter(btn, code) {
+  console.log('🔍 setFilter called with code:', code);
   document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
   btn.classList.add('active');
   activeCode = code;
   var q = document.getElementById('searchInput').value.trim();
-  if (q) doSearch();
+  if (q) {
+    console.log('📝 Texto de recherche trouvé, appelant doSearch()');
+    doSearch();
+  } else {
+    console.log('📡 Pas de texte, appelant loadByCode()');
+    loadByCode(code);
+  }
 }
 
 function filterByCode(code) {
