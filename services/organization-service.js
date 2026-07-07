@@ -349,6 +349,7 @@ class OrganizationService extends BaseService {
    */
   async isAdmin(orgId, userId) {
     const member = await this.getMemberByUserId(orgId, userId);
-    return member?.role === 'admin';
+    // Accept both 'admin' and 'owner' roles as having admin permissions
+    return member?.role === 'admin' || member?.role === 'owner';
   }
 }
