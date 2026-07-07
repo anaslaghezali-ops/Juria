@@ -59,23 +59,38 @@ serve(async (req) => {
 
     let userId = existingUsers?.users?.find((u) => u.email === email)?.id;
 
-    // If user doesn't exist, create them
+    // If user doesn't exist, invite them by email.
+    // This creates the user AND sends them an email with a link
+    // where they choose their own password.
     if (!userId) {
-      const { data: newUser, error: createError } =
-        await supabase.auth.admin.createUser({
-          email,
-          user_metadata: {
+      const { data: invited, error: inviteError } =
+        await supabase.auth.admin.inviteUserByEmail(email, {
+          data: {
             full_name: `${firstName || ""} ${lastName || ""}`.trim(),
             org_id: orgId,
           },
-          email_confirm: false,
         });
 
-      if (createError) {
-        throw createError;
+      if (inviteError) {
+        throw inviteError;
       }
 
-      userId = newUser.user.id;
+      userId = invited.user.id;
+    }
+
+    // Check if already a member of this organization
+    const { data: existingMember } = await supabase
+      .from("organization_users")
+      .select("id")
+      .eq("organization_id", orgId)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (existingMember) {
+      return new Response(
+        JSON.stringify({ error: "Cet utilisateur fait déjà partie de l'organisation" }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Add user to organization
