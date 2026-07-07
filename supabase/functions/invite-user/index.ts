@@ -49,7 +49,10 @@ serve(async (req) => {
       email_confirm: true,
     })
 
-    if (createError) throw createError
+    if (createError) {
+      console.error("createUser failed:", JSON.stringify(createError))
+      throw new Error(JSON.stringify(createError))
+    }
 
     const userId = newUser.user.id
 
@@ -69,7 +72,10 @@ serve(async (req) => {
       .select()
       .single()
 
-    if (addError) throw addError
+    if (addError) {
+      console.error("addMember failed:", JSON.stringify(addError))
+      throw new Error(JSON.stringify(addError))
+    }
 
     return new Response(
       JSON.stringify({
@@ -81,11 +87,11 @@ serve(async (req) => {
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     )
-  } catch (error) {
+  } catch (error: any) {
+    const errorMsg = error?.message || JSON.stringify(error) || "Unknown error"
+    console.error("Final error:", errorMsg)
     return new Response(
-      JSON.stringify({
-        error: error instanceof Error ? error.message : "Unknown error",
-      }),
+      JSON.stringify({ error: errorMsg }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     )
   }
