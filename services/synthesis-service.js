@@ -22,7 +22,11 @@ class SynthesisService extends BaseService {
     this._sectionSize = 12000;      // ~3k tokens par section MAP
     this._mapConcurrency = 3;
     this._consolidateBatch = 8;     // extraits par lot de consolidation LLM
-    this._promptVersion = 'synthesis-v1';
+    this._promptVersion = 'synthesis-v2';
+    // Modèle de rédaction par groupe. Le groupe A (factuel) est candidat à
+    // gpt-4o-mini (test A/B via opts.models) ; B et C (analyse, opinion)
+    // restent sur gpt-4o — c'est là que la plume se voit.
+    this._composeModels = { A: 'gpt-4o', B: 'gpt-4o', C: 'gpt-4o' };
   }
 
   // ══════════════════════════════════════════════════════════════════════
@@ -126,25 +130,30 @@ class SynthesisService extends BaseService {
     });
 
     // ── PHASE 3 : RÉDACTION (streamée, groupes A → B → C) ──────────────
+    // Optimisation coût : chaque groupe ne reçoit que les clés du dossier
+    // qu'il utilise (+ un aperçu transversal compact), et l'Executive
+    // Summary reçoit un digest du mémo plutôt que son texte intégral.
     const docMeta = { name: doc.name, pages: doc.page_count };
+    const models = { ...this._composeModels, ...(opts.models || {}) };
     const sectionsOut = [];
-    let memoSoFar = '';
 
     for (const group of ['A', 'B', 'C']) {
       const phaseId = 'compose' + group;
       progress(phaseId, { label: 'Rédaction en cours…' });
 
-      const groupText = await this._composeGroup({
-        group, dossier: finalDossier, docMeta,
+      await this._composeGroup({
+        group,
+        dossier: this._filterDossierForGroup(finalDossier, group),
+        model: models[group],
+        docMeta,
         audit: group === 'C' ? (opts.audit || null) : null,
-        memoSoFar: group === 'C' ? memoSoFar : null,
+        memoSoFar: group === 'C' ? this._memoDigest(sectionsOut) : null,
         token,
         onSection: opts.onSection,
         onDelta: opts.onDelta,
         collected: sectionsOut,
       });
 
-      memoSoFar += groupText;
       progress(phaseId, { done: 1, total: 1, label: `${sectionsOut.length} sections rédigées` });
     }
 
@@ -380,6 +389,46 @@ class SynthesisService extends BaseService {
     return null;
   }
 
+  /**
+   * Restreint le dossier aux clés réellement utilisées par un groupe de
+   * rédaction (~60 % d'input en moins sur les appels gpt-4o), en conservant
+   * dans chaque groupe un aperçu transversal compact pour que le rédacteur
+   * garde la vision d'ensemble du deal (croisements entre sections).
+   */
+  _filterDossierForGroup(dossier, group) {
+    const KEYS = {
+      // A — factuel : objet, parties, obligations, finances, calendrier, durée
+      A: ['parties', 'obligations', 'montants', 'dates', 'duree'],
+      // B — analyse : régimes, portées, clauses
+      B: ['garanties', 'responsabilites', 'resiliation', 'droit_applicable',
+          'pi_confidentialite', 'donnees_personnelles', 'clauses_sensibles', 'clauses_inhabituelles'],
+      // C — opinion : tout ce qui fonde une hiérarchisation et un avis
+      C: ['obligations', 'montants', 'garanties', 'responsabilites', 'resiliation',
+          'droit_applicable', 'clauses_sensibles', 'clauses_inhabituelles', 'questions_ouvertes'],
+    };
+
+    const out = {
+      objet: dossier.objet || null,
+      parties_apercu: (dossier.parties || []).map(p => ({ nom: p.nom, role: p.role, qid: p.qid })),
+      apercu_transversal: (dossier.contexte || []).slice(0, 8),
+    };
+    (KEYS[group] || []).forEach(k => { if (dossier[k] !== undefined) out[k] = dossier[k]; });
+    // Le groupe A rédige "Contexte" et "Structure du document"
+    if (group === 'A') out.contexte = (dossier.contexte || []).slice(0, 12);
+    return out;
+  }
+
+  /**
+   * Digest du mémo déjà rédigé pour l'Executive Summary : titres + amorce
+   * de chaque section — la vue d'ensemble sans payer le texte intégral.
+   */
+  _memoDigest(sections) {
+    return sections.map(s =>
+      '## ' + s.title + '\n' +
+      s.markdown.replace(/\[\[q:[^\]]+\]\]/g, '').trim().slice(0, 400)
+    ).join('\n\n').slice(0, 12000);
+  }
+
   async _llmConsolidate(dossier, token, progress) {
     // Consolidation LLM par lots des listes volumineuses uniquement
     progress('consolidate', { label: 'Consolidation du dossier…' });
@@ -400,12 +449,13 @@ class SynthesisService extends BaseService {
   //  PHASE 3 — Rédaction streamée (SSE)
   // ══════════════════════════════════════════════════════════════════════
 
-  async _composeGroup({ group, dossier, docMeta, audit, memoSoFar, token, onSection, onDelta, collected }) {
+  async _composeGroup({ group, dossier, model, docMeta, audit, memoSoFar, token, onSection, onDelta, collected }) {
     const res = await fetch(JURIA_CONFIG.SYNTHESIS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
       body: JSON.stringify({
         mode: 'compose', group, dossier, doc_meta: docMeta,
+        model: model || undefined,
         audit: audit || undefined,
         memo_so_far: memoSoFar || undefined,
       }),

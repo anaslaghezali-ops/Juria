@@ -306,6 +306,9 @@ Deno.serve(async (req) => {
       if (!dossier || !GROUPS[group]) {
         return errorResponse(400, "dossier et group (A|B|C) requis", corsHeaders);
       }
+      // Modèle de rédaction paramétrable (test A/B coût/qualité par groupe)
+      const COMPOSE_MODELS = ["gpt-4o", "gpt-4o-mini"];
+      const composeModel = COMPOSE_MODELS.includes(body.model) ? body.model : "gpt-4o";
       const dossierStr = JSON.stringify(dossier);
       if (dossierStr.length > 200000) {
         return errorResponse(400, "dossier trop volumineux (max 200KB)", corsHeaders);
@@ -318,10 +321,11 @@ Deno.serve(async (req) => {
         userContent += `\n\nANALYSE DE RISQUES PRÉALABLE (reste cohérent avec elle) :\n${JSON.stringify(audit).slice(0, 20000)}`;
       }
       if (group === "C" && body.memo_so_far) {
-        userContent += `\n\nSECTIONS DÉJÀ RÉDIGÉES DU MÉMO (pour l'Executive Summary) :\n${String(body.memo_so_far).slice(0, 25000)}`;
+        // Digest du mémo (titres + amorces), pas le texte intégral
+        userContent += `\n\nDIGEST DES SECTIONS DÉJÀ RÉDIGÉES (pour l'Executive Summary) :\n${String(body.memo_so_far).slice(0, 15000)}`;
       }
 
-      return await streamGPT("gpt-4o", [
+      return await streamGPT(composeModel, [
         { role: "system", content: composeSystem(group) },
         { role: "user", content: userContent },
       ], 6000, corsHeaders);
