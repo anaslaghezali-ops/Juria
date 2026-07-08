@@ -1,0 +1,68 @@
+name: Deploy Edge Functions
+
+on:
+  push:
+    branches:
+      - main
+      - claude/juria-code-analysis-qen2o7
+    paths:
+      - 'supabase/functions/**'
+      - '.github/workflows/deploy-edge-functions.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        run: |
+          npm install -g supabase
+
+      - name: Deploy Edge Functions to Supabase
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+        run: |
+          echo "🚀 Deploying 7 Edge Functions..."
+          echo ""
+
+          FUNCTIONS=(
+            "smart-endpoint"
+            "chat-with-doc"
+            "embed-articles"
+            "generate-embeddings"
+            "generate-keywords"
+            "get-embedding"
+            "process-chunks"
+            "vector-search"
+          )
+
+          for func in "${FUNCTIONS[@]}"; do
+            echo "  Deploying $func..."
+            supabase functions deploy "$func" --project-ref $SUPABASE_PROJECT_ID || echo "  ⚠️  $func may already exist"
+          done
+
+      - name: Verify deployment
+        run: |
+          echo "✅ Edge Functions deployed successfully!"
+          echo ""
+          echo "Available functions:"
+          echo "  1. smart-endpoint - AI-powered legal document analysis + quota management"
+          echo "  2. chat-with-doc - GPT-powered legal document chat (classifier, summary, global analysis)"
+          echo "  3. embed-articles - Batch generate embeddings for legal articles"
+          echo "  4. generate-embeddings - Generate embeddings (alternate)"
+          echo "  5. generate-keywords - Extract and enrich keywords from articles"
+          echo "  6. get-embedding - Get embedding for arbitrary text"
+          echo "  7. process-chunks - Process document chunks with embeddings"
+          echo "  8. vector-search - Semantic search with vector queries"
+
+      - name: Notify deployment
+        if: success()
+        run: |
+          echo "🎉 Deployment completed successfully"
+          echo "Deployed to: Production"

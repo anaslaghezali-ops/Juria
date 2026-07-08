@@ -64,7 +64,7 @@ class CounterpartyService extends BaseService {
     let result;
     if (payload.id && !payload.id.startsWith('cp-')) {
       // Mise à jour d'une vraie entrée Supabase — pas de colonne updated_at
-      result = await this.update(payload.id, cpData, { skipUpdatedAt: true });
+      result = await this.update(payload.id, orgId, cpData, { skipUpdatedAt: true });
     } else {
       // Création — counterparties n'a PAS de colonne updated_at
       delete cpData.id;

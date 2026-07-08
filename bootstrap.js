@@ -10,8 +10,9 @@
  *   5. <script src="services/counterparty-service.js"></script>
  *   6. <script src="services/folder-service.js"></script>
  *   7. <script src="services/document-service.js"></script>
- *   8. <script src="bootstrap.js"></script>
- *   9. <script src="app.js"></script>   ← logique UI existante (documents.html inline)
+ *   8. <script src="services/organization-service.js"></script>
+ *   9. <script src="bootstrap.js"></script>
+ *  10. <script src="app.js"></script>   ← logique UI existante (documents.html inline)
  */
 
 // ── Constantes centralisées ──────────────────────────────────────────────
@@ -32,6 +33,7 @@ function initServices(supabaseClient) {
     counterparties: new CounterpartyService(supabaseClient, Store),
     folders:        new FolderService(supabaseClient, Store),
     documents:      new DocumentService(supabaseClient, Store),
+    organizations:  new OrganizationService(supabaseClient, Store),
   };
 
   // Exposer globalement pour la logique UI existante

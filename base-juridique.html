@@ -14,18 +14,38 @@
       --slate-900: #0f1117; --slate-700: #374151; --slate-500: #6b7280; --slate-400: #9ca3af;
       --slate-300: #d1d5db; --slate-100: #f3f4f6; --border: #e5e7eb; --white: #ffffff;
       --font: 'Inter', sans-serif; --serif: 'DM Serif Display', Georgia, serif;
+      --sidebar-w: 260px;
     }
     html { font-size: 15px; }
-    body { font-family: var(--font); color: var(--slate-900); background: #f8f9fb; min-height: 100vh; }
+    body { font-family: var(--font); color: var(--slate-900); background: #f8f9fb; display: flex; height: 100vh; overflow: hidden; }
+    .sidebar { width: var(--sidebar-w); background: var(--white); border-right: 1px solid var(--border); display: flex; flex-direction: column; height: 100vh; flex-shrink: 0; transition: transform 0.25s ease; }
+    .sidebar-top { padding: 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .sidebar-logo { display: flex; align-items: center; gap: 9px; text-decoration: none; }
+    .logo-mark { width: 28px; height: 28px; background: var(--indigo); color: #fff; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-family: var(--serif); font-size: 16px; }
+    .logo-name { font-family: var(--serif); font-size: 18px; color: var(--slate-900); }
+    .sidebar-nav { padding: 12px; flex: 1; overflow-y: auto; }
+    .nav-section { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--slate-400); padding: 16px 8px 6px; }
+    .nav-item { display: flex; align-items: center; gap: 9px; padding: 9px 10px; border-radius: 8px; border: none; background: none; width: 100%; text-align: left; font-family: var(--font); font-size: 13.5px; color: var(--slate-500); cursor: pointer; transition: all 0.15s; text-decoration: none; }
+    .nav-item:hover { background: var(--slate-100); color: var(--slate-900); }
+    .nav-item.active { background: var(--indigo-bg); color: var(--indigo-text); font-weight: 500; }
+    .nav-item .nav-icon { font-size: 16px; width: 20px; text-align: center; flex-shrink: 0; }
+    .nav-count { margin-left: auto; font-size: 11px; background: var(--slate-100); color: var(--slate-500); padding: 1px 7px; border-radius: 99px; font-weight: 600; }
+    .nav-item.active .nav-count { background: #c7d2fe; color: var(--indigo-text); }
+    .nav-badge-red { background: #fef2f2; color: #991b1b; }
+    .sidebar-footer { padding: 14px; border-top: 1px solid var(--border); }
+    .user-row { display: flex; align-items: center; gap: 9px; }
+    .user-avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--indigo-bg); color: var(--indigo-text); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+    .user-name { font-size: 13px; font-weight: 500; color: var(--slate-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user-plan { font-size: 11px; color: var(--slate-400); }
+    .btn-logout { margin-left: auto; background: none; border: none; color: var(--slate-400); cursor: pointer; font-size: 13px; padding: 4px; border-radius: 6px; transition: all 0.15s; }
+    .btn-logout:hover { background: var(--slate-100); color: var(--slate-700); }
+    .main-wrapper { flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; min-width: 0; }
 
-    .topnav { background: var(--white); border-bottom: 1px solid var(--border); padding: 0 32px; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
-    .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-    .logo-mark { width: 30px; height: 30px; background: var(--indigo); color: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-family: var(--serif); font-size: 17px; }
-    .logo-name { font-family: var(--serif); font-size: 20px; color: var(--slate-900); }
-    .nav-back { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--slate-500); text-decoration: none; padding: 6px 12px; border-radius: 8px; transition: all 0.15s; }
-    .nav-back:hover { background: var(--slate-100); color: var(--slate-900); }
+    .topbar { height: 52px; background: var(--white); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; gap: 12px; flex-shrink: 0; }
+    .topbar-title { font-size: 13.5px; font-weight: 500; color: var(--slate-700); flex: 1; }
+    .btn-menu { display: none; background: none; border: none; color: var(--slate-500); cursor: pointer; padding: 4px; border-radius: 6px; }
 
-    .main { max-width: 900px; margin: 0 auto; padding: 40px 24px; }
+    .main { flex: 1; overflow-y: auto; max-width: 900px; margin: 0 auto; padding: 40px 24px; width: 100%; }
     .page-title { font-family: var(--serif); font-size: 30px; margin-bottom: 6px; }
     .page-sub { font-size: 14px; color: var(--slate-500); margin-bottom: 32px; }
 
@@ -75,19 +95,99 @@
     .code-card-name { font-size: 12px; font-weight: 600; color: var(--slate-700); line-height: 1.3; }
     .code-card-count { font-size: 11px; color: var(--slate-400); margin-top: 4px; }
     .section-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--slate-400); margin-bottom: 16px; }
+    @media (max-width: 680px) {
+      .sidebar { position: fixed; left: 0; top: 0; transform: translateX(-100%); z-index: 100; }
+      .sidebar.open { transform: translateX(0); box-shadow: 4px 0 20px rgba(0,0,0,0.1); }
+      .btn-menu { display: flex; }
+      .codes-grid { grid-template-columns: 1fr; }
+    }
+      /* Voile de fermeture du tiroir mobile */
+    .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 99; }
+    .sidebar-overlay.show { display: block; }
   </style>
 </head>
 <body>
 
-<nav class="topnav">
-  <a href="dashboard.html" class="nav-logo">
-    <div class="logo-mark">J</div>
-    <span class="logo-name">Juria</span>
-  </a>
-  <a href="dashboard.html" class="nav-back">← Tableau de bord</a>
-</nav>
+<!-- Voile de fermeture du tiroir mobile -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-<main class="main">
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-top">
+    <a href="documents.html" class="sidebar-logo">
+      <div class="logo-mark">J</div>
+      <span class="logo-name">Juria</span>
+    </a>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">Principal</div>
+    <a href="documents.html" class="nav-item">
+      <span class="nav-icon">📊</span> Dashboard
+    </a>
+    <a href="documents.html" class="nav-item">
+      <span class="nav-icon">🏢</span> Contreparties
+      <span class="nav-count" id="navCpCount">—</span>
+    </a>
+    <a href="documents.html" class="nav-item">
+      <span class="nav-icon">📁</span> Dossiers
+      <span class="nav-count" id="navFolderCount">—</span>
+    </a>
+    <a href="documents.html" class="nav-item">
+      <span class="nav-icon">📄</span> Documents
+      <span class="nav-count" id="navTotalCount">—</span>
+    </a>
+
+    <div class="nav-section">Analyse</div>
+    <a href="documents.html" class="nav-item">
+      <span class="nav-icon">⚠️</span> Risques
+      <span class="nav-count nav-badge-red" id="navRisksCount">—</span>
+    </a>
+    <a href="documents.html" class="nav-item">
+      <span class="nav-icon">📅</span> Échéances
+    </a>
+    <a href="documents.html" class="nav-item">
+      <span class="nav-icon">🕐</span> Timeline
+    </a>
+    <a href="documents.html" class="nav-item">
+      <span class="nav-icon">✅</span> Tâches
+      <span class="nav-count nav-badge-red" id="navTasksCount">—</span>
+    </a>
+
+    <div class="nav-section">Outils</div>
+    <a href="chat.html" class="nav-item">
+      <span class="nav-icon">💬</span> Assistant IA
+    </a>
+    <a href="base-juridique.html" class="nav-item active">
+      <span class="nav-icon">📚</span> Base juridique
+    </a>
+    <a href="comparaison-contrats.html" class="nav-item">
+      <span class="nav-icon">🔍</span> Comparaison
+    </a>
+
+    <div class="nav-section">Organisation</div>
+    <a href="administration.html" class="nav-item">
+      <span class="nav-icon">⚙️</span> Administration
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-row">
+      <div class="user-avatar" id="sidebarAvatar">?</div>
+      <div>
+        <div class="user-name" id="sidebarName">…</div>
+        <div class="user-plan" id="sidebarPlan">Essai gratuit</div>
+      </div>
+      <button class="btn-logout" id="btnLogout" title="Déconnexion">🚪 Déconnexion</button>
+    </div>
+  </div>
+</aside>
+
+<div class="main-wrapper">
+  <header class="topbar">
+    <button class="btn-menu" id="btnMenu">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="topbar-title">📚 Base Juridique</div>
+  </header>
+  <main class="main">
   <div class="page-title">📚 Base Juridique</div>
   <div class="page-sub">5 000+ articles des codes marocains. Recherchez par mot-clé, numéro d'article ou code.</div>
 
@@ -150,20 +250,70 @@
     <div class="results-list" id="resultsList"></div>
   </div>
 
-</main>
+  </main>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 <script src="init-common.js"></script>
 <script src="fetch-safe.js"></script>
+<script src="auth-guard.js"></script>
 <script>
 // _sb now available globally from init-common.js
 
 var activeCode = 'all';
 
+// ---- SIDEBAR HANDLERS ----
+document.getElementById('btnMenu').addEventListener('click', function() {
+  const open = document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('show', open);
+});
+// Taper à côté du tiroir le referme
+document.getElementById('sidebarOverlay').addEventListener('click', function() {
+  document.getElementById('sidebar').classList.remove('open');
+  this.classList.remove('show');
+});
+
+document.getElementById('btnLogout').addEventListener('click', async function() {
+  await _sb.auth.signOut();
+  window.location.href = 'auth.html';
+});
+
+console.log('✓ base-juridique.html loaded, _sb =', typeof window._sb);
+
 async function init() {
-  const { data: { session } } = await _sb.auth.getSession();
-  if (!session) { window.location.href = 'auth.html'; return; }
+  try {
+    if (!window._sb) {
+      console.error('❌ _sb not initialized! Waiting...');
+      // Attendre que _sb soit initialisé
+      for (let i = 0; i < 20; i++) {
+        await new Promise(r => setTimeout(r, 100));
+        if (window._sb) break;
+      }
+    }
+    if (!window._sb) {
+      console.error('❌ _sb still not available after waiting');
+      return;
+    }
+    console.log('✓ _sb initialized:', typeof window._sb);
+
+    const { data: { session } } = await _sb.auth.getSession();
+    if (!session) {
+      console.log('⚠️ No session, redirecting to auth.html');
+      window.location.href = 'auth.html';
+      return;
+    }
+    console.log('✓ Session found:', session.user.email);
+
+    // Initialize sidebar user info
+    const currentUser = session.user;
+    const name = currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];
+    const initials = name.split(' ').map(function(n){ return n[0]; }).join('').slice(0,2).toUpperCase();
+    document.getElementById('sidebarAvatar').textContent = initials;
+    document.getElementById('sidebarName').textContent = name;
+  } catch (err) {
+    console.error('Error in init():', err);
+  }
 }
 init();
 
@@ -172,35 +322,61 @@ document.getElementById('searchInput').addEventListener('keydown', function(e) {
 });
 
 function setFilter(btn, code) {
+  console.log('🔍 setFilter called with code:', code);
   document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
   btn.classList.add('active');
   activeCode = code;
   var q = document.getElementById('searchInput').value.trim();
-  if (q) doSearch();
+  if (q) {
+    console.log('📝 Texto de recherche trouvé, appelant doSearch()');
+    doSearch();
+  } else {
+    console.log('📡 Pas de texte, appelant loadByCode()');
+    loadByCode(code);
+  }
 }
 
 function filterByCode(code) {
+  console.log('🔍 filterByCode called with code:', code);
   activeCode = code;
   document.querySelectorAll('.filter-btn').forEach(function(b) {
     b.classList.toggle('active', b.dataset.code === code);
   });
   document.getElementById('searchInput').value = '';
+  console.log('📡 Calling loadByCode...');
   loadByCode(code);
 }
 
 async function loadByCode(code) {
-  document.getElementById('codesOverview').style.display = 'none';
-  document.getElementById('searchResults').style.display = 'block';
-  document.getElementById('resultsList').innerHTML = '<div class="loading-bar">Chargement...</div>';
+  try {
+    document.getElementById('codesOverview').style.display = 'none';
+    document.getElementById('searchResults').style.display = 'block';
+    document.getElementById('resultsList').innerHTML = '<div class="loading-bar">Chargement des articles...</div>';
 
-  var query = _sb.from('articles_juridiques')
-    .select('id, code, numero_article, contenu, book, title')
-    .eq('code', code)
-    .order('id')
-    .limit(50);
+    const { data, error } = await _sb
+      .from('articles_juridiques_legacy')
+      .select('id, code, numero_article, contenu, book, title')
+      .eq('code', code)
+      .order('id')
+      .limit(50);
 
-  var { data, error, count } = await query;
-  renderResults(data || [], code + ' — 50 premiers articles');
+    if (error) {
+      console.error('Erreur chargement articles:', error);
+      document.getElementById('resultsList').innerHTML = '<div class="empty"><div class="empty-icon">❌</div>Erreur lors du chargement: ' + error.message + '</div>';
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      document.getElementById('resultsList').innerHTML = '<div class="empty"><div class="empty-icon">📭</div>Aucun article trouvé pour ce code.</div>';
+      return;
+    }
+
+    console.log('✓ Chargé', data.length, 'articles pour', code);
+    renderResults(data, code + ' — ' + data.length + ' articles');
+  } catch (err) {
+    console.error('Exception loadByCode:', err);
+    document.getElementById('resultsList').innerHTML = '<div class="empty"><div class="empty-icon">❌</div>Erreur: ' + err.message + '</div>';
+  }
 }
 
 async function doSearch() {
@@ -211,7 +387,7 @@ async function doSearch() {
   document.getElementById('searchResults').style.display = 'block';
   document.getElementById('resultsList').innerHTML = '<div class="loading-bar">Recherche en cours...</div>';
 
-  var query = _sb.from('articles_juridiques')
+  var query = _sb.from('articles_juridiques_legacy')
     .select('id, code, numero_article, contenu, book, title')
     .or('contenu.ilike.%' + q + '%,numero_article.ilike.%' + q + '%')
     .limit(30);

@@ -1,0 +1,24 @@
+-- Applied 2026-07-08 via Supabase MCP (apply_migration: drop_legacy_risks_table)
+--
+-- Suppression de la table héritée public.risks.
+--
+-- Justification (vérifiée avant suppression) :
+--   - 0 ligne de données
+--   - 0 dépendance en base (aucune FK entrante, vue, fonction, trigger)
+--   - 0 référence dans le code : la dernière (documents.html/saveRiskType)
+--     était un bug historique — elle visait risks.risk_type, colonne
+--     inexistante, alors que les risques affichés proviennent de
+--     document_risks.category. La fonctionnalité "éditer le type de risque"
+--     n'avait donc jamais fonctionné ; elle est corrigée dans le même commit
+--     (cible document_risks.category, options du modal alignées sur la
+--     contrainte CHECK).
+--
+-- Structure archivée (si jamais il fallait la recréer) :
+--   CREATE TABLE public.risks (
+--     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+--     name text NOT NULL,
+--     description text,
+--     created_at timestamp DEFAULT now()
+--   );
+
+DROP TABLE IF EXISTS public.risks;
