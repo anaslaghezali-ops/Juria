@@ -29,46 +29,21 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
 
-    console.log("Env check:", {
-      url: supabaseUrl ? `${supabaseUrl.substring(0, 20)}...` : "MISSING",
-      key: serviceKey ? `${serviceKey.substring(0, 20)}...` : "MISSING",
-    })
-
     if (!supabaseUrl || !serviceKey) {
-      throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY")
+      throw new Error("Missing Supabase configuration")
     }
 
-    console.log("Creating Supabase client...")
     const supabase = createClient(supabaseUrl, serviceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     })
-    console.log("Supabase client created successfully")
 
-    const tempPassword = `Juria-${Math.random().toString(36).slice(2, 10)}!`
-
-    console.log("Attempting createUser with:", { email, password: "***", metadata: { full_name: `${firstName} ${lastName}`, org_id: orgId } })
-    const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
-      email,
-      password: tempPassword,
-      user_metadata: {
-        full_name: `${firstName || ""} ${lastName || ""}`.trim(),
-        org_id: orgId,
-      },
-      email_confirm: true,
-    })
-
-    if (createError) {
-      console.error("createUser failed:", JSON.stringify(createError))
-      throw new Error(JSON.stringify(createError))
-    }
-
-    const userId = newUser.user.id
-
+    // For now: just add to organization_users without creating auth user
+    // User will sign up themselves via auth.html
     const { data: member, error: addError } = await supabase
       .from("organization_users")
       .insert({
         organization_id: orgId,
-        user_id: userId,
+        user_id: null, // Will be set when user signs up
         email,
         first_name: firstName || null,
         last_name: lastName || null,
@@ -81,23 +56,20 @@ serve(async (req) => {
       .single()
 
     if (addError) {
-      console.error("addMember failed:", JSON.stringify(addError))
       throw new Error(JSON.stringify(addError))
     }
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: "User created and added to organization",
-        userId,
+        message: "Invitation sent. User will sign up on auth.html",
         member,
-        tempPassword,
+        inviteLink: "/auth.html?email=" + encodeURIComponent(email),
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     )
   } catch (error: any) {
-    const errorMsg = error?.message || JSON.stringify(error) || "Unknown error"
-    console.error("Final error:", errorMsg)
+    const errorMsg = error?.message || "Unknown error"
     return new Response(
       JSON.stringify({ error: errorMsg }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

@@ -566,16 +566,11 @@ async function submitInvite() {
     }
 
     const result = await response.json();
-    if (result.tempPassword) {
-      alert(
-        'Utilisateur créé avec succès!\n\n' +
-        'Email : ' + email + '\n' +
-        'Mot de passe temporaire : ' + result.tempPassword + '\n\n' +
-        'Communiquez-le à l\'utilisateur. Il pourra le changer plus tard.'
-      );
-    } else {
-      alert('Utilisateur ajouté à l\'organisation avec succès!');
-    }
+    alert(
+      'Invitation envoyée!\n\n' +
+      'Email : ' + email + '\n\n' +
+      'L\'utilisateur doit se créer un compte sur la page de connexion.'
+    );
     closeInviteModal();
     await loadMembers();
   } catch (err) {
