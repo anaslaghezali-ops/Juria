@@ -72,6 +72,24 @@ class SynthesisService extends BaseService {
       synthesis.chunk_version_at_analysis === doc.chunk_version;
   }
 
+  /**
+   * Quota de génération de l'organisation (par mois civil).
+   * @returns {Promise<{plan, limit, used, remaining}|null>} null si indisponible
+   */
+  async getQuota() {
+    try {
+      const token = await this._getToken();
+      const res = await fetch(JURIA_CONFIG.SYNTHESIS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ mode: 'quota' }),
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data.quota || null;
+    } catch { return null; }
+  }
+
   // ══════════════════════════════════════════════════════════════════════
   //  GÉNÉRATION — pipeline complet
   // ══════════════════════════════════════════════════════════════════════
@@ -95,6 +113,16 @@ class SynthesisService extends BaseService {
 
     // ── PHASE 0 : PRÉPARATION ──────────────────────────────────────────
     progress('read', { label: 'Chargement du document…' });
+
+    // Quota : refus propre AVANT tout travail (l'edge function re-vérifie
+    // de toute façon côté serveur à chaque appel facturable)
+    const quota = await this.getQuota();
+    if (quota && quota.limit !== -1 && quota.used >= quota.limit) {
+      const err = new Error(`Quota de synthèses atteint (${quota.used}/${quota.limit} ce mois-ci). Passez à un plan supérieur pour continuer.`);
+      err.code = 'QUOTA_EXCEEDED';
+      err.quota = quota;
+      throw err;
+    }
 
     const fullText = await this._loadFullText(doc.id);
     if (!fullText || fullText.length < 200) {
@@ -342,9 +370,18 @@ class SynthesisService extends BaseService {
         body: JSON.stringify({ mode: 'extract', context: section.text, doc_name: docName }),
       });
       const data = await res.json();
+      if (res.status === 429) {
+        // Quota atteint : erreur FATALE, jamais avalée (sinon extraction
+        // vide silencieuse → mémo dégénéré)
+        const err = new Error(data.error || 'Quota de synthèses atteint.');
+        err.code = 'QUOTA_EXCEEDED';
+        err.fatal = true;
+        throw err;
+      }
       if (!res.ok) throw new Error(data.error || 'Erreur extraction');
       return data.extract || {};
     } catch (e) {
+      if (e.fatal) throw e;
       if (attempt < 1) return this._extractSection(section, docName, token, attempt + 1);
       console.warn('[SynthesisService] Section non extraite (ignorée) :', e.message);
       return {};  // une section en échec n'annule pas la note entière

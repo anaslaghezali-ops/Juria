@@ -496,6 +496,7 @@
           <button class="btn-synth-generate" onclick="startSynthesis()">
             ✨ Générer la note de synthèse
           </button>
+          <div id="synthQuotaInfo" style="margin-top:14px;font-size:12px;color:var(--slate-400)"></div>
         </div>
 
         <!-- Génération en cours -->
@@ -958,6 +959,7 @@ async function loadSynthesisTab() {
 
     if (!synthVersions.length) {
       showSynthState('empty');
+      renderSynthQuota();
       // Lancement automatique demandé (arrivée depuis un CTA) ?
       if (new URLSearchParams(location.search).get('autogen') === '1') startSynthesis();
       return;
@@ -976,6 +978,22 @@ function showSynthState(state) {
   document.getElementById('synthEmpty').style.display = state === 'empty' ? 'block' : 'none';
   document.getElementById('synthGen').style.display = state === 'gen' ? 'grid' : 'none';
   document.getElementById('synthReady').style.display = state === 'ready' ? 'block' : 'none';
+}
+
+// Affiche le quota restant sous le CTA (discret, jamais bloquant si indisponible)
+async function renderSynthQuota() {
+  const el = document.getElementById('synthQuotaInfo');
+  if (!el || !synthesisService) return;
+  const q = await synthesisService.getQuota();
+  if (!q) { el.textContent = ''; return; }
+  if (q.limit === -1) { el.textContent = ''; return; }
+  if (q.remaining === 0) {
+    el.innerHTML = `Quota mensuel atteint (${q.used}/${q.limit}, plan ${escHtml(q.plan)}) — <a href="index.html#tarifs" style="color:var(--indigo)">passer à un plan supérieur</a>`;
+    const btn = document.querySelector('#synthEmpty .btn-synth-generate');
+    if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; btn.style.cursor = 'not-allowed'; }
+  } else {
+    el.textContent = `${q.remaining} génération${q.remaining > 1 ? 's' : ''} restante${q.remaining > 1 ? 's' : ''} ce mois-ci (plan ${q.plan})`;
+  }
 }
 
 // ── Génération ─────────────────────────────────────────────────────────
@@ -1036,6 +1054,11 @@ async function startSynthesis(isRegen) {
     console.error('[synthese] génération:', e);
     showSynthState(synthVersions.length ? 'ready' : 'empty');
 
+    if (e.code === 'QUOTA_EXCEEDED') {
+      showToast(e.message, 'error');
+      renderSynthQuota();
+      return;
+    }
     if (e.code === 'NO_CONTENT') {
       // Document jamais ingéré : proposer le parcours qui règle le problème
       if (confirm("Le texte de ce document n'a pas encore été extrait.\n\n" +
