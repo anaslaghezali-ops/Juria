@@ -1,6 +1,7 @@
 name: Deploy Edge Functions
 
 on:
+  workflow_dispatch:   # déclenchement manuel depuis l'onglet Actions
   push:
     branches:
       - main
@@ -28,9 +29,20 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
         run: |
-          echo "🚀 Deploying 7 Edge Functions..."
+          # Échec bruyant si les secrets manquent : un déploiement qui ne
+          # déploie rien ne doit JAMAIS être vert.
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ] || [ -z "$SUPABASE_PROJECT_ID" ]; then
+            echo "❌ Secrets manquants : configurez SUPABASE_ACCESS_TOKEN et SUPABASE_PROJECT_ID"
+            echo "   GitHub → Settings → Secrets and variables → Actions"
+            echo "   Token : https://supabase.com/dashboard/account/tokens"
+            exit 1
+          fi
+
+          FAILED=0
+          echo "🚀 Deploying Edge Functions..."
           echo ""
 
+          # Fonctions protégées par JWT (appelées avec le token de session)
           FUNCTIONS=(
             "smart-endpoint"
             "chat-with-doc"
@@ -40,12 +52,27 @@ jobs:
             "get-embedding"
             "process-chunks"
             "vector-search"
+            "generate-synthesis"
+          )
+
+          # Fonctions SANS vérification JWT : appelées pendant le signup,
+          # avant qu'une session existe (sécurisées par SERVICE_ROLE_KEY côté serveur)
+          NO_JWT_FUNCTIONS=(
+            "invite-user"
+            "link-user-to-org"
           )
 
           for func in "${FUNCTIONS[@]}"; do
             echo "  Deploying $func..."
-            supabase functions deploy "$func" --project-ref $SUPABASE_PROJECT_ID || echo "  ⚠️  $func may already exist"
+            supabase functions deploy "$func" --project-ref $SUPABASE_PROJECT_ID || { echo "  ❌ $func deploy failed"; FAILED=1; }
           done
+
+          for func in "${NO_JWT_FUNCTIONS[@]}"; do
+            echo "  Deploying $func (no JWT verification)..."
+            supabase functions deploy "$func" --no-verify-jwt --project-ref $SUPABASE_PROJECT_ID || { echo "  ❌ $func deploy failed"; FAILED=1; }
+          done
+
+          exit $FAILED
 
       - name: Verify deployment
         run: |
