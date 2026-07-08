@@ -1011,8 +1011,18 @@ async function startSynthesis(isRegen) {
     displaySynthesis(row);
   } catch (e) {
     console.error('[synthese] génération:', e);
-    showToast('Erreur : ' + (e.message || 'génération interrompue'), 'error');
     showSynthState(synthVersions.length ? 'ready' : 'empty');
+
+    if (e.code === 'NO_CONTENT') {
+      // Document jamais ingéré : proposer le parcours qui règle le problème
+      if (confirm("Le texte de ce document n'a pas encore été extrait.\n\n" +
+                  "Lancer l'analyse du document maintenant ? Elle extraira le texte, " +
+                  "puis vous pourrez générer la note de synthèse.")) {
+        window.location.href = 'analyse-contrat.html?doc_id=' + encodeURIComponent(docId);
+      }
+      return;
+    }
+    showToast('Erreur : ' + (e.message || 'génération interrompue'), 'error');
   }
 }
 

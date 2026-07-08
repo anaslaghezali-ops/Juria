@@ -98,7 +98,11 @@ class SynthesisService extends BaseService {
 
     const fullText = await this._loadFullText(doc.id);
     if (!fullText || fullText.length < 200) {
-      throw new Error("Le texte de ce document n'a pas été extrait. Relancez une analyse pour l'ingérer.");
+      // Document jamais ingéré (uploadé sans analyse, ou analysé avant que
+      // l'ingestion du texte n'existe). L'UI propose de lancer l'analyse.
+      const err = new Error("Le texte de ce document n'a pas encore été extrait.");
+      err.code = 'NO_CONTENT';
+      throw err;
     }
 
     const pageMap = await this._loadPageMap(doc.id, doc.chunk_version);
