@@ -29,16 +29,27 @@ class OrganizationService extends BaseService {
       if (!error) return data;
     }
 
-    // Fallback: find organization by querying organization_users table
+    // Fallback: find organization by querying organization_users table.
+    // Use maybeSingle() so that a user with no membership row resolves to
+    // null instead of triggering a PGRST116 / HTTP 406 ("Cannot coerce the
+    // result to a single JSON object") error.
     const { data: memberData, error: memberError } = await this._sb
       .from(this._table)
       .select('organization_id')
       .eq('user_id', user.id)
+      .eq('is_active', true)
       .limit(1)
-      .single();
+      .maybeSingle();
 
-    if (memberError || !memberData?.organization_id) {
-      this._handleError('getCurrentOrganization', memberError || new Error('No organization found'));
+    if (memberError) {
+      this._handleError('getCurrentOrganization', memberError);
+      return null;
+    }
+
+    if (!memberData?.organization_id) {
+      // User is authenticated but not linked to any organization yet.
+      // This is a normal state (e.g. brand-new signup), not an error.
+      console.warn('[getCurrentOrganization] User has no organization membership:', user.id);
       return null;
     }
 
@@ -313,11 +324,13 @@ class OrganizationService extends BaseService {
   /**
    * Change member role
    * @param {string} memberId
-   * @param {string} newRole - 'admin' | 'member' | 'viewer'
+   * @param {string} newRole - one of the roles allowed by the DB constraint
    * @returns {Promise<Object|null>}
    */
   async changeMemberRole(memberId, newRole) {
-    if (!['admin', 'member', 'viewer'].includes(newRole)) {
+    // Must match the organization_users_role_check constraint in the DB.
+    const VALID_ROLES = ['owner', 'admin', 'lawyer', 'member', 'reader'];
+    if (!VALID_ROLES.includes(newRole)) {
       throw new Error('Invalid role: ' + newRole);
     }
 

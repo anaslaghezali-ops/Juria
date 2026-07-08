@@ -288,7 +288,8 @@ async function handleSignup() {
 
   if (error) { showError(error.message); return; }
 
-  // Link user to organization if they were invited
+  // Provision organization membership: claims a pending invitation if one
+  // exists, otherwise creates a personal organization for this user.
   if (authData.user?.id) {
     try {
       const linkResponse = await fetch(JURIA_CONFIG.LINK_USER_TO_ORG_URL || 'https://dnrudcpaqcqyybpbbrum.supabase.co/functions/v1/link-user-to-org', {
@@ -296,7 +297,8 @@ async function handleSignup() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: authData.user.id,
-          email: email
+          email: email,
+          name: name
         })
       });
       const linkResult = await linkResponse.json();

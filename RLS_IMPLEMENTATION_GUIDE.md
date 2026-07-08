@@ -1,271 +1,99 @@
-# RLS Implementation Guide for Juria
+# Juria — User Management & RLS: Root Cause and Resolution
 
-## Current Status
+_Last updated: 2026-07-08. Applied directly to project `dnrudcpaqcqyybpbbrum` and verified._
 
-✅ **System is working** - No RLS policies active (runs with RLS disabled)
-❌ **406 errors persist** - When attempting to enable RLS with functions
+## TL;DR
 
-## Why 406 Errors Occurred
+The "406 that only RLS caused" was **two separate bugs** wearing the same symptom:
 
-The previous RLS attempt used:
+1. **The real, always-present bug:** `getCurrentOrganization()` called `.single()`,
+   which returns **HTTP 406 / `PGRST116` ("Cannot coerce the result to a single
+   JSON object")** whenever the query matches **0 rows**. The owner account had
+   **no row in `organization_users`**, so it 406'd every time — with or without RLS.
+2. **The thing that made RLS look guilty:** the earlier RLS attempt used a helper
+   `is_org_admin()` that was `LANGUAGE plpgsql STABLE` (**not** `SECURITY DEFINER`).
+   A policy **on** `organization_users` that queries `organization_users` through a
+   non-definer function causes **infinite recursion**. When that broke, the 0-rows
+   406 was already there, so disabling RLS didn't make the 406 go away — which
+   looked like "RLS corrupted everything."
+
+Both are now fixed and the system runs **with RLS enabled**.
+
+## What was actually wrong
+
+- The organization **owner** (`anaslaghezali@gmail.com`) was never inserted into
+  `organization_users`. Only the invited member `av@av.com` had a row. So the
+  owner was authenticated but org-less → guaranteed 406.
+- Nothing provisioned an organization for **organic (non-invited) signups**, so
+  every trial signup would hit the same 406.
+- `getCurrentOrganization()` used `.single()` (throws on 0 rows) instead of
+  `.maybeSingle()` (returns `null`).
+
+## What was fixed (all applied and verified)
+
+### 1. Data — linked the owner to their org
+Inserted the owner into `organization_users` with `role = 'owner'`, `is_active = true`
+for org `da00f4b6…` ("Anas Laghezali"). The failing query now returns a row.
+
+### 2. Frontend — `services/organization-service.js`
+- `getCurrentOrganization()` now uses `.maybeSingle()` and treats "no membership"
+  as a normal `null` result instead of a 406 error. It also filters on
+  `is_active = true`.
+- `changeMemberRole()` now validates against the real DB constraint
+  (`owner | admin | lawyer | member | reader`) instead of the stale
+  `admin | member | viewer` (note: `viewer` was never a valid DB role).
+
+### 3. Signup flow — `supabase/functions/link-user-to-org` + `auth.html`
+The edge function is now a complete "provision membership" step:
+- **Invited user:** claims the pending pre-invitation row (sets `user_id`).
+- **Organic signup:** creates a personal organization (`plan = 'trial'`,
+  collision-safe unique slug) and links the user as `owner`.
+- **Idempotent:** if the user already has a membership, it's a no-op.
+`auth.html` now passes the user's `name` so the auto-created org is named properly.
+
+### 4. RLS — enabled, recursion-safe, and tested
+See `supabase/migrations/01_enable_rls_organization_users.sql`. Policies reuse the
+existing **`SECURITY DEFINER`** helpers `fn_user_organization_ids()` and
+`fn_user_role()`, which bypass RLS during policy evaluation and therefore **cannot
+recurse**. RLS is enabled on both `organization_users` and `organizations`.
+Helper `search_path` was pinned for hardening
+(`02_harden_rls_helper_search_path.sql`).
+
+## Verified behavior (with RLS ON)
+
+| Context        | Resolves own org | Sees org members | Can modify members |
+|----------------|------------------|------------------|--------------------|
+| Owner          | ✅               | ✅               | ✅                 |
+| Member (`av`)  | ✅               | ✅               | ❌ (blocked)       |
+| Anonymous      | ❌ (0 rows)      | ❌ (0 rows)      | ❌                 |
+
+Tested by simulating each user's JWT (`SET LOCAL role authenticated` +
+`request.jwt.claims`) and by attempting writes as a member (0 rows affected) vs.
+as the owner (rows affected). Service-role edge functions bypass RLS, so
+`invite-user` and `link-user-to-org` continue to work.
+
+## Why the recursion-safe pattern matters
 
 ```sql
-CREATE OR REPLACE FUNCTION is_org_admin(org_id UUID)
-RETURNS BOOLEAN AS $
-BEGIN
-  RETURN EXISTS (
-    SELECT 1 FROM organization_users
-    WHERE organization_id = org_id
-      AND user_id = auth.uid()
-      AND role IN ('admin', 'owner')
-  );
-END;
-$ LANGUAGE plpgsql STABLE;
-```
+-- ❌ WRONG: policy on organization_users that reads organization_users
+--    directly -> "infinite recursion detected in policy"
+CREATE POLICY ... ON organization_users
+USING (organization_id IN (SELECT organization_id FROM organization_users
+                           WHERE user_id = auth.uid()));
 
-Then RLS policies called this function:
-```sql
+-- ✅ RIGHT: read through a SECURITY DEFINER helper (bypasses RLS internally)
 CREATE POLICY org_users_select ON organization_users
-FOR SELECT
-USING (is_org_admin(organization_id));
+USING (organization_id IN (SELECT fn_user_organization_ids()));
 ```
 
-### The Problem
+`fn_user_organization_ids()` and `fn_user_role()` are `SECURITY DEFINER`, so the
+query inside them runs as the function owner with RLS bypassed — no recursion.
 
-1. **REST API has no user context**: When you query via REST API, `auth.uid()` returns `NULL`
-2. **Function returns NULL behavior**: This breaks the type inference
-3. **REST API serialization fails**: Supabase cannot coerce the result to JSON
-4. **Result**: 406 "Not Acceptable" error
+## Key rule going forward
 
-### The Solution
-
-Instead of wrapping `auth.uid()` in a function, use direct comparisons in policies:
-
-```sql
-CREATE POLICY org_users_select ON organization_users
-FOR SELECT
-USING (
-  organization_id IN (
-    SELECT organization_id
-    FROM organization_users
-    WHERE user_id = auth.uid() AND is_active = true
-  )
-);
-```
-
-This works because:
-- The subquery's type is known (array of UUIDs)
-- `auth.uid()` is evaluated in the policy scope
-- The WHERE clause is standard SQL
-- REST API can properly serialize the result
-
-## Step-by-Step Implementation
-
-### Step 1: Go to Supabase SQL Editor
-
-1. Open your Supabase project dashboard
-2. Navigate to **SQL Editor** (left sidebar)
-3. Click **+ New Query**
-
-### Step 2: Drop Broken Function (CRITICAL)
-
-Paste this and run it:
-
-```sql
-DROP FUNCTION IF EXISTS is_org_admin(UUID) CASCADE;
-```
-
-**Expected**: Query runs successfully, shows "Success - no rows returned"
-
-**Verify**: Wait 10 seconds, then test REST API:
-```bash
-# Get your JWT token from browser console after login:
-# (await supabase.auth.getSession()).data.session.access_token
-
-curl -X GET 'https://dnrudcpaqcqyybpbbrum.supabase.co/rest/v1/organization_users?limit=1' \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRucnVkY3BhcWNxeXlicGJicnVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyODQwMjMsImV4cCI6MjA5Njg2MDAyM30.f6_byMzZBE2SQH2XjNmRQFQpRkRIfXE2OC0mNxQt5z4"
-```
-
-If you get back JSON data → 406 is FIXED ✅
-If you get 406 again → schema corruption (skip to "If 406 Persists" section)
-
-### Step 3: Enable RLS on Table
-
-Create a new query:
-
-```sql
-ALTER TABLE organization_users ENABLE ROW LEVEL SECURITY;
-```
-
-**Expected**: Query runs successfully
-
-### Step 4: Create New RLS Policies (SELECT)
-
-```sql
-CREATE POLICY org_users_select ON organization_users
-FOR SELECT
-USING (
-  organization_id IN (
-    SELECT organization_id
-    FROM organization_users
-    WHERE user_id = auth.uid() AND is_active = true
-  )
-);
-```
-
-Test immediately - users should only see their org's members.
-
-### Step 5: Create RLS Policies (INSERT)
-
-```sql
-CREATE POLICY org_users_insert ON organization_users
-FOR INSERT
-WITH CHECK (
-  EXISTS (
-    SELECT 1
-    FROM organization_users
-    WHERE organization_id = organization_users.organization_id
-      AND user_id = auth.uid()
-      AND role IN ('admin', 'owner')
-      AND is_active = true
-  )
-);
-```
-
-Test: Admins should be able to invite, non-admins should get permission error.
-
-### Step 6: Create RLS Policies (UPDATE)
-
-```sql
-CREATE POLICY org_users_update ON organization_users
-FOR UPDATE
-USING (
-  EXISTS (
-    SELECT 1
-    FROM organization_users ou
-    WHERE ou.organization_id = organization_users.organization_id
-      AND ou.user_id = auth.uid()
-      AND ou.role IN ('admin', 'owner')
-      AND ou.is_active = true
-  )
-);
-```
-
-### Step 7: Create RLS Policies (DELETE)
-
-```sql
-CREATE POLICY org_users_delete ON organization_users
-FOR DELETE
-USING (
-  EXISTS (
-    SELECT 1
-    FROM organization_users ou
-    WHERE ou.organization_id = organization_users.organization_id
-      AND ou.user_id = auth.uid()
-      AND ou.role IN ('admin', 'owner')
-      AND ou.is_active = true
-  )
-);
-```
-
-## Testing Checklist
-
-After each policy, test it:
-
-```javascript
-// In browser console after login
-const { data, error } = await supabase
-  .from('organization_users')
-  .select('*');
-
-console.log(data); // Should see only current org's members
-console.log(error); // Should be null
-```
-
-| Test | Expected Result |
-|------|-----------------|
-| Admin logs in, loads members | ✅ See full member list |
-| Member logs in, loads members | ✅ See full member list (same org) |
-| Admin invites new member | ✅ Success |
-| Member tries to invite | ❌ Permission denied |
-| Admin changes member role | ✅ Success |
-| Member tries to change role | ❌ Permission denied |
-| Admin deactivates member | ✅ Success |
-| Deleted user queries members | ❌ 403 Forbidden (no user_id) |
-
-## If 406 Persists After Dropping Function
-
-### Quick Test
-
-```sql
--- Check if function is really gone
-SELECT routine_name FROM information_schema.routines 
-WHERE routine_name LIKE '%org%' AND routine_schema = 'public';
-```
-
-If `is_org_admin` still shows up, run:
-```sql
-DROP FUNCTION IF EXISTS is_org_admin(uuid) CASCADE;
-```
-
-### Disable RLS Temporarily
-
-If 406 still occurs:
-
-```sql
-ALTER TABLE organization_users DISABLE ROW LEVEL SECURITY;
-```
-
-Then test REST API. If it works now:
-- The schema corruption is related to RLS/policies
-- Start fresh with policies, one at a time
-- Test after each policy
-
-If it STILL doesn't work:
-- There's deeper corruption in the table schema
-- May need Supabase support or project restart
-
-## Architecture After RLS Is Working
-
-```
-User Actions
-    ↓
-Browser/Client
-    ├─ supabase.auth.getSession() → JWT token
-    ├─ supabase.from('organization_users').select() → includes JWT
-    ↓
-Supabase REST API
-    ├─ Verifies JWT token
-    ├─ Extracts auth.uid()
-    ↓
-PostgreSQL with RLS
-    ├─ Evaluates RLS policies using auth.uid()
-    ├─ Policies use subqueries to check authorization
-    ├─ Only authorized rows returned
-    ↓
-REST API
-    ├─ Serializes result to JSON (now always works)
-    ↓
-Client receives data (filtered by RLS)
-```
-
-## Edge Functions Still Work
-
-Note: Your Edge Functions (invite-user, link-user-to-org) use `SERVICE_ROLE_KEY`, which **bypasses RLS policies**. This is correct - they need elevated permissions. RLS policies only affect:
-
-1. Direct browser queries via Supabase JS client
-2. REST API calls with JWT tokens
-3. NOT Edge Functions or service-role operations
-
-## Summary
-
-| Before (Broken) | After (Fixed) |
-|-----------------|---------------|
-| Custom function in policies | Direct auth.uid() in policies |
-| Uses `is_org_admin()` | No functions |
-| Returns NULL → 406 errors | Always returns BOOLEAN |
-| Type inference broken | Type inference works |
-| System broken | System works + secure |
-
-The key insight: **Never call functions with auth.uid() from RLS policies**. Instead, use the functions' logic directly in the policy's WHERE clause.
+- **Reads that may return zero rows:** use `.maybeSingle()`, never `.single()`,
+  unless a missing row is genuinely an error.
+- **RLS on a self-referential table (memberships):** never query the table
+  directly inside its own policy — go through a `SECURITY DEFINER` helper.
+- **Org provisioning happens server-side** (service-role edge function), so the
+  app never ends up with an authenticated-but-org-less user again.

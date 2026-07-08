@@ -1,114 +1,55 @@
 # Database Migrations
 
-This directory contains SQL migrations for the Juria Supabase project.
+SQL migrations for the Juria Supabase project (`dnrudcpaqcqyybpbbrum`).
 
-## Applying Migrations
+These files mirror migrations that were **applied and verified** on the remote
+project on 2026-07-08. They are kept here as human-readable, version-controlled
+history. See `../../RLS_IMPLEMENTATION_GUIDE.md` for the full root-cause writeup.
 
-### Manual Application (Recommended for troubleshooting)
+## Migrations
 
-1. Go to Supabase Dashboard → SQL Editor
-2. Create a new query for each migration in order
-3. Copy-paste the migration SQL
-4. Run it and verify success
-5. Check that no errors appear
+### `01_enable_rls_organization_users.sql`
+Enables recursion-safe RLS on `organization_users` and `organizations`.
+Policies reuse the existing `SECURITY DEFINER` helpers
+(`fn_user_organization_ids`, `fn_user_role`) so a policy on `organization_users`
+can reference `organization_users` without infinite recursion.
 
-### Order of Application
+- SELECT: members see everyone in organizations they belong to
+- INSERT / UPDATE / DELETE: only `owner` / `admin` roles
+- Service-role edge functions bypass RLS, so `invite-user` and
+  `link-user-to-org` keep working.
 
-**01_drop_broken_function.sql** (URGENT - Fixes 406 errors)
-- Drops the problematic `is_org_admin()` function
-- Run this FIRST to fix REST API 406 errors
-- The CASCADE will drop dependent RLS policies
+### `02_harden_rls_helper_search_path.sql`
+Pins `SET search_path = public` on the two `SECURITY DEFINER` RLS helpers.
+Behavior-preserving hardening; clears the `function_search_path_mutable`
+advisor warning for those functions.
 
-**02_rebuild_rls_policies.sql** (After verification)
-- Recreates RLS policies without custom functions
-- Uses direct `auth.uid()` calls instead
-- Run only after confirming 01 fixed the 406 errors
+## Verified behavior (RLS ON)
 
-## Verification Checklist
+| Context       | Own org | Sees members | Writes |
+|---------------|---------|--------------|--------|
+| Owner         | ✅      | ✅           | ✅     |
+| Member        | ✅      | ✅           | ❌     |
+| Anonymous     | ❌      | ❌           | ❌     |
 
-After applying migrations:
+## Rollback (emergency only)
 
+If RLS ever needs to be turned off to unblock the app:
+
+```sql
+ALTER TABLE organization_users DISABLE ROW LEVEL SECURITY;
+ALTER TABLE organizations      DISABLE ROW LEVEL SECURITY;
 ```
-☐ SQL Editor runs without errors
-☐ No 406 errors on REST API calls
-☐ GET /organization_users returns 200
-☐ Logged-in user can see their organization members
-☐ Admin can still invite new members
-☐ Admin can update member roles
-☐ Non-admin users cannot modify members
-```
 
-## Testing RLS Policies
+The policies remain defined and re-enable instantly with the reverse
+`ENABLE ROW LEVEL SECURITY`. Note: the 406 that was previously blamed on RLS was
+actually a `.single()`-on-zero-rows bug in the frontend (now fixed with
+`.maybeSingle()`), so disabling RLS is **not** a fix for that class of error.
 
-### Test 1: Admin can see members
-```bash
-# As logged-in admin user
-curl -X GET 'https://dnrudcpaqcqyybpbbrum.supabase.co/rest/v1/organization_users?limit=10' \
-  -H "Authorization: Bearer <ADMIN_JWT_TOKEN>" \
-  -H "apikey: <ANON_KEY>"
-```
-Expected: Returns organization_users records for admin's org
+## Notes on remaining advisor warnings (pre-existing, out of scope)
 
-### Test 2: Member can see members
-```bash
-# As logged-in regular member
-curl -X GET 'https://dnrudcpaqcqyybpbbrum.supabase.co/rest/v1/organization_users?limit=10' \
-  -H "Authorization: Bearer <MEMBER_JWT_TOKEN>" \
-  -H "apikey: <ANON_KEY>"
-```
-Expected: Returns only members from member's organization
-
-### Test 3: Unauthenticated request
-```bash
-curl -X GET 'https://dnrudcpaqcqyybpbbrum.supabase.co/rest/v1/organization_users?limit=1' \
-  -H "apikey: <ANON_KEY>"
-```
-Expected: 403 Forbidden (no user context)
-
-## Troubleshooting
-
-### Still seeing 406 errors after running migration 01?
-
-1. Check if function was actually dropped:
-   ```sql
-   SELECT routine_name FROM information_schema.routines 
-   WHERE routine_name LIKE '%org%' AND routine_schema = 'public';
-   ```
-
-2. If it still exists, manually drop it:
-   ```sql
-   DROP FUNCTION IF EXISTS is_org_admin(uuid) CASCADE;
-   ```
-
-3. Restart your browser to clear JWT tokens
-
-4. If still broken, disable RLS temporarily:
-   ```sql
-   ALTER TABLE organization_users DISABLE ROW LEVEL SECURITY;
-   ```
-
-### REST API suddenly returns fewer records than expected
-
-This is RLS working correctly! Each user only sees members of their organization.
-
-### Admin cannot invite new members (INSERT fails)
-
-Check if:
-1. Admin has `role = 'admin'` in organization_users
-2. Admin has `is_active = true`
-3. The organization_id matches what they're trying to insert into
-
-## Backup
-
-If anything goes wrong:
-1. Disable RLS: `ALTER TABLE organization_users DISABLE ROW LEVEL SECURITY;`
-2. System will work (without security) while you debug
-3. Never disable RLS in production for extended periods
-
-## Next Steps
-
-Once RLS is working reliably:
-1. Apply same pattern to other sensitive tables (folders, tasks, documents)
-2. Create audit logging for who modified what
-3. Test with production load
-4. Monitor Supabase logs for RLS policy violations
+- `risks` and `document_content` have permissive `USING (true)` policies —
+  these predate this work and should be tightened separately.
+- The `SECURITY DEFINER` helper functions being callable by `anon`/`authenticated`
+  is expected: they only ever return data scoped to `auth.uid()`, so an
+  unauthenticated caller gets nothing.
