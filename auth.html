@@ -279,7 +279,7 @@ async function handleSignup() {
   setLoading('btnSignup', true);
   hideAlerts();
 
-  const { error } = await _sb.auth.signUp({
+  const { data: authData, error } = await _sb.auth.signUp({
     email, password,
     options: { data: { full_name: name } }
   });
@@ -287,6 +287,21 @@ async function handleSignup() {
   setLoading('btnSignup', false);
 
   if (error) { showError(error.message); return; }
+
+  // Link the newly created user to organization_users records with matching email
+  if (authData.user?.id) {
+    const userId = authData.user.id;
+    const { error: updateError } = await _sb
+      .from('organization_users')
+      .update({ user_id: userId })
+      .eq('email', email)
+      .is('user_id', null);
+
+    if (updateError) {
+      console.error('[handleSignup] Error linking user to organization:', updateError);
+      // Don't fail signup if linking fails - user can still access
+    }
+  }
 
   showSuccess('Compte créé ! Redirection vers votre espace…');
   setTimeout(() => { window.location.href = 'dashboard.html'; }, 1500);
