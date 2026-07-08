@@ -27,23 +27,41 @@ serve(async (req) => {
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
+    const serviceKey = Deno.env.get("SERVICE_ROLE_KEY")
 
     if (!supabaseUrl || !serviceKey) {
-      throw new Error("Missing Supabase configuration")
+      throw new Error(`Missing config: url=${!!supabaseUrl}, key=${!!serviceKey}`)
     }
 
     const supabase = createClient(supabaseUrl, serviceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    // For now: just add to organization_users without creating auth user
-    // User will sign up themselves via auth.html
+    // Create the user
+    const tempPassword = `Juria-${Math.random().toString(36).slice(2, 10)}!`
+
+    const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+      email,
+      password: tempPassword,
+      user_metadata: {
+        full_name: `${firstName || ""} ${lastName || ""}`.trim(),
+        org_id: orgId,
+      },
+      email_confirm: true,
+    })
+
+    if (createError) {
+      throw new Error(`Create user failed: ${JSON.stringify(createError)}`)
+    }
+
+    const userId = newUser.user.id
+
+    // Add to organization
     const { data: member, error: addError } = await supabase
       .from("organization_users")
       .insert({
         organization_id: orgId,
-        user_id: null, // Will be set when user signs up
+        user_id: userId,
         email,
         first_name: firstName || null,
         last_name: lastName || null,
@@ -56,15 +74,16 @@ serve(async (req) => {
       .single()
 
     if (addError) {
-      throw new Error(JSON.stringify(addError))
+      throw new Error(`Add member failed: ${JSON.stringify(addError)}`)
     }
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: "Invitation sent. User will sign up on auth.html",
+        message: "Utilisateur créé avec succès",
+        userId,
         member,
-        inviteLink: "/auth.html?email=" + encodeURIComponent(email),
+        tempPassword,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     )
