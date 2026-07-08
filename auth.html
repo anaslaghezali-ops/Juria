@@ -288,23 +288,12 @@ async function handleSignup() {
 
   if (error) { showError(error.message); return; }
 
-  // Link the newly created user to organization_users records with matching email
-  if (authData.user?.id) {
-    const userId = authData.user.id;
-    const { error: updateError } = await _sb
-      .from('organization_users')
-      .update({ user_id: userId })
-      .eq('email', email)
-      .is('user_id', null);
+  // Note: After signUp, no session is active yet (awaiting email confirmation).
+  // The link to organization_users happens via Edge Function or when user
+  // confirms email and logs in. The app will connect them then.
 
-    if (updateError) {
-      console.error('[handleSignup] Error linking user to organization:', updateError);
-      // Don't fail signup if linking fails - user can still access
-    }
-  }
-
-  showSuccess('Compte créé ! Redirection vers votre espace…');
-  setTimeout(() => { window.location.href = 'dashboard.html'; }, 1500);
+  showSuccess('Compte créé ! Veuillez confirmer votre adresse e-mail.');
+  setTimeout(() => { window.location.href = 'auth.html'; }, 2000);
 }
 
 // Si déjà connecté → rediriger
