@@ -297,6 +297,9 @@
     <button type="button" id="generateDocBtn" onclick="generateAnnotatedDoc()" style="display:none;width:100%;padding:14px;background:#4f46e5;color:#fff;border:none;border-radius:12px;font-family:var(--font);font-size:15px;font-weight:600;cursor:pointer;margin-bottom:12px;transition:background 0.15s">
       📄 Générer le rapport PDF avec les points sélectionnés
     </button>
+    <button type="button" id="synthCtaBtn" onclick="goToSynthesis()" style="display:none;width:100%;padding:14px;background:#fff;color:#4f46e5;border:1.5px solid #c7d2fe;border-radius:12px;font-family:var(--font);font-size:15px;font-weight:600;cursor:pointer;margin-bottom:12px;transition:all 0.15s" onmouseover="this.style.background='#eef2ff'" onmouseout="this.style.background='#fff'">
+      📝 Générer la note de synthèse →
+    </button>
     <button type="button" class="btn-new" onclick="resetForm()">+ Analyser un autre contrat</button>
 
   </div> <!-- end results -->
@@ -598,6 +601,13 @@ function showResults(result) {
   // Bouton générer docx avec commentaires
   document.getElementById('generateDocBtn').style.display = 'block';
   document.getElementById('results').classList.add('show');
+}
+
+// Ouvre la fiche document sur l'onglet Note de synthèse et lance la génération
+function goToSynthesis() {
+  const id = window.lastSavedDocumentId;
+  if (!id) { showToast('Document non enregistré — impossible de générer la note.', 'error'); return; }
+  window.location.href = 'document-view.html?id=' + encodeURIComponent(id) + '&autogen=1#synthese';
 }
 
 async function generateAnnotatedDoc() {
@@ -1704,6 +1714,10 @@ async function saveAnalysisToDatabase(analysisResult, selectedFile, extractedTex
     
     console.log(logMessage);
     showToast('Analyse enregistrée avec succès ✓', 'success');
+
+    // CTA note de synthèse : le document est ingéré, la synthèse est possible
+    const synthBtn = document.getElementById('synthCtaBtn');
+    if (synthBtn) synthBtn.style.display = 'block';
     
   } catch (error) {
     console.error('❌ Erreur persistance analyse:', error);

@@ -2634,6 +2634,7 @@ function filterDocs() {
           <div class="row-actions">
             <button class="action-btn" onclick="event.stopPropagation();openDoc('${doc.id}')" title="Ouvrir">→</button>
             <button class="action-btn" onclick="event.stopPropagation();analyzeDoc('${doc.id}')" title="Analyser">⚡</button>
+            <button class="action-btn" onclick="event.stopPropagation();openSynthesis('${doc.id}')" title="Note de synthèse">📝</button>
             <button class="action-btn danger" onclick="event.stopPropagation();deleteDoc('${doc.id}')" title="Supprimer">🗑</button>
           </div>
         </td>
@@ -3594,6 +3595,7 @@ function openDoc(id) {
   }
 }
 function analyzeDoc(id) { window.location.href = 'analyse-contrat.html?doc_id=' + id; }
+function openSynthesis(id) { window.location.href = 'document-view.html?id=' + encodeURIComponent(id) + '#synthese'; }
 async function deleteDoc(id) {
   const doc = allDocs.find(d => d.id === id);
   if (!doc || !confirm('Supprimer « ' + doc.name + ' » ?')) return;

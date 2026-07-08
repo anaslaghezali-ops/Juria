@@ -158,6 +158,110 @@
       .topbar-actions .btn-chat span { display: none; }
     }
 
+    /* ═══ NOTE DE SYNTHÈSE ═══════════════════════════ */
+
+    /* Onglets de la fiche */
+    .doc-tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+    .doc-tab { padding: 11px 18px; border: none; background: none; font-family: var(--font); font-size: 14px; font-weight: 500; color: var(--slate-500); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s; display: flex; align-items: center; gap: 7px; }
+    .doc-tab:hover { color: var(--slate-900); }
+    .doc-tab.active { color: var(--indigo); border-bottom-color: var(--indigo); }
+
+    /* État vide */
+    .synth-empty { background: var(--white); border: 1px solid var(--border); border-radius: 16px; padding: 64px 32px; text-align: center; }
+    .synth-empty-icon { font-size: 44px; margin-bottom: 16px; }
+    .synth-empty-title { font-family: var(--serif); font-size: 22px; color: var(--slate-900); margin-bottom: 8px; }
+    .synth-empty-sub { font-size: 14px; color: var(--slate-500); max-width: 480px; margin: 0 auto 28px; line-height: 1.65; }
+    .btn-synth-generate { display: inline-flex; align-items: center; gap: 8px; padding: 12px 26px; background: var(--indigo); color: #fff; border: none; border-radius: 10px; font-family: var(--font); font-size: 14.5px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+    .btn-synth-generate:hover { background: var(--indigo-light); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(79,70,229,0.3); }
+
+    /* Génération : timeline + rédaction en direct */
+    .synth-gen { display: grid; grid-template-columns: 300px 1fr; gap: 20px; align-items: start; }
+    .gen-timeline { background: var(--white); border: 1px solid var(--border); border-radius: 14px; padding: 20px; position: sticky; top: 0; }
+    .gen-timeline-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--slate-400); margin-bottom: 14px; }
+    .gen-step { display: flex; gap: 11px; padding: 8px 0; opacity: 0.38; transition: opacity 0.3s; }
+    .gen-step.active, .gen-step.done { opacity: 1; }
+    .gen-step-dot { width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; background: var(--slate-100); color: var(--slate-500); margin-top: 1px; }
+    .gen-step.active .gen-step-dot { background: var(--indigo-bg); color: var(--indigo); }
+    .gen-step.active .gen-step-dot::after { content: ''; width: 8px; height: 8px; border: 2px solid var(--indigo); border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    .gen-step.active .gen-step-dot span { display: none; }
+    .gen-step.done .gen-step-dot { background: var(--green-bg); color: var(--green-text); }
+    .gen-step-body { min-width: 0; }
+    .gen-step-label { font-size: 13px; font-weight: 500; color: var(--slate-900); }
+    .gen-step-sub { font-size: 11.5px; color: var(--slate-400); margin-top: 1px; }
+    .gen-live { background: var(--white); border: 1px solid var(--border); border-radius: 14px; padding: 28px 32px; min-height: 420px; }
+    .gen-live-header { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--slate-400); margin-bottom: 18px; }
+    .gen-live-pulse { width: 7px; height: 7px; background: var(--indigo); border-radius: 50%; animation: pulse 1.4s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.25} }
+    .gen-live-text { font-size: 14px; line-height: 1.75; color: var(--slate-700); }
+    .gen-live-text h3 { font-family: var(--serif); font-size: 17px; color: var(--slate-900); margin: 20px 0 8px; }
+    .gen-cursor { display: inline-block; width: 7px; height: 15px; background: var(--indigo); vertical-align: text-bottom; animation: pulse 0.9s infinite; margin-left: 1px; }
+
+    /* Barre versions / actions */
+    .synth-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+    .synth-version-select { padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; font-family: var(--font); font-size: 13px; color: var(--slate-700); background: var(--white); cursor: pointer; max-width: 260px; }
+    .synth-badge { font-size: 11.5px; font-weight: 600; padding: 4px 10px; border-radius: 99px; }
+    .synth-badge.fresh { background: var(--green-bg); color: var(--green-text); }
+    .synth-badge.stale { background: var(--amber-bg); color: var(--amber-text); }
+    .synth-toolbar-spacer { flex: 1; }
+    .btn-synth-action { display: inline-flex; align-items: center; gap: 6px; padding: 7px 13px; border: 1px solid var(--border); background: var(--white); border-radius: 8px; font-family: var(--font); font-size: 12.5px; font-weight: 500; color: var(--slate-700); cursor: pointer; transition: all 0.15s; }
+    .btn-synth-action:hover { border-color: var(--indigo); color: var(--indigo); }
+
+    /* Lecture : sommaire + mémo */
+    .synth-layout { display: grid; grid-template-columns: 230px minmax(0, 720px); gap: 28px; align-items: start; }
+    .synth-toc { position: sticky; top: 0; max-height: calc(100vh - 140px); overflow-y: auto; padding: 4px 0; }
+    .synth-toc-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--slate-400); padding: 0 10px 8px; }
+    .toc-item { display: flex; align-items: center; gap: 7px; width: 100%; text-align: left; padding: 6px 10px; border: none; background: none; border-left: 2px solid transparent; font-family: var(--font); font-size: 12.5px; color: var(--slate-500); cursor: pointer; transition: all 0.12s; line-height: 1.35; }
+    .toc-item:hover { color: var(--slate-900); }
+    .toc-item.active { color: var(--indigo); border-left-color: var(--indigo); font-weight: 600; background: linear-gradient(90deg, var(--indigo-bg), transparent); }
+    .toc-item .toc-warn { margin-left: auto; font-size: 10px; }
+
+    .memo { background: var(--white); border: 1px solid var(--border); border-radius: 16px; padding: 44px 52px; }
+    .memo-head { border-bottom: 2px solid var(--slate-900); padding-bottom: 18px; margin-bottom: 8px; }
+    .memo-kicker { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--indigo); margin-bottom: 8px; }
+    .memo-title { font-family: var(--serif); font-size: 26px; color: var(--slate-900); line-height: 1.2; }
+    .memo-meta { display: grid; grid-template-columns: auto 1fr; gap: 3px 14px; margin-top: 14px; font-size: 12.5px; }
+    .memo-meta dt { color: var(--slate-400); font-weight: 600; }
+    .memo-meta dd { color: var(--slate-700); }
+    .memo-section { padding: 22px 0; border-bottom: 1px solid var(--slate-100); scroll-margin-top: 16px; }
+    .memo-section:last-child { border-bottom: none; }
+    .memo-section h2 { font-family: var(--serif); font-size: 19px; color: var(--slate-900); margin-bottom: 12px; display: flex; align-items: baseline; gap: 10px; }
+    .memo-section h2 .memo-num { font-size: 13px; color: var(--slate-300); font-family: var(--font); font-weight: 600; }
+    .memo-body { font-size: 14.5px; line-height: 1.8; color: var(--slate-700); }
+    .memo-body p { margin-bottom: 10px; }
+    .memo-body strong { color: var(--slate-900); }
+    .memo-body ul, .memo-body ol { margin: 8px 0 12px 22px; }
+    .memo-body li { margin-bottom: 5px; }
+    .memo-body table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
+    .memo-body th { text-align: left; padding: 8px 10px; background: var(--slate-50); border-bottom: 1.5px solid var(--border); font-weight: 600; color: var(--slate-700); }
+    .memo-body td { padding: 8px 10px; border-bottom: 1px solid var(--slate-100); vertical-align: top; }
+    .cite-chip { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; margin: 0 2px; background: var(--indigo-bg); color: var(--indigo-text); border: 1px solid #c7d2fe; border-radius: 99px; font-family: var(--font); font-size: 11px; font-weight: 600; cursor: pointer; vertical-align: baseline; transition: all 0.12s; white-space: nowrap; }
+    .cite-chip:hover { background: var(--indigo); color: #fff; }
+
+    /* Volet source */
+    .source-overlay { display: none; position: fixed; inset: 0; background: rgba(15,17,23,0.35); z-index: 900; }
+    .source-overlay.open { display: block; }
+    .source-panel { position: fixed; top: 0; right: 0; bottom: 0; width: 480px; max-width: 92vw; background: var(--white); box-shadow: -8px 0 32px rgba(0,0,0,0.15); z-index: 901; transform: translateX(105%); transition: transform 0.28s ease; display: flex; flex-direction: column; }
+    .source-panel.open { transform: translateX(0); }
+    .source-head { padding: 18px 22px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+    .source-head-title { font-size: 14px; font-weight: 600; color: var(--slate-900); flex: 1; }
+    .source-loc { font-size: 12px; color: var(--slate-400); }
+    .source-close { background: none; border: none; font-size: 20px; color: var(--slate-400); cursor: pointer; padding: 4px 8px; border-radius: 6px; }
+    .source-close:hover { background: var(--slate-100); color: var(--slate-900); }
+    .source-body { flex: 1; overflow-y: auto; padding: 22px; font-size: 13.5px; line-height: 1.85; color: var(--slate-600); white-space: pre-wrap; }
+    .source-body mark { background: #fef08a; color: var(--slate-900); padding: 1px 2px; border-radius: 2px; }
+    .source-foot { padding: 14px 22px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
+
+    @media (max-width: 900px) {
+      .synth-layout { grid-template-columns: 1fr; }
+      .synth-toc { position: static; max-height: none; display: flex; overflow-x: auto; gap: 4px; padding-bottom: 8px; border-bottom: 1px solid var(--border); margin-bottom: 4px; }
+      .synth-toc-title { display: none; }
+      .toc-item { white-space: nowrap; border-left: none; border-bottom: 2px solid transparent; width: auto; }
+      .toc-item.active { border-bottom-color: var(--indigo); background: none; }
+      .memo { padding: 24px 20px; }
+      .synth-gen { grid-template-columns: 1fr; }
+      .gen-timeline { position: static; }
+    }
+
     ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-thumb { background: var(--slate-300); border-radius: 10px; }
   </style>
@@ -291,6 +395,14 @@
         </div>
       </div>
 
+      <!-- ONGLETS -->
+      <div class="doc-tabs">
+        <button class="doc-tab active" id="tabOverview" onclick="switchDocTab('overview')">📊 Vue d'ensemble</button>
+        <button class="doc-tab" id="tabSynthese" onclick="switchDocTab('synthese')">📝 Note de synthèse</button>
+      </div>
+
+      <div id="paneOverview">
+
       <!-- RÉSUMÉ EXÉCUTIF -->
       <div class="section-card">
         <div class="section-header">
@@ -344,9 +456,79 @@
         </div>
       </div>
 
+      </div><!-- /paneOverview -->
+
+      <!-- ═══ ONGLET NOTE DE SYNTHÈSE ═══ -->
+      <div id="paneSynthese" style="display:none">
+
+        <!-- État vide -->
+        <div class="synth-empty" id="synthEmpty" style="display:none">
+          <div class="synth-empty-icon">📝</div>
+          <div class="synth-empty-title">Aucune note de synthèse</div>
+          <div class="synth-empty-sub">
+            Juria lit l'intégralité du contrat et rédige un mémo juridique structuré —
+            obligations, conditions financières, risques, points de vigilance et
+            recommandation — chaque affirmation étant reliée au passage exact du contrat.
+          </div>
+          <button class="btn-synth-generate" onclick="startSynthesis()">
+            ✨ Générer la note de synthèse
+          </button>
+        </div>
+
+        <!-- Génération en cours -->
+        <div class="synth-gen" id="synthGen" style="display:none">
+          <div class="gen-timeline">
+            <div class="gen-timeline-title">Étude du contrat</div>
+            <div id="genSteps"></div>
+          </div>
+          <div class="gen-live">
+            <div class="gen-live-header">
+              <div class="gen-live-pulse"></div>
+              <span id="genLiveStatus">Préparation…</span>
+            </div>
+            <div class="gen-live-text" id="genLiveText"></div>
+          </div>
+        </div>
+
+        <!-- Lecture -->
+        <div id="synthReady" style="display:none">
+          <div class="synth-toolbar">
+            <select class="synth-version-select" id="synthVersionSelect" onchange="loadSynthesisVersion(this.value)"></select>
+            <span class="synth-badge" id="synthFreshBadge"></span>
+            <div class="synth-toolbar-spacer"></div>
+            <button class="btn-synth-action" onclick="copySynthesis()" title="Copier le mémo">⧉ Copier</button>
+            <button class="btn-synth-action" onclick="exportSynthesisDoc()" title="Télécharger en Word">⬇ Word</button>
+            <button class="btn-synth-action" onclick="printSynthesis()" title="Imprimer / PDF">🖨 PDF</button>
+            <button class="btn-synth-action" onclick="startSynthesis(true)" title="Régénérer la note">⟳ Régénérer</button>
+          </div>
+          <div class="synth-layout">
+            <nav class="synth-toc" id="synthToc"></nav>
+            <article class="memo" id="memoRoot"></article>
+          </div>
+        </div>
+
+      </div><!-- /paneSynthese -->
+
     </div>
   </div>
 </div>
+
+<!-- ═══ VOLET SOURCE (citation → passage exact du contrat) ═══ -->
+<div class="source-overlay" id="sourceOverlay" onclick="closeSource()"></div>
+<aside class="source-panel" id="sourcePanel">
+  <div class="source-head">
+    <div>
+      <div class="source-head-title">Passage du contrat</div>
+      <div class="source-loc" id="sourceLoc">—</div>
+    </div>
+    <div style="flex:1"></div>
+    <button class="source-close" onclick="closeSource()">×</button>
+  </div>
+  <div class="source-body" id="sourceBody">Chargement…</div>
+  <div class="source-foot">
+    <button class="btn-synth-action" onclick="copySourceQuote()">⧉ Copier l'extrait</button>
+  </div>
+</aside>
 
 <!-- ─── TOAST ─────────────────────────────────────────── -->
 <div class="toast-wrap" id="toastWrap"></div>
@@ -355,6 +537,8 @@
 <script src="config.js"></script>
 <script src="init-common.js"></script>
 <script src="fetch-safe.js"></script>
+<script src="services/base-service.js"></script>
+<script src="services/synthesis-service.js"></script>
 <script>
 // ══════════════════════════════════════════════
 //  CONFIG & STATE
@@ -709,6 +893,441 @@ document.getElementById('btnLogout').addEventListener('click', async () => {
 });
 document.getElementById('btnLogout2').addEventListener('click', async () => {
   await _sb.auth.signOut(); window.location.href = 'auth.html';
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+//  NOTE DE SYNTHÈSE
+//  (cf. docs/NOTE_DE_SYNTHESE_DESIGN.md — jalons 3 à 5)
+// ═══════════════════════════════════════════════════════════════════════
+
+let synthesisService = null;
+let currentSynthesis = null;   // ligne document_analyses affichée
+let synthVersions = [];
+let sourceFullText = null;     // texte intégral, chargé à la première citation
+let tocObserver = null;
+
+const GEN_STEPS = [
+  { id: 'read',        icon: '📖', label: 'Lecture du document' },
+  { id: 'structure',   icon: '🧭', label: 'Compréhension de la structure' },
+  { id: 'map',         icon: '⚖️', label: 'Analyse des sections' },
+  { id: 'consolidate', icon: '🗂️', label: 'Constitution du dossier' },
+  { id: 'composeA',    icon: '✍️', label: 'Rédaction — faits et obligations' },
+  { id: 'composeB',    icon: '✍️', label: 'Rédaction — analyse juridique' },
+  { id: 'composeC',    icon: '✍️', label: 'Rédaction — avis et recommandations' },
+  { id: 'save',        icon: '✅', label: 'Cohérence et enregistrement' },
+];
+
+// ── Onglets ────────────────────────────────────────────────────────────
+function switchDocTab(tab) {
+  document.getElementById('paneOverview').style.display = tab === 'overview' ? 'block' : 'none';
+  document.getElementById('paneSynthese').style.display = tab === 'synthese' ? 'block' : 'none';
+  document.getElementById('tabOverview').classList.toggle('active', tab === 'overview');
+  document.getElementById('tabSynthese').classList.toggle('active', tab === 'synthese');
+  if (tab === 'synthese' && !currentSynthesis && !window._synthLoading) loadSynthesisTab();
+}
+
+// ── Chargement de l'onglet ─────────────────────────────────────────────
+async function loadSynthesisTab() {
+  window._synthLoading = true;
+  try {
+    if (!synthesisService) synthesisService = new SynthesisService(_sb, null);
+    synthVersions = await synthesisService.listVersions(docId);
+
+    if (!synthVersions.length) {
+      showSynthState('empty');
+      // Lancement automatique demandé (arrivée depuis un CTA) ?
+      if (new URLSearchParams(location.search).get('autogen') === '1') startSynthesis();
+      return;
+    }
+    const latest = await synthesisService.getVersion(synthVersions[0].id);
+    displaySynthesis(latest);
+  } catch (e) {
+    console.error('[synthese] chargement:', e);
+    showSynthState('empty');
+  } finally {
+    window._synthLoading = false;
+  }
+}
+
+function showSynthState(state) {
+  document.getElementById('synthEmpty').style.display = state === 'empty' ? 'block' : 'none';
+  document.getElementById('synthGen').style.display = state === 'gen' ? 'grid' : 'none';
+  document.getElementById('synthReady').style.display = state === 'ready' ? 'block' : 'none';
+}
+
+// ── Génération ─────────────────────────────────────────────────────────
+async function startSynthesis(isRegen) {
+  if (!currentDoc) return;
+
+  if (isRegen && currentSynthesis &&
+      synthesisService.isUpToDate(currentSynthesis, currentDoc)) {
+    if (!confirm('Le document n\'a pas changé depuis cette note. Régénérer quand même ?')) return;
+  }
+
+  showSynthState('gen');
+  renderGenSteps();
+  const liveText = document.getElementById('genLiveText');
+  const liveStatus = document.getElementById('genLiveStatus');
+  liveText.innerHTML = '';
+  let liveBuffer = '';
+
+  try {
+    // L'audit existant enrichit les sections risques (cohérence audit ↔ mémo)
+    let audit = null;
+    if (currentAnalysis) {
+      const { data: risks } = await _sb.from('document_risks')
+        .select('clause_name, clause_ref, problem, suggestion, severity, category')
+        .eq('analysis_id', currentAnalysis.id).order('position').limit(40);
+      audit = { score: currentAnalysis.score, summary: currentAnalysis.summary, risks: risks || [] };
+    }
+
+    const row = await synthesisService.generate(currentDoc, {
+      orgId: currentOrgId,
+      userId: currentUser.id,
+      audit,
+      onProgress: (phase, info) => {
+        setGenStep(phase, info);
+        if (info && info.label) liveStatus.textContent = info.label;
+      },
+      onSection: (id, title) => {
+        liveBuffer = '';
+        liveText.innerHTML += `<h3>${escHtml(title)}</h3><p class="gen-p"></p>`;
+        liveText.parentElement.scrollTop = liveText.parentElement.scrollHeight;
+      },
+      onDelta: (text) => {
+        liveBuffer += text;
+        const ps = liveText.querySelectorAll('.gen-p');
+        const last = ps[ps.length - 1];
+        if (last) {
+          last.textContent = liveBuffer.replace(/\[\[q:[^\]]+\]\]/g, '').slice(-1200);
+          const live = document.querySelector('.gen-live');
+          if (live) live.scrollTop = live.scrollHeight;
+        }
+      },
+    });
+
+    showToast('Note de synthèse générée ✓', 'success');
+    synthVersions = await synthesisService.listVersions(docId);
+    displaySynthesis(row);
+  } catch (e) {
+    console.error('[synthese] génération:', e);
+    showToast('Erreur : ' + (e.message || 'génération interrompue'), 'error');
+    showSynthState(synthVersions.length ? 'ready' : 'empty');
+  }
+}
+
+function renderGenSteps() {
+  document.getElementById('genSteps').innerHTML = GEN_STEPS.map(s => `
+    <div class="gen-step" id="genStep-${s.id}">
+      <div class="gen-step-dot"><span>${s.icon}</span></div>
+      <div class="gen-step-body">
+        <div class="gen-step-label">${s.label}</div>
+        <div class="gen-step-sub" id="genStepSub-${s.id}"></div>
+      </div>
+    </div>`).join('');
+}
+
+function setGenStep(phase, info) {
+  const idx = GEN_STEPS.findIndex(s => s.id === phase);
+  if (idx < 0) return;
+  GEN_STEPS.forEach((s, i) => {
+    const el = document.getElementById('genStep-' + s.id);
+    if (!el) return;
+    el.classList.toggle('done', i < idx || (i === idx && info && info.done === info.total && info.total));
+    el.classList.toggle('active', i === idx && !(info && info.done === info.total && info.total));
+  });
+  const sub = document.getElementById('genStepSub-' + phase);
+  if (sub && info && info.label) sub.textContent = info.label;
+}
+
+// ── Affichage du mémo ──────────────────────────────────────────────────
+function displaySynthesis(row) {
+  currentSynthesis = row;
+  showSynthState('ready');
+  renderVersionSelect();
+
+  const badge = document.getElementById('synthFreshBadge');
+  if (synthesisService.isUpToDate(row, currentDoc)) {
+    badge.className = 'synth-badge fresh';
+    badge.textContent = '✓ À jour';
+  } else {
+    badge.className = 'synth-badge stale';
+    badge.textContent = '⚠ Document modifié depuis';
+  }
+
+  const memo = row.raw_result || {};
+  renderMemo(memo);
+  renderToc(memo);
+  setupScrollSpy();
+}
+
+function renderVersionSelect() {
+  const sel = document.getElementById('synthVersionSelect');
+  sel.innerHTML = synthVersions.map((v, i) => {
+    const d = new Date(v.created_at);
+    const label = `v${synthVersions.length - i} · ${d.toLocaleDateString('fr-MA', { day: 'numeric', month: 'short' })} ${d.toLocaleTimeString('fr-MA', { hour: '2-digit', minute: '2-digit' })}`;
+    return `<option value="${v.id}" ${currentSynthesis && v.id === currentSynthesis.id ? 'selected' : ''}>${label}</option>`;
+  }).join('');
+}
+
+async function loadSynthesisVersion(id) {
+  if (currentSynthesis && id === currentSynthesis.id) return;
+  const row = await synthesisService.getVersion(id);
+  if (row) displaySynthesis(row);
+}
+
+function renderMemo(memo) {
+  const root = document.getElementById('memoRoot');
+  const sections = (memo.sections || []).slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+
+  // L'Executive Summary ouvre le mémo même s'il a été rédigé en dernier
+  const execIdx = sections.findIndex(s => s.id === 'executive_summary');
+  if (execIdx > 0) sections.unshift(sections.splice(execIdx, 1)[0]);
+
+  const today = currentSynthesis ? formatDate(currentSynthesis.created_at) : '—';
+  const head = `
+    <header class="memo-head">
+      <div class="memo-kicker">Note de synthèse — Confidentiel</div>
+      <div class="memo-title">${escHtml(memo.doc && memo.doc.name || currentDoc.name)}</div>
+      <dl class="memo-meta">
+        <dt>Objet</dt><dd>Synthèse et analyse du contrat</dd>
+        <dt>Réf.</dt><dd>${escHtml((memo.doc && memo.doc.id || docId).slice(0, 8).toUpperCase())}${memo.doc && memo.doc.pages ? ' · ' + memo.doc.pages + ' pages' : ''}</dd>
+        <dt>Date</dt><dd>${today}</dd>
+        <dt>Rédigé par</dt><dd>Juria — à faire valider par un avocat</dd>
+      </dl>
+    </header>`;
+
+  root.innerHTML = head + sections.map((s, i) => `
+    <section class="memo-section" id="memo-${s.id}">
+      <h2><span class="memo-num">${String(i + 1).padStart(2, '0')}</span>${escHtml(s.title)}</h2>
+      <div class="memo-body">${mdToHtml(s.markdown, memo.quotes || {})}</div>
+    </section>`).join('');
+}
+
+function renderToc(memo) {
+  const sections = Array.from(document.querySelectorAll('.memo-section'));
+  document.getElementById('synthToc').innerHTML =
+    '<div class="synth-toc-title">Sommaire</div>' +
+    sections.map(sec => {
+      const title = sec.querySelector('h2').textContent.replace(/^\d+/, '').trim();
+      const warn = /vigilance|risques/i.test(sec.id) ? '<span class="toc-warn">⚠️</span>' : '';
+      return `<button class="toc-item" data-target="${sec.id}" onclick="document.getElementById('${sec.id}').scrollIntoView({behavior:'smooth'})">${escHtml(title)}${warn}</button>`;
+    }).join('');
+}
+
+function setupScrollSpy() {
+  if (tocObserver) tocObserver.disconnect();
+  tocObserver = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      document.querySelectorAll('.toc-item').forEach(t =>
+        t.classList.toggle('active', t.dataset.target === e.target.id));
+    });
+  }, { rootMargin: '-15% 0px -70% 0px' });
+  document.querySelectorAll('.memo-section').forEach(s => tocObserver.observe(s));
+}
+
+// ── Mini-rendu markdown (paragraphes, gras, listes, tableaux, chips) ───
+function mdToHtml(md, quotes) {
+  if (!md) return '';
+  const lines = escHtml(md).split('\n');
+  const out = [];
+  let list = null, table = null, para = [];
+
+  const flushPara = () => { if (para.length) { out.push('<p>' + para.join(' ') + '</p>'); para = []; } };
+  const flushList = () => { if (list) { out.push(`<${list.tag}>` + list.items.map(i => `<li>${i}</li>`).join('') + `</${list.tag}>`); list = null; } };
+  const flushTable = () => {
+    if (!table) return;
+    const [head, ...rows] = table;
+    out.push('<table><thead><tr>' + head.map(c => `<th>${c}</th>`).join('') + '</tr></thead><tbody>' +
+      rows.map(r => '<tr>' + r.map(c => `<td>${c}</td>`).join('') + '</tr>').join('') + '</tbody></table>');
+    table = null;
+  };
+
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+    const t = line.trim();
+
+    if (t.startsWith('|')) {
+      flushPara(); flushList();
+      const cells = t.replace(/^\||\|$/g, '').split('|').map(c => c.trim());
+      if (cells.every(c => /^:?-{2,}:?$/.test(c))) continue; // ligne séparatrice
+      (table = table || []).push(cells);
+      continue;
+    }
+    flushTable();
+
+    if (/^[-*•]\s+/.test(t)) {
+      flushPara();
+      if (!list || list.tag !== 'ul') { flushList(); list = { tag: 'ul', items: [] }; }
+      list.items.push(t.replace(/^[-*•]\s+/, ''));
+      continue;
+    }
+    if (/^\d+[.)]\s+/.test(t)) {
+      flushPara();
+      if (!list || list.tag !== 'ol') { flushList(); list = { tag: 'ol', items: [] }; }
+      list.items.push(t.replace(/^\d+[.)]\s+/, ''));
+      continue;
+    }
+    if (t === '') { flushPara(); flushList(); continue; }
+    flushList();
+    para.push(t);
+  }
+  flushPara(); flushList(); flushTable();
+
+  let html = out.join('\n');
+  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>');
+
+  // Chips de citation [[q:ID]] → bouton vers le volet source
+  html = html.replace(/\[\[q:([a-zA-Z0-9_-]+)\]\]/g, (m, qid) => {
+    const q = quotes[qid];
+    if (!q) return '';
+    const label = q.article ? escHtml(q.article) : (q.page ? 'p. ' + q.page : 'source');
+    return `<button class="cite-chip" onclick="openSource('${qid}')" title="Voir le passage du contrat">📄 ${label}</button>`;
+  });
+  return html;
+}
+
+// ── Volet source ───────────────────────────────────────────────────────
+async function openSource(qid) {
+  const memo = currentSynthesis && currentSynthesis.raw_result;
+  const q = memo && memo.quotes && memo.quotes[qid];
+  if (!q) return;
+
+  document.getElementById('sourceOverlay').classList.add('open');
+  document.getElementById('sourcePanel').classList.add('open');
+  document.getElementById('sourceLoc').textContent =
+    [q.article, q.page ? 'page ' + q.page : null].filter(Boolean).join(' · ') || 'Passage cité';
+
+  const body = document.getElementById('sourceBody');
+  window._sourceQuote = q.quote;
+
+  if (sourceFullText === null) {
+    body.textContent = 'Chargement du contrat…';
+    const { data } = await _sb.from('document_content')
+      .select('extracted_text').eq('document_id', docId).maybeSingle();
+    sourceFullText = (data && data.extracted_text) || '';
+  }
+
+  if (q.start != null && q.end != null && sourceFullText) {
+    const ctxStart = Math.max(0, q.start - 500);
+    const ctxEnd = Math.min(sourceFullText.length, q.end + 500);
+    const before = sourceFullText.slice(ctxStart, q.start);
+    const target = sourceFullText.slice(q.start, q.end);
+    const after = sourceFullText.slice(q.end, ctxEnd);
+    body.innerHTML = (ctxStart > 0 ? '… ' : '') + escHtml(before) +
+      '<mark>' + escHtml(target) + '</mark>' + escHtml(after) +
+      (ctxEnd < sourceFullText.length ? ' …' : '');
+    const markEl = body.querySelector('mark');
+    if (markEl) setTimeout(() => markEl.scrollIntoView({ block: 'center' }), 60);
+  } else {
+    // Référence dégradée : le verbatim n'a pas pu être localisé
+    body.innerHTML = '<mark>' + escHtml(q.quote) + '</mark>' +
+      '<div style="margin-top:14px;font-size:12px;color:var(--slate-400)">Extrait cité par la note — position exacte non localisée dans le texte.</div>';
+  }
+}
+
+function closeSource() {
+  document.getElementById('sourceOverlay').classList.remove('open');
+  document.getElementById('sourcePanel').classList.remove('open');
+}
+
+function copySourceQuote() {
+  if (window._sourceQuote) {
+    navigator.clipboard.writeText(window._sourceQuote);
+    showToast('Extrait copié', 'success');
+  }
+}
+
+// ── Exports (jalon 5) ──────────────────────────────────────────────────
+function synthesisAsHtml(forWord) {
+  const memo = currentSynthesis && currentSynthesis.raw_result;
+  if (!memo) return '';
+  const quotes = memo.quotes || {};
+  const sections = Array.from(document.querySelectorAll('.memo-section'));
+
+  const body = sections.map(sec => {
+    const title = sec.querySelector('h2').textContent.replace(/^\d+/, '').trim();
+    const clone = sec.querySelector('.memo-body').cloneNode(true);
+    // Chips → références entre parenthèses
+    clone.querySelectorAll('.cite-chip').forEach(chip => {
+      const ref = chip.textContent.replace('📄', '').trim();
+      chip.replaceWith(document.createTextNode(` (${ref})`));
+    });
+    return `<h2>${escHtml(title)}</h2>${clone.innerHTML}`;
+  }).join('\n');
+
+  return `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Note de synthèse — ${escHtml(currentDoc.name)}</title>
+<style>
+  body{font-family:Georgia,'Times New Roman',serif;max-width:760px;margin:0 auto;padding:44px;color:#1a1a1a;font-size:13.5px;line-height:1.75}
+  .kicker{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#4f46e5;font-weight:bold}
+  h1{font-size:23px;margin:8px 0 4px;border-bottom:2.5px solid #111;padding-bottom:14px}
+  .meta{font-size:12px;color:#555;margin:10px 0 26px}
+  h2{font-size:16px;color:#111;margin:26px 0 8px}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:12.5px}
+  th{background:#f4f4f5;text-align:left;padding:6px 9px;border:1px solid #ddd}
+  td{padding:6px 9px;border:1px solid #eee;vertical-align:top}
+  .footer{margin-top:44px;padding-top:12px;border-top:1px solid #ccc;font-size:10.5px;color:#888;text-align:center}
+  @media print{ .no-print{display:none} }
+</style></head><body>
+<div class="kicker">Note de synthèse — Confidentiel</div>
+<h1>${escHtml(currentDoc.name)}</h1>
+<div class="meta">Réf. ${escHtml(docId.slice(0, 8).toUpperCase())} · ${formatDate(currentSynthesis.created_at)} · Rédigé par Juria — à faire valider par un avocat</div>
+${body}
+<div class="footer">Généré par Juria · Document de travail à titre indicatif · Ne constitue pas un avis juridique</div>
+${forWord ? '' : '<div class="no-print" style="text-align:center;margin-top:24px"><button onclick="window.print()" style="padding:12px 28px;background:#4f46e5;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">Imprimer / Sauvegarder en PDF</button></div>'}
+</body></html>`;
+}
+
+function printSynthesis() {
+  const html = synthesisAsHtml(false);
+  if (!html) return;
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+}
+
+function exportSynthesisDoc() {
+  const html = synthesisAsHtml(true);
+  if (!html) return;
+  // HTML compatible Word : ouverture native dans Word/LibreOffice
+  const blob = new Blob(['﻿' + html], { type: 'application/msword' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'Note de synthèse — ' + (currentDoc.name || 'contrat').replace(/\.[a-z]+$/i, '') + '.doc';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('Document Word téléchargé', 'success');
+}
+
+async function copySynthesis() {
+  const html = synthesisAsHtml(true);
+  const memo = currentSynthesis && currentSynthesis.raw_result;
+  const plain = (memo.sections || []).map(s =>
+    s.title.toUpperCase() + '\n\n' + s.markdown.replace(/\[\[q:[^\]]+\]\]/g, '')).join('\n\n');
+  try {
+    await navigator.clipboard.write([new ClipboardItem({
+      'text/html': new Blob([html], { type: 'text/html' }),
+      'text/plain': new Blob([plain], { type: 'text/plain' }),
+    })]);
+  } catch {
+    await navigator.clipboard.writeText(plain);
+  }
+  showToast('Mémo copié — collez-le dans Word ou un e-mail', 'success');
+}
+
+// ── Deep link : #synthese ouvre directement l'onglet ───────────────────
+window.addEventListener('load', () => {
+  if (location.hash === '#synthese') {
+    const t = setInterval(() => {
+      if (document.getElementById('mainContent').style.display !== 'none') {
+        clearInterval(t);
+        switchDocTab('synthese');
+      }
+    }, 150);
+    setTimeout(() => clearInterval(t), 15000);
+  }
 });
 
 // ══════════════════════════════════════════════
