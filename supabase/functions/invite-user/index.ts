@@ -30,50 +30,20 @@ serve(async (req) => {
     const serviceKey = Deno.env.get("SERVICE_ROLE_KEY")
 
     if (!supabaseUrl || !serviceKey) {
-      throw new Error(`Missing config: url=${!!supabaseUrl}, key=${!!serviceKey}`)
+      throw new Error("Missing Supabase configuration")
     }
 
-    // Create user via HTTP API directly (bypass SDK issues)
-    const tempPassword = `Juria-${Math.random().toString(36).slice(2, 10)}!`
-    const fullName = `${firstName || ""} ${lastName || ""}`.trim()
-
-    const payload = {
-      email,
-      password: tempPassword,
-    }
-
-    console.log("[invite-user] Payload:", JSON.stringify(payload))
-
-    const createUserRes = await fetch(`${supabaseUrl}/auth/v1/admin/users`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: serviceKey,
-      },
-      body: JSON.stringify(payload),
-    })
-
-    const createUserData = await createUserRes.json()
-
-    console.log("[invite-user] Response status:", createUserRes.status)
-    console.log("[invite-user] Response data:", JSON.stringify(createUserData))
-
-    if (!createUserRes.ok) {
-      throw new Error(`HTTP ${createUserRes.status}: ${JSON.stringify(createUserData)}`)
-    }
-
-    const userId = createUserData.id
-
-    // Now add to organization_users via SDK
     const supabase = createClient(supabaseUrl, serviceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
+    // Simply add to organization_users with user_id = null
+    // User will create their own account later via auth.html
     const { data: member, error: addError } = await supabase
       .from("organization_users")
       .insert({
         organization_id: orgId,
-        user_id: userId,
+        user_id: null,
         email,
         first_name: firstName || null,
         last_name: lastName || null,
@@ -86,22 +56,21 @@ serve(async (req) => {
       .single()
 
     if (addError) {
-      throw new Error(`Add member failed: ${JSON.stringify(addError)}`)
+      throw new Error(JSON.stringify(addError))
     }
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: "Utilisateur créé avec succès",
-        userId,
+        message: "Invitation créée. L'utilisateur devra créer son compte.",
         member,
-        tempPassword,
+        inviteLink: "/auth.html?email=" + encodeURIComponent(email),
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     )
   } catch (error: any) {
     const errorMsg = error?.message || "Unknown error"
-    console.error("Error:", errorMsg)
+    console.error("[invite-user] Error:", errorMsg)
     return new Response(
       JSON.stringify({ error: errorMsg }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
