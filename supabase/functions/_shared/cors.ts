@@ -6,6 +6,7 @@ const ALLOWED_ORIGINS = [
   "https://juria.ma",
   "https://app.juria.ma",
   "https://www.juria.ma",
+  "https://anaslaghezali-ops.github.io",  // production actuelle (GitHub Pages)
   "http://localhost:3000",
   "http://localhost:5173",
   "http://127.0.0.1:3000",

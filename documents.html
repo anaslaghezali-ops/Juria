@@ -672,6 +672,7 @@
       .ws-back-btn { display: inline-flex; }
     }
   </style>
+  <link rel="stylesheet" href="assets/juria-ui.css"/>
 </head>
 <body>
 
@@ -689,52 +690,52 @@
   <nav class="sidebar-nav">
     <div class="nav-section">Principal</div>
     <button class="nav-item" onclick="showPage('dashboard')">
-      <span class="nav-icon">📊</span> Dashboard
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span> Dashboard
     </button>
     <button class="nav-item" onclick="showPage('contreparties')">
-      <span class="nav-icon">🏢</span> Contreparties
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 9h1M9 12h1M9 15h1M14 9h1M14 12h1M14 15h1"/></svg></span> Contreparties
       <span class="nav-count" id="navCpCount">—</span>
     </button>
     <button class="nav-item" onclick="showPage('dossiers')">
-      <span class="nav-icon">📁</span> Dossiers
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span> Dossiers
       <span class="nav-count" id="navFolderCount">—</span>
     </button>
     <button class="nav-item" onclick="showPage('documents')">
-      <span class="nav-icon">📄</span> Documents
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span> Documents
       <span class="nav-count" id="navTotalCount">—</span>
     </button>
 
     <div class="nav-section">Analyse</div>
     <button class="nav-item" onclick="showPage('risques')">
-      <span class="nav-icon">⚠️</span> Risques
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span> Risques
       <span class="nav-count nav-badge-red" id="navRisksCount">—</span>
     </button>
     <button class="nav-item" onclick="showPage('echeances')">
-      <span class="nav-icon">📅</span> Échéances
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> Échéances
     </button>
     <button class="nav-item" onclick="showPage('timeline')">
-      <span class="nav-icon">🕐</span> Timeline
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> Timeline
     </button>
 
     <button class="nav-item" onclick="showPage('tasks')">
-      <span class="nav-icon">✅</span> Tâches
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span> Tâches
       <span class="nav-count nav-badge-red" id="navTasksCount">—</span>
     </button>
 
     <div class="nav-section">Outils</div>
     <a href="chat.html" class="nav-item">
-      <span class="nav-icon">💬</span> Assistant IA
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span> Assistant IA
     </a>
     <a href="base-juridique.html" class="nav-item">
-      <span class="nav-icon">📚</span> Base juridique
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span> Base juridique
     </a>
     <a href="comparaison-contrats.html" class="nav-item">
-      <span class="nav-icon">🔍</span> Comparaison
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Comparaison
     </a>
 
     <div class="nav-section">Organisation</div>
     <a href="administration.html" class="nav-item">
-      <span class="nav-icon">⚙️</span> Administration
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span> Administration
     </a>
   </nav>
   <div class="sidebar-footer">
@@ -796,17 +797,17 @@
         </div>
       </div>
       <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">
-        <div class="kpi-card" style="border-left:3px solid var(--blue)">
+        <div class="kpi-card">
           <div class="kpi-label">Contreparties</div>
           <div class="kpi-val" id="kpiCp">—</div>
           <div class="kpi-sub">actives</div>
         </div>
-        <div class="kpi-card" style="border-left:3px solid var(--red)">
+        <div class="kpi-card">
           <div class="kpi-label">Échéances 30j</div>
           <div class="kpi-val" id="kpiDeadlines">—</div>
           <div class="kpi-sub">à venir</div>
         </div>
-        <div class="kpi-card" style="border-left:3px solid var(--indigo)">
+        <div class="kpi-card">
           <div class="kpi-label">Tâches ouvertes</div>
           <div class="kpi-val" id="kpiDashTasksOpen">—</div>
           <div class="kpi-sub">en cours</div>
@@ -822,21 +823,21 @@
       <div class="dash-grid-3">
         <!-- Risques critiques -->
         <div class="dash-card">
-          <div class="dash-card-title">⚠️ Risques élevés</div>
+          <div class="dash-card-title">Risques élevés</div>
           <div id="dashRisks"></div>
           <button class="btn-secondary" onclick="showPage('risques')" style="font-size:12px;margin-top:12px;width:100%">Voir tous les risques →</button>
         </div>
 
         <!-- Tâches urgentes -->
         <div class="dash-card">
-          <div class="dash-card-title">✅ Tâches prioritaires</div>
+          <div class="dash-card-title">Tâches prioritaires</div>
           <div id="dashTasks"></div>
           <button class="btn-secondary" onclick="showPage('tasks')" style="font-size:12px;margin-top:12px;width:100%">Voir toutes les tâches →</button>
         </div>
 
         <!-- Contreparties à risque -->
         <div class="dash-card">
-          <div class="dash-card-title">🏢 Contreparties critiques</div>
+          <div class="dash-card-title">Contreparties critiques</div>
           <div id="dashCp"></div>
           <button class="btn-secondary" onclick="showPage('contreparties')" style="font-size:12px;margin-top:12px;width:100%">Voir toutes les contreparties →</button>
         </div>
@@ -845,7 +846,7 @@
       <!-- Résolution risques + Répartition -->
       <div class="dash-grid" style="margin-top:20px">
         <div class="dash-card">
-          <div class="dash-card-title">📈 Résolution des risques</div>
+          <div class="dash-card-title">Résolution des risques</div>
           <div id="dashResolution"></div>
           <div style="margin-top:12px">
             <div style="font-size:11px;font-weight:700;color:var(--slate-400);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Score par dossier</div>
@@ -853,7 +854,7 @@
           </div>
         </div>
         <div class="dash-card">
-          <div class="dash-card-title">📊 Répartition des risques</div>
+          <div class="dash-card-title">Répartition des risques</div>
           <div id="dashRiskPortfolio"></div>
         </div>
       </div>
@@ -1316,7 +1317,7 @@
 
       <!-- KPIs tâches -->
       <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">
-        <div class="kpi-card" style="border-left:3px solid var(--indigo)">
+        <div class="kpi-card">
           <div class="kpi-label">Tâches ouvertes</div>
           <div class="kpi-val" id="kpiTasksOpen">—</div>
           <div class="kpi-sub">à traiter</div>
@@ -2634,6 +2635,7 @@ function filterDocs() {
           <div class="row-actions">
             <button class="action-btn" onclick="event.stopPropagation();openDoc('${doc.id}')" title="Ouvrir">→</button>
             <button class="action-btn" onclick="event.stopPropagation();analyzeDoc('${doc.id}')" title="Analyser">⚡</button>
+            <button class="action-btn" onclick="event.stopPropagation();openSynthesis('${doc.id}')" title="Note de synthèse">📝</button>
             <button class="action-btn danger" onclick="event.stopPropagation();deleteDoc('${doc.id}')" title="Supprimer">🗑</button>
           </div>
         </td>
@@ -3594,6 +3596,7 @@ function openDoc(id) {
   }
 }
 function analyzeDoc(id) { window.location.href = 'analyse-contrat.html?doc_id=' + id; }
+function openSynthesis(id) { window.location.href = 'document-view.html?id=' + encodeURIComponent(id) + '#synthese'; }
 async function deleteDoc(id) {
   const doc = allDocs.find(d => d.id === id);
   if (!doc || !confirm('Supprimer « ' + doc.name + ' » ?')) return;
@@ -4098,7 +4101,7 @@ function renderScoreTab(cpId) {
       </div>
     </div>
     <div class="dash-card">
-      <div class="dash-card-title">📊 Répartition par type</div>
+      <div class="dash-card-title">Répartition par type</div>
       <div class="risk-bars" style="margin-top:8px">
         ${RISK_FACTORS.filter(f => cpRisks.some(r => (r.risk_type||'OTHER') === f.key)).map(f => {
           const count = cpRisks.filter(r => (r.risk_type||'OTHER') === f.key).length;
@@ -4633,17 +4636,17 @@ function renderRiskKPIs() {
   const grid = document.getElementById('riskKpiGrid');
   if (!grid) return;
   grid.innerHTML = `
-    <div class="kpi-card" style="border-left:3px solid var(--red)">
+    <div class="kpi-card">
       <div class="kpi-label">Open</div>
       <div class="kpi-val" style="color:var(--red)">${byStatus.open || 0}</div>
       <div class="kpi-sub">non traités</div>
     </div>
-    <div class="kpi-card" style="border-left:3px solid var(--amber)">
+    <div class="kpi-card">
       <div class="kpi-label">Under Review</div>
       <div class="kpi-val" style="color:var(--amber)">${byStatus.review || 0}</div>
       <div class="kpi-sub">en cours</div>
     </div>
-    <div class="kpi-card" style="border-left:3px solid var(--blue)">
+    <div class="kpi-card">
       <div class="kpi-label">Mitigated</div>
       <div class="kpi-val" style="color:var(--blue)">${byStatus.mitigated || 0}</div>
       <div class="kpi-sub">atténués</div>

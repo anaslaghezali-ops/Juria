@@ -12,4 +12,5 @@ const JURIA_CONFIG = {
   CHAT_DOC_URL:           'https://dnrudcpaqcqyybpbbrum.supabase.co/functions/v1/chat-with-doc',
   INVITE_USER_URL:        'https://dnrudcpaqcqyybpbbrum.supabase.co/functions/v1/invite-user',
   LINK_USER_TO_ORG_URL:   'https://dnrudcpaqcqyybpbbrum.supabase.co/functions/v1/link-user-to-org',
+  SYNTHESIS_URL:          'https://dnrudcpaqcqyybpbbrum.supabase.co/functions/v1/generate-synthesis',
 };
