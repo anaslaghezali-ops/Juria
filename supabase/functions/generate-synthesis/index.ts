@@ -242,8 +242,14 @@ ${sectionList}
 - Si une section marquée "omets si sans matière" n'a pas de matière : n'émets PAS son marqueur du tout.
 
 STYLE : français juridique professionnel, précis, dense, sans remplissage. Jamais de "il semble que" — quand c'est incertain, dis pourquoi. Tu écris pour quelqu'un qui facture son temps.
+Si une donnée est absente du dossier (échéance, sanction…), écris "—" ; n'écris JAMAIS "null".
 
-${plan.instructions}`;
+${plan.instructions}
+
+RAPPEL FORMAT — RÈGLES ABSOLUES :
+1. Ta réponse COMMENCE directement par le premier marqueur <<<SECTION:...>>> (aucun préambule).
+2. N'invente AUCUN titre : pas de #, pas de ##, pas de titres en gras seuls sur une ligne. Les marqueurs <<<SECTION:id|Titre>>> sont les SEULS titres autorisés.
+3. Utilise uniquement les marqueurs listés ci-dessus, à l'identique, dans l'ordre.`;
 }
 
 // ── Handler ──────────────────────────────────────────────────────────────

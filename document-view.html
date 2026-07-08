@@ -1167,6 +1167,11 @@ function mdToHtml(md, quotes) {
     }
     flushTable();
 
+    if (/^#{1,4}\s+/.test(t)) {
+      flushPara(); flushList();
+      out.push('<h3 style="font-size:15px;color:var(--slate-900);margin:16px 0 6px;font-weight:600">' + t.replace(/^#{1,4}\s+/, '') + '</h3>');
+      continue;
+    }
     if (/^[-*•]\s+/.test(t)) {
       flushPara();
       if (!list || list.tag !== 'ul') { flushList(); list = { tag: 'ul', items: [] }; }

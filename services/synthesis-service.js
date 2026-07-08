@@ -179,14 +179,30 @@ class SynthesisService extends BaseService {
     progress('save', { label: 'Contrôle de cohérence…' });
 
     // Filet de sécurité : du texte a été rédigé mais aucun marqueur de
-    // section reconnu → on garde tout dans une section unique plutôt que
-    // de perdre la rédaction.
+    // section reconnu. Repli n°1 : reconstruire les sections à partir des
+    // titres markdown (#/##) que le modèle a inventés — on garde ainsi le
+    // sommaire navigable. Repli n°2 : section unique.
     if (!sectionsOut.length && totalStreamed.trim().length > 200) {
-      console.warn('[SynthesisService] Marqueurs de section non reconnus — repli en section unique.');
-      sectionsOut.push({
-        id: 'memo', title: 'Note de synthèse',
-        markdown: totalStreamed.replace(/<<<[^>]*>>>/g, '').trim(),
-      });
+      console.warn('[SynthesisService] Marqueurs non reconnus — reconstruction depuis les titres.');
+      const clean = totalStreamed.replace(/<<<[^>]*>>>/g, '').trim();
+      const parts = clean.split(/^#{1,3}\s+(.+)$/m);   // [avant, titre1, corps1, titre2, …]
+      if (parts.length >= 3) {
+        if (parts[0].trim().length > 100) {
+          sectionsOut.push({ id: 'intro', title: 'Executive Summary', markdown: parts[0].trim() });
+        }
+        for (let i = 1; i + 1 < parts.length; i += 2) {
+          const title = parts[i].trim();
+          const body = (parts[i + 1] || '').trim();
+          if (!body) continue;
+          const id = 's' + sectionsOut.length + '_' +
+            title.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+              .replace(/[^a-z0-9]+/g, '_').slice(0, 30);
+          sectionsOut.push({ id, title, markdown: body });
+        }
+      }
+      if (!sectionsOut.length) {
+        sectionsOut.push({ id: 'memo', title: 'Note de synthèse', markdown: clean });
+      }
     }
     if (!sectionsOut.length) {
       const err = new Error("La rédaction n'a produit aucun contenu. Rien n'a été enregistré — régénérez.");
@@ -352,9 +368,22 @@ class SynthesisService extends BaseService {
     const quotes = {};
     let qCounter = 0;
 
+    // Retire les champs null / vides d'un item : le rédacteur ne doit jamais
+    // voir "null" (il le recopiait dans les tableaux du mémo).
+    const compact = (obj) => {
+      const out = {};
+      Object.keys(obj).forEach(k => {
+        const v = obj[k];
+        if (v === null || v === undefined) return;
+        if (typeof v === 'string' && (!v.trim() || v.trim().toLowerCase() === 'null')) return;
+        out[k] = v;
+      });
+      return out;
+    };
+
     const anchor = (item, sectionIndex) => {
       if (!item || typeof item !== 'object') return item;
-      if (!item.quote) return item;
+      if (!item.quote) return compact(item);
       const qid = 'q' + (++qCounter);
       const section = sections[sectionIndex];
       const pos = this._findQuote(section ? section.text : '', item.quote);
@@ -367,7 +396,7 @@ class SynthesisService extends BaseService {
         page: pos ? this._pageForOffset(section.start + pos.start, pageMap) : null,
       };
       const { quote, ...rest } = item;
-      return { ...rest, qid };
+      return { ...compact(rest), qid };
     };
 
     extracts.forEach((ex, i) => {
