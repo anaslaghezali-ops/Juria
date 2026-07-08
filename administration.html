@@ -130,16 +130,30 @@
     .empty-icon { font-size: 48px; margin-bottom: 12px; }
     .empty-title { font-size: 16px; font-weight: 600; color: var(--slate-600); margin-bottom: 6px; }
 
+    /* Le tableau défile horizontalement dans sa carte si l'écran est étroit */
+    .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .table-scroll .members-table { min-width: 640px; }
+
+    /* Voile de fermeture du tiroir mobile */
+    .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 99; }
+    .sidebar-overlay.show { display: block; }
+
     /* Responsive */
     @media (max-width: 680px) {
       .sidebar { position: fixed; left: 0; top: 0; transform: translateX(-100%); z-index: 100; }
       .sidebar.open { transform: translateX(0); box-shadow: 4px 0 20px rgba(0,0,0,0.1); }
       .btn-menu { display: flex; }
+      .content { padding: 16px; }
+      .page-header { flex-wrap: wrap; gap: 12px; }
+      .page-title { font-size: 24px; }
       .members-table { font-size: 12px; }
       .members-table th, .members-table td { padding: 8px 12px; }
       .cell-user-info { gap: 1px; }
       .cell-name { font-size: 13px; }
       .cell-email { font-size: 11px; }
+      .modal-content { max-height: 90vh; overflow-y: auto; }
+      /* Cibles tactiles confortables */
+      .action-btn { width: 36px; height: 36px; }
     }
 
     ::-webkit-scrollbar { width: 4px; }
@@ -147,6 +161,9 @@
   </style>
 </head>
 <body>
+
+<!-- Voile de fermeture du tiroir mobile -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
 
 <!-- Sidebar Principal -->
 <aside class="sidebar" id="sidebar">
@@ -265,21 +282,23 @@
       <div class="members-header">
         <div class="members-title">Utilisateurs</div>
       </div>
-      <table class="members-table">
-        <thead>
-          <tr>
-            <th style="width:30%;">Utilisateur</th>
-            <th style="width:20%;">Email</th>
-            <th style="width:15%;">Rôle</th>
-            <th style="width:15%;">Statut</th>
-            <th style="width:15%;">Dernière connexion</th>
-            <th style="width:5%;">Actions</th>
-          </tr>
-        </thead>
-        <tbody id="membersTableBody">
-          <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--slate-400);">Chargement…</td></tr>
-        </tbody>
-      </table>
+      <div class="table-scroll">
+        <table class="members-table">
+          <thead>
+            <tr>
+              <th style="width:30%;">Utilisateur</th>
+              <th style="width:20%;">Email</th>
+              <th style="width:15%;">Rôle</th>
+              <th style="width:15%;">Statut</th>
+              <th style="width:15%;">Dernière connexion</th>
+              <th style="width:5%;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="membersTableBody">
+            <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--slate-400);">Chargement…</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <!-- Empty State -->
@@ -591,7 +610,13 @@ document.getElementById('btnCancelInvite').addEventListener('click', closeInvite
 document.getElementById('btnSubmitInvite').addEventListener('click', submitInvite);
 
 document.getElementById('btnMenu').addEventListener('click', function() {
-  document.getElementById('sidebar').classList.toggle('open');
+  const open = document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('show', open);
+});
+// Fermer le tiroir en tapant à côté
+document.getElementById('sidebarOverlay').addEventListener('click', function() {
+  document.getElementById('sidebar').classList.remove('open');
+  this.classList.remove('show');
 });
 
 document.getElementById('btnLogout').addEventListener('click', async function() {
