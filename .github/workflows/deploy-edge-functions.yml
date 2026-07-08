@@ -43,11 +43,12 @@ jobs:
           echo ""
 
           # Fonctions protégées par JWT (appelées avec le token de session)
+          # NB : generate-embeddings n'est PAS listée — son source n'existe
+          # pas dans le repo (déployée historiquement via le dashboard).
           FUNCTIONS=(
             "smart-endpoint"
             "chat-with-doc"
             "embed-articles"
-            "generate-embeddings"
             "generate-keywords"
             "get-embedding"
             "process-chunks"
