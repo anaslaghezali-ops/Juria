@@ -210,6 +210,34 @@
     .footer-links a { font-size: 13px; color: var(--slate-400); text-decoration: none; transition: color 0.15s; }
     .footer-links a:hover { color: var(--indigo); }
     .footer-copy { font-size: 12px; color: var(--slate-300); }
+
+    /* ── MOBILE (niveau A : rien de cassé, tout lisible et cliquable) ── */
+    @media (max-width: 768px) {
+      nav { padding: 0 16px; }
+      /* Les ancres de section restent accessibles par le scroll ;
+         on garde Connexion + CTA démo compacts */
+      .nav-links { display: none; }
+      .btn-nav-outline { padding: 8px 12px; font-size: 13px; }
+      .btn-nav-primary { padding: 8px 12px; font-size: 13px; }
+
+      .hero { padding: 64px 20px 56px; }
+      .hero-sub { font-size: 16px; }
+      .hero-metrics { flex-direction: column; }
+      .hero-metric { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.08); }
+      .hero-metric:last-child { border-bottom: none; }
+
+      .section { padding: 56px 20px; }
+      .cta-section { padding: 64px 20px; }
+      footer { padding: 28px 20px; }
+
+      .modal { padding: 28px 20px; max-height: 90vh; overflow-y: auto; }
+      .pricing-card { padding: 24px 20px; }
+    }
+    @media (max-width: 480px) {
+      /* Petits écrans : on garde Connexion (introuvable ailleurs en haut de
+         page) ; le CTA démo est déjà répété en plein hero juste dessous */
+      .btn-nav-primary { display: none; }
+    }
   </style>
 </head>
 <body>

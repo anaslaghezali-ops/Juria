@@ -1,0 +1,9 @@
+# Supabase Functions Configuration
+# Global settings for all Edge Functions
+
+[env.production]
+exclude_patterns = ["_*.ts", "*.test.ts"]
+
+# Memory and timeout settings
+memory_limit = 256
+timeout_seconds = 60

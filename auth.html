@@ -279,17 +279,37 @@ async function handleSignup() {
   setLoading('btnSignup', true);
   hideAlerts();
 
-  const { error } = await _sb.auth.signUp({
-    email, password,
-    options: { data: { full_name: name } }
+  const { data: authData, error } = await _sb.auth.signUp({
+    email,
+    password
   });
 
   setLoading('btnSignup', false);
 
   if (error) { showError(error.message); return; }
 
-  showSuccess('Compte créé ! Redirection vers votre espace…');
-  setTimeout(() => { window.location.href = 'dashboard.html'; }, 1500);
+  // Provision organization membership: claims a pending invitation if one
+  // exists, otherwise creates a personal organization for this user.
+  if (authData.user?.id) {
+    try {
+      const linkResponse = await fetch(JURIA_CONFIG.LINK_USER_TO_ORG_URL || 'https://dnrudcpaqcqyybpbbrum.supabase.co/functions/v1/link-user-to-org', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: authData.user.id,
+          email: email,
+          name: name
+        })
+      });
+      const linkResult = await linkResponse.json();
+      console.log('[handleSignup] Link result:', linkResult);
+    } catch (err) {
+      console.error('[handleSignup] Error linking user to organization:', err);
+    }
+  }
+
+  showSuccess('Compte créé ! Veuillez confirmer votre adresse e-mail.');
+  setTimeout(() => { window.location.href = 'auth.html'; }, 2000);
 }
 
 // Si déjà connecté → rediriger
