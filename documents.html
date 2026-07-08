@@ -648,6 +648,9 @@
     /* Voile de fermeture du tiroir (sous la sidebar z-100, au-dessus du contenu) */
     .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 99; }
     .sidebar-overlay.show { display: block; }
+    /* Bouton retour du maître-détail Dossiers (mobile uniquement) */
+    .ws-back-btn { display: none; align-items: center; gap: 6px; margin: 12px 16px 0; padding: 8px 14px; border: 1px solid var(--border); background: var(--white); border-radius: 8px; font-family: var(--font); font-size: 13px; font-weight: 500; color: var(--slate-700); cursor: pointer; }
+
     @media (max-width: 768px) {
       .sidebar { position: fixed; left: 0; top: 0; height: 100vh; transform: translateX(-100%); z-index: 100; transition: transform 0.25s; }
       .sidebar.open { transform: translateX(0); box-shadow: 4px 0 20px rgba(0,0,0,0.1); }
@@ -656,6 +659,17 @@
       .folders-grid { grid-template-columns: 1fr; }
       .dash-grid { grid-template-columns: 1fr; }
       .search-global { display: none; }
+
+      /* Page Dossiers : maître-détail. Par défaut l'arbre occupe tout
+         l'écran ; sélectionner un dossier bascule sur le détail plein
+         écran avec bouton retour. (!important : le resizer desktop pose
+         une largeur inline en px sur .ws-tree) */
+      .ws-tree { width: 100% !important; min-width: 0; max-width: none; border-right: none; }
+      .ws-resizer { display: none; }
+      .ws-content { display: none; }
+      .workspace.show-detail .ws-tree { display: none; }
+      .workspace.show-detail .ws-content { display: block; }
+      .ws-back-btn { display: inline-flex; }
     }
   </style>
 </head>
@@ -867,6 +881,8 @@
 
         <!-- COLONNE CONTENU -->
         <div class="ws-content" id="wsContent">
+          <!-- Retour à l'arborescence (mobile uniquement) -->
+          <button class="ws-back-btn" onclick="wsBackToTree()">← Dossiers</button>
           <!-- État vide par défaut -->
           <div class="ws-empty" id="wsEmpty">
             <div class="ws-empty-icon">📂</div>
@@ -2198,7 +2214,20 @@ function selectFolder(folderId) {
   if (folder?.counterparty_id) wsExpandedNodes.add('cp-' + folder.counterparty_id);
   renderTree(document.getElementById('treeSearch')?.value);
   renderFolderDetail(folderId);
+  wsShowDetailPane();
   _saveWsState();
+}
+
+/**
+ * Maître-détail mobile : bascule arbre ↔ détail.
+ * Sans effet sur desktop (les règles CSS sont dans le media query 768px).
+ */
+function wsShowDetailPane() {
+  document.querySelector('#page-dossiers .workspace')?.classList.add('show-detail');
+}
+
+function wsBackToTree() {
+  document.querySelector('#page-dossiers .workspace')?.classList.remove('show-detail');
 }
 
 /**
@@ -2207,6 +2236,7 @@ function selectFolder(folderId) {
 function selectAllFolders() {
   wsSelectedFolderId = '__all__';
   renderTree(document.getElementById('treeSearch')?.value);
+  wsShowDetailPane();
   const empty = document.getElementById('wsEmpty');
   const detail = document.getElementById('wsDetail');
   if (empty) empty.style.display = 'none';
