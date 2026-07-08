@@ -44,7 +44,6 @@ serve(async (req) => {
         full_name: fullName,
         org_id: orgId,
       },
-      email_confirm: true,
     }
 
     console.log("[invite-user] Payload:", JSON.stringify(payload))
