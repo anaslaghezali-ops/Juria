@@ -101,9 +101,15 @@
       .btn-menu { display: flex; }
       .codes-grid { grid-template-columns: 1fr; }
     }
+      /* Voile de fermeture du tiroir mobile */
+    .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 99; }
+    .sidebar-overlay.show { display: block; }
   </style>
 </head>
 <body>
+
+<!-- Voile de fermeture du tiroir mobile -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
 
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-top">
@@ -259,7 +265,13 @@ var activeCode = 'all';
 
 // ---- SIDEBAR HANDLERS ----
 document.getElementById('btnMenu').addEventListener('click', function() {
-  document.getElementById('sidebar').classList.toggle('open');
+  const open = document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('show', open);
+});
+// Taper à côté du tiroir le referme
+document.getElementById('sidebarOverlay').addEventListener('click', function() {
+  document.getElementById('sidebar').classList.remove('open');
+  this.classList.remove('show');
 });
 
 document.getElementById('btnLogout').addEventListener('click', async function() {

@@ -645,6 +645,9 @@
 
     /* ── MOBILE ── */
     .btn-menu { display: none; background: none; border: none; cursor: pointer; padding: 8px; color: var(--slate-700); }
+    /* Voile de fermeture du tiroir (sous la sidebar z-100, au-dessus du contenu) */
+    .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 99; }
+    .sidebar-overlay.show { display: block; }
     @media (max-width: 768px) {
       .sidebar { position: fixed; left: 0; top: 0; height: 100vh; transform: translateX(-100%); z-index: 100; transition: transform 0.25s; }
       .sidebar.open { transform: translateX(0); box-shadow: 4px 0 20px rgba(0,0,0,0.1); }
@@ -657,6 +660,9 @@
   </style>
 </head>
 <body>
+
+<!-- Voile de fermeture du tiroir mobile -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
 
 <!-- SIDEBAR -->
 <aside class="sidebar" id="sidebar">
@@ -1678,7 +1684,14 @@ const PAGE_TITLES = {
   'dossier-detail': 'Dossier',
 };
 
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('show');
+}
+
 function showPage(name) {
+  // Sur mobile, la navigation interne doit refermer le tiroir
+  closeSidebar();
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   const page = document.getElementById('page-' + name);
@@ -4855,7 +4868,12 @@ function _syncGlobalAliases() {
 }
 
 // ── EVENTS ────────────────────────────────────
-document.getElementById('btnMenu').addEventListener('click', () => document.getElementById('sidebar').classList.toggle('open'));
+document.getElementById('btnMenu').addEventListener('click', () => {
+  const open = document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('show', open);
+});
+// Taper à côté du tiroir le referme
+document.getElementById('sidebarOverlay').addEventListener('click', closeSidebar);
 document.getElementById('btnLogout').addEventListener('click', async () => { await _sb.auth.signOut(); window.location.href = 'auth.html'; });
 
 // Fermer modals en cliquant hors
