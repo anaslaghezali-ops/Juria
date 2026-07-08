@@ -24,6 +24,19 @@ Pins `SET search_path = public` on the two `SECURITY DEFINER` RLS helpers.
 Behavior-preserving hardening; clears the `function_search_path_mutable`
 advisor warning for those functions.
 
+### `03_secure_document_content_and_risks.sql`
+Closes the last two multi-tenant holes flagged by the security advisor:
+- `document_content` had `USING (true)` — any signed-in user could read/write
+  the extracted text of every organization's contracts. Now org-scoped through
+  the parent document via a new reusable primitive `fn_document_org_id(doc)`;
+  writes restricted to `owner/admin/lawyer/member` (mirrors `document_analyses`),
+  deletes to `owner/admin`.
+- `risks` (legacy, empty, unreferenced — code uses `document_risks`) had a
+  public allow-all policy. Policy dropped → deny-by-default.
+- Hardening: `fn_user_organization_ids()` / `fn_user_role()` now require
+  `is_active = true`, so deactivating a member cuts their access entirely
+  (consistent with the license model), not just frees a license.
+
 ## Verified behavior (RLS ON)
 
 | Context       | Own org | Sees members | Writes |
@@ -48,8 +61,11 @@ actually a `.single()`-on-zero-rows bug in the frontend (now fixed with
 
 ## Notes on remaining advisor warnings (pre-existing, out of scope)
 
-- `risks` and `document_content` have permissive `USING (true)` policies —
-  these predate this work and should be tightened separately.
 - The `SECURITY DEFINER` helper functions being callable by `anon`/`authenticated`
-  is expected: they only ever return data scoped to `auth.uid()`, so an
-  unauthenticated caller gets nothing.
+  is expected: they only ever return data scoped to `auth.uid()` (or a single
+  org id for a document the caller must still pass RLS to use), so an
+  unauthenticated caller gets nothing useful.
+- `activity_feed` / `user_profiles_compat` are SECURITY DEFINER views (advisor
+  ERROR) — pre-existing; review separately.
+- Leaked-password protection (HaveIBeenPwned) is disabled in Auth settings —
+  enable it in the Supabase dashboard (no SQL migration possible).
