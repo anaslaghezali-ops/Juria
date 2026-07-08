@@ -1554,18 +1554,17 @@
     <div class="modal-sub" id="riskTypeModalSub">—</div>
     <div class="form-group">
       <label class="form-label">Type de risque</label>
+      <!-- Les values correspondent à la contrainte CHECK de document_risks.category -->
       <select class="form-input" id="riskTypeSelect">
-        <option value="EVENT_OF_DEFAULT">🔴 Événement de défaut (Event of Default)</option>
-        <option value="TERMINATION">⚠️ Résiliation automatique (Termination)</option>
-        <option value="DEADLOCK">🔒 Blocage décisionnel (Deadlock)</option>
-        <option value="GOVERNANCE">👥 Gouvernance (Governance)</option>
-        <option value="CHANGE_OF_CONTROL">🔄 Changement de contrôle (Change of Control)</option>
-        <option value="LIABILITY">⚖️ Responsabilité (Liability)</option>
-        <option value="CONFIDENTIALITY">🔐 Confidentialité (Confidentiality)</option>
-        <option value="INDEMNITY">💰 Indemnité (Indemnity)</option>
-        <option value="WARRANTY">✓ Garantie (Warranty)</option>
-        <option value="PAYMENT">💳 Paiement (Payment)</option>
-        <option value="AUTRE">❓ Autre</option>
+        <option value="responsabilite">⚖️ Responsabilité</option>
+        <option value="paiement">💳 Paiement</option>
+        <option value="resiliation">⚠️ Résiliation</option>
+        <option value="confidentialite">🔐 Confidentialité</option>
+        <option value="force_majeure">🌪️ Force majeure</option>
+        <option value="garantie">✓ Garantie</option>
+        <option value="non_concurrence">🚫 Non-concurrence</option>
+        <option value="arbitrage">🏛️ Arbitrage / litiges</option>
+        <option value="autre">❓ Autre</option>
       </select>
     </div>
     <div class="modal-actions">
@@ -3747,7 +3746,10 @@ let editingRiskTitle = null;
 function openRiskTypeModal(riskId, currentType, riskTitle) {
   editingRiskId = riskId;
   editingRiskTitle = riskTitle;
-  document.getElementById('riskTypeSelect').value = currentType || 'AUTRE';
+  // currentType vient de risk_type (= document_risks.category) ; défaut : autre
+  const sel = document.getElementById('riskTypeSelect');
+  sel.value = currentType || 'autre';
+  if (!sel.value) sel.value = 'autre'; // valeur inconnue (ex: anciennes données démo)
   document.getElementById('riskTypeModalSub').textContent = `Risque : ${escHtml(riskTitle || '—')}`;
   document.getElementById('riskTypeModal').classList.add('show');
 }
@@ -3766,11 +3768,13 @@ async function saveRiskType() {
   const newType = document.getElementById('riskTypeSelect').value;
   
   try {
-    // Mise à jour Supabase
+    // Mise à jour Supabase — les risques affichés viennent de document_risks,
+    // où le "type" UI (risk_type) est stocké dans la colonne category
+    // (cf. mapping au chargement : risk_type: r.category || 'OTHER').
     if (_sb) {
       const { error } = await _sb
-        .from('risks')
-        .update({ risk_type: newType })
+        .from('document_risks')
+        .update({ category: newType })
         .eq('id', editingRiskId);
       if (error) throw error;
     }

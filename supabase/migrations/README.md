@@ -33,9 +33,20 @@ Closes the last two multi-tenant holes flagged by the security advisor:
   deletes to `owner/admin`.
 - `risks` (legacy, empty, unreferenced — code uses `document_risks`) had a
   public allow-all policy. Policy dropped → deny-by-default.
+  (Table fully dropped in migration 04 after dependency checks.)
 - Hardening: `fn_user_organization_ids()` / `fn_user_role()` now require
   `is_active = true`, so deactivating a member cuts their access entirely
   (consistent with the license model), not just frees a license.
+
+### `04_drop_legacy_risks_table.sql`
+Drops the legacy `risks` table (0 rows, 0 DB dependencies, 0 code references).
+Its only code reference — `saveRiskType()` in `documents.html` — was a latent
+bug: it updated `risks.risk_type` (nonexistent column, wrong table) while the
+displayed risks come from `document_risks.category`. Fixed in the same commit:
+the function now targets `document_risks.category` and the modal's options
+match the DB CHECK constraint (`responsabilite`, `paiement`, `resiliation`,
+`confidentialite`, `force_majeure`, `garantie`, `non_concurrence`, `arbitrage`,
+`autre`). Original table DDL is archived in the migration file.
 
 ## Verified behavior (RLS ON)
 
