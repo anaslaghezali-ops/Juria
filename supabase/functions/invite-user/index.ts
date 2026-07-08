@@ -40,10 +40,6 @@ serve(async (req) => {
     const payload = {
       email,
       password: tempPassword,
-      user_metadata: {
-        full_name: fullName,
-        org_id: orgId,
-      },
     }
 
     console.log("[invite-user] Payload:", JSON.stringify(payload))
