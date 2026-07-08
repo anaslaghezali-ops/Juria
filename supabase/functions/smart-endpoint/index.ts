@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders, handleCorsPreFlight } from "../_shared/cors.ts";
+import { checkOrgQuota, logQuotaUsage } from "../_shared/quota-utils.ts";
 
 // Catalogue de livrables par domaine juridique
 const DELIVERABLES: Record<string, string[]> = {
@@ -139,6 +140,19 @@ serve(async (req) => {
         .eq("id", user.id);
     };
 
+    // Get organization ID for quota system v2
+    let orgId: string | null = null;
+    try {
+      const { data: userData } = await supabaseAdmin
+        .from("users")
+        .select("organization_id")
+        .eq("id", user.id)
+        .single();
+      orgId = userData?.organization_id || null;
+    } catch (e) {
+      console.warn("[smart-endpoint] Failed to get org_id:", e);
+    }
+
     const callOpenAI = async (systemPrompt: string, userContent: string, maxTokens: number, jsonMode = true) => {
       const res = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
@@ -243,6 +257,20 @@ serve(async (req) => {
 
     // ---- MODE QUESTION SUR DOCUMENT ----
     if (mode === "document_question" && document_context) {
+      // Check quota v2 if organization is available (chat = 0.1 credit per message, rounded to 1 for simplicity)
+      if (orgId) {
+        const quotaCheck = await checkOrgQuota(orgId, "chat", 1);
+        if (!quotaCheck.allowed) {
+          return new Response(JSON.stringify({
+            error: quotaCheck.reason || "Quota organisation atteint pour les chats",
+            code: "QUOTA_EXCEEDED",
+            remaining_credits: quotaCheck.remaining,
+          }), {
+            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
       const docSystem = [
         "Tu es Juria, expert juridique marocain.",
         "L'utilisateur a uploadé un document et pose une question dessus.",
@@ -263,6 +291,14 @@ serve(async (req) => {
 
       const docResult = await callOpenAIMessages(docMessages, 1000);
       await incrementQuota();
+
+      // Log quota usage asynchronously
+      if (orgId) {
+        logQuotaUsage(orgId, "chat", 1).catch(e =>
+          console.warn("[smart-endpoint] Quota log failed:", e)
+        );
+      }
+
       return new Response(
         JSON.stringify({ answer: docResult.answer || "", citations: [], is_contract: false, needs_clarification: false }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -271,6 +307,20 @@ serve(async (req) => {
 
     // ---- MODE COMPARAISON DE CONTRATS ----
     if (mode === "compare" && document_context) {
+      // Check quota v2 if organization is available
+      if (orgId) {
+        const quotaCheck = await checkOrgQuota(orgId, "doc_comparison", 1);
+        if (!quotaCheck.allowed) {
+          return new Response(JSON.stringify({
+            error: quotaCheck.reason || "Quota organisation atteint pour les comparaisons",
+            code: "QUOTA_EXCEEDED",
+            remaining_credits: quotaCheck.remaining,
+          }), {
+            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
       const parts = document_context.split("---");
       const v1 = parts[0] ? parts[0].replace("CONTRAT V1:", "").trim() : "";
       const v2 = parts[1] ? parts[1].replace("CONTRAT V2:", "").trim() : "";
@@ -318,6 +368,14 @@ serve(async (req) => {
       }
 
       await incrementQuota();
+
+      // Log quota usage asynchronously
+      if (orgId) {
+        logQuotaUsage(orgId, "doc_comparison", 1).catch(e =>
+          console.warn("[smart-endpoint] Quota log failed:", e)
+        );
+      }
+
       return new Response(
         JSON.stringify(compareData),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -326,6 +384,20 @@ serve(async (req) => {
 
     // ---- MODE ANALYSE DE CONTRAT ----
     if (mode === "analyze" && contract_to_analyze) {
+      // Check quota v2 if organization is available
+      if (orgId) {
+        const quotaCheck = await checkOrgQuota(orgId, "risk_analysis", 1);
+        if (!quotaCheck.allowed) {
+          return new Response(JSON.stringify({
+            error: quotaCheck.reason || "Quota organisation atteint pour les analyses de risques",
+            code: "QUOTA_EXCEEDED",
+            remaining_credits: quotaCheck.remaining,
+          }), {
+            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
       const articles = await vectorSearch(question, 6);
       const articlesContext = articles.length > 0
         ? articles.map((a: any) => a.numero_article + " : " + a.contenu).join(" === ")
@@ -351,6 +423,14 @@ serve(async (req) => {
       const contractText = "Contrat: " + contract_to_analyze.slice(0, 8000);
       const analysis = await callOpenAI(analyzeSystem, contractText, 1500);
       await incrementQuota();
+
+      // Log quota usage asynchronously
+      if (orgId) {
+        logQuotaUsage(orgId, "risk_analysis", 1).catch(e =>
+          console.warn("[smart-endpoint] Quota log failed:", e)
+        );
+      }
+
       return new Response(JSON.stringify(analysis), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
