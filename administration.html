@@ -565,10 +565,15 @@ async function submitInvite() {
     }
 
     const result = await response.json();
+    const inviteLink = result.inviteLink ?
+      (window.location.origin + result.inviteLink) :
+      (window.location.origin + '/auth.html?email=' + encodeURIComponent(email));
+
     alert(
       'Invitation créée!\n\n' +
-      'Email : ' + email + '\n\n' +
-      'L\'utilisateur doit créer son compte en allant sur la page de connexion.'
+      'Email: ' + email + '\n\n' +
+      'L\'utilisateur doit créer son compte ici:\n' +
+      inviteLink
     );
     closeInviteModal();
     await loadMembers();
