@@ -548,7 +548,6 @@ async function submitInvite() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${(await window._sb.auth.getSession()).data.session.access_token}`,
       },
       body: JSON.stringify({
         email,
