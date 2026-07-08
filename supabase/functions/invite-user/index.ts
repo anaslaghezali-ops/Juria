@@ -33,30 +33,40 @@ serve(async (req) => {
       throw new Error(`Missing config: url=${!!supabaseUrl}, key=${!!serviceKey}`)
     }
 
+    // Create user via HTTP API directly (bypass SDK issues)
+    const tempPassword = `Juria-${Math.random().toString(36).slice(2, 10)}!`
+    const fullName = `${firstName || ""} ${lastName || ""}`.trim()
+
+    const createUserRes = await fetch(`${supabaseUrl}/auth/v1/admin/users`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${serviceKey}`,
+      },
+      body: JSON.stringify({
+        email,
+        password: tempPassword,
+        user_metadata: {
+          full_name: fullName,
+          org_id: orgId,
+        },
+        email_confirm: true,
+      }),
+    })
+
+    const createUserData = await createUserRes.json()
+
+    if (!createUserRes.ok) {
+      throw new Error(`HTTP ${createUserRes.status}: ${JSON.stringify(createUserData)}`)
+    }
+
+    const userId = createUserData.id
+
+    // Now add to organization_users via SDK
     const supabase = createClient(supabaseUrl, serviceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    // Create the user
-    const tempPassword = `Juria-${Math.random().toString(36).slice(2, 10)}!`
-
-    const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
-      email,
-      password: tempPassword,
-      user_metadata: {
-        full_name: `${firstName || ""} ${lastName || ""}`.trim(),
-        org_id: orgId,
-      },
-      email_confirm: true,
-    })
-
-    if (createError) {
-      throw new Error(`Create user failed: ${JSON.stringify(createError)}`)
-    }
-
-    const userId = newUser.user.id
-
-    // Add to organization
     const { data: member, error: addError } = await supabase
       .from("organization_users")
       .insert({
@@ -89,6 +99,7 @@ serve(async (req) => {
     )
   } catch (error: any) {
     const errorMsg = error?.message || "Unknown error"
+    console.error("Error:", errorMsg)
     return new Response(
       JSON.stringify({ error: errorMsg }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
