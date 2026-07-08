@@ -37,24 +37,31 @@ serve(async (req) => {
     const tempPassword = `Juria-${Math.random().toString(36).slice(2, 10)}!`
     const fullName = `${firstName || ""} ${lastName || ""}`.trim()
 
+    const payload = {
+      email,
+      password: tempPassword,
+      user_metadata: {
+        full_name: fullName,
+        org_id: orgId,
+      },
+      email_confirm: true,
+    }
+
+    console.log("[invite-user] Payload:", JSON.stringify(payload))
+
     const createUserRes = await fetch(`${supabaseUrl}/auth/v1/admin/users`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         apikey: serviceKey,
       },
-      body: JSON.stringify({
-        email,
-        password: tempPassword,
-        user_metadata: {
-          full_name: fullName,
-          org_id: orgId,
-        },
-        email_confirm: true,
-      }),
+      body: JSON.stringify(payload),
     })
 
     const createUserData = await createUserRes.json()
+
+    console.log("[invite-user] Response status:", createUserRes.status)
+    console.log("[invite-user] Response data:", JSON.stringify(createUserData))
 
     if (!createUserRes.ok) {
       throw new Error(`HTTP ${createUserRes.status}: ${JSON.stringify(createUserData)}`)
