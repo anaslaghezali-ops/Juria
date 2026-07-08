@@ -123,6 +123,19 @@ class SynthesisService extends BaseService {
     progress('consolidate', { label: 'Constitution du dossier…' });
     const { dossier, quotes } = this._buildDossier(extracts, sections, fullText, pageMap);
 
+    // Garde-fou : si l'extraction n'a produit aucune matière (ex : appels IA
+    // bloqués), on s'arrête ici — jamais de mémo vide persisté.
+    const material = Object.keys(quotes).length + (dossier.parties || []).length +
+      (dossier.obligations || []).length + (dossier.contexte || []).length;
+    console.log(`[SynthesisService] Dossier : ${Object.keys(quotes).length} citations, ` +
+      `${(dossier.obligations || []).length} obligations, ${(dossier.parties || []).length} parties`);
+    if (material === 0) {
+      const err = new Error("L'extraction n'a produit aucune matière exploitable. " +
+        'Vérifiez la console (appels IA bloqués ?) puis régénérez.');
+      err.code = 'EMPTY_EXTRACTION';
+      throw err;
+    }
+
     let finalDossier = dossier;
     const dossierSize = JSON.stringify(dossier).length;
     if (dossierSize > 120000) {
@@ -140,12 +153,13 @@ class SynthesisService extends BaseService {
     const docMeta = { name: doc.name, pages: doc.page_count };
     const models = { ...this._composeModels, ...(opts.models || {}) };
     const sectionsOut = [];
+    let totalStreamed = '';
 
     for (const group of ['A', 'B', 'C']) {
       const phaseId = 'compose' + group;
       progress(phaseId, { label: 'Rédaction en cours…' });
 
-      await this._composeGroup({
+      totalStreamed += await this._composeGroup({
         group,
         dossier: this._filterDossierForGroup(finalDossier, group),
         model: models[group],
@@ -163,6 +177,22 @@ class SynthesisService extends BaseService {
 
     // ── PHASE 4 : COHÉRENCE + PERSISTANCE ──────────────────────────────
     progress('save', { label: 'Contrôle de cohérence…' });
+
+    // Filet de sécurité : du texte a été rédigé mais aucun marqueur de
+    // section reconnu → on garde tout dans une section unique plutôt que
+    // de perdre la rédaction.
+    if (!sectionsOut.length && totalStreamed.trim().length > 200) {
+      console.warn('[SynthesisService] Marqueurs de section non reconnus — repli en section unique.');
+      sectionsOut.push({
+        id: 'memo', title: 'Note de synthèse',
+        markdown: totalStreamed.replace(/<<<[^>]*>>>/g, '').trim(),
+      });
+    }
+    if (!sectionsOut.length) {
+      const err = new Error("La rédaction n'a produit aucun contenu. Rien n'a été enregistré — régénérez.");
+      err.code = 'EMPTY_COMPOSE';
+      throw err;
+    }
 
     // Toute référence [[q:x]] inconnue est neutralisée : jamais de faux ancrage.
     const knownQids = new Set(Object.keys(quotes));
@@ -223,8 +253,22 @@ class SynthesisService extends BaseService {
   //  PHASE 1 — MAP avec cache document_summaries
   // ══════════════════════════════════════════════════════════════════════
 
+  /** Un extrait est utilisable s'il contient au moins une donnée réelle.
+   *  Protège contre l'empoisonnement du cache par des extractions échouées
+   *  (ex : appels bloqués par CORS qui renvoyaient {}). */
+  _isUsableExtract(ex) {
+    if (!ex || typeof ex !== 'object') return false;
+    return Object.keys(ex).some(k => {
+      const v = ex[k];
+      if (Array.isArray(v)) return v.length > 0;
+      if (typeof v === 'string') return v.trim().length > 0;
+      return v && typeof v === 'object' && Object.keys(v).length > 0;
+    });
+  }
+
   async _mapPhase(doc, sections, token, orgId, progress) {
-    // Cache : extraits déjà calculés pour CETTE version du document
+    // Cache : extraits déjà calculés pour CETTE version du document.
+    // Les extraits vides (échecs passés) sont ignorés → ré-extraits.
     const { data: cached } = await this._sb
       .from(this._summariesTable)
       .select('section_index, extract')
@@ -233,7 +277,9 @@ class SynthesisService extends BaseService {
       .not('extract', 'is', null)
       .order('section_index');
 
-    const cacheMap = new Map((cached || []).map(r => [r.section_index, r.extract]));
+    const cacheMap = new Map((cached || [])
+      .filter(r => this._isUsableExtract(r.extract))
+      .map(r => [r.section_index, r.extract]));
     const extracts = new Array(sections.length).fill(null);
     const toDo = [];
 
@@ -250,16 +296,19 @@ class SynthesisService extends BaseService {
       const extract = await self._extractSection(sections[i], doc.name, token);
       extracts[i] = extract;
 
-      // Persistance du cache (non bloquante pour la suite du pipeline)
-      await self._sb.from(self._summariesTable).upsert({
-        document_id: doc.id,
-        organization_id: orgId || null,
-        section_index: i,
-        section_total: sections.length,
-        summary: (extract && extract.resume) || '—',
-        extract,
-        chunk_version: doc.chunk_version,
-      }, { onConflict: 'document_id,section_index' });
+      // Ne JAMAIS mettre en cache un extrait vide (échec d'appel) :
+      // il empoisonnerait toutes les générations suivantes.
+      if (self._isUsableExtract(extract)) {
+        await self._sb.from(self._summariesTable).upsert({
+          document_id: doc.id,
+          organization_id: orgId || null,
+          section_index: i,
+          section_total: sections.length,
+          summary: (extract && extract.resume) || '—',
+          extract,
+          chunk_version: doc.chunk_version,
+        }, { onConflict: 'document_id,section_index' });
+      }
 
       done++;
       progress('map', { done, total: sections.length, label: `${done} / ${sections.length} sections analysées` });
@@ -501,7 +550,8 @@ class SynthesisService extends BaseService {
     const processText = (text) => {
       pending += text;
       let match;
-      const markerRe = /<<<SECTION:([a-zA-Z_]+)\|([^>]+)>>>/;
+      // Tolérant : espaces autour de SECTION/: /| et éventuel gras/titre
+      const markerRe = /(?:\*\*|#+\s*)?<<<\s*SECTION\s*:\s*([a-zA-Z_]+)\s*\|([^>]+)>>>(?:\*\*)?/;
       while ((match = pending.match(markerRe))) {
         const before = pending.slice(0, match.index);
         if (before && current) {
