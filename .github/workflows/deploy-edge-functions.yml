@@ -51,6 +51,7 @@ jobs:
             "embed-articles"
             "generate-keywords"
             "get-embedding"
+            "get-remaining-quota"
             "process-chunks"
             "vector-search"
             "generate-synthesis"
