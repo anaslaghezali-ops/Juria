@@ -280,8 +280,8 @@ async function handleSignup() {
   hideAlerts();
 
   const { data: authData, error } = await _sb.auth.signUp({
-    email, password,
-    options: { data: { full_name: name } }
+    email,
+    password
   });
 
   setLoading('btnSignup', false);
