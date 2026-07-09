@@ -307,34 +307,70 @@ serve(async (req) => {
       );
     }
 
-    // ---- MODE COMPARAISON DE CONTRATS ----
-    if (mode === "compare" && document_context) {
-      // Check quota v2 if organization is available
+    // ---- MODE COMPARAISON DE CONTRATS (diff aligné, lit tout) ----
+    if (mode === "compare" && (body.contract_v1 || body.contract_v2 || document_context)) {
+      // Transport robuste : contract_v1 / contract_v2 en champs séparés.
+      // (L'ancien transport concaténait "CONTRAT V1 --- CONTRAT V2" puis
+      // splittait sur "---" : un contrat contenant "---" cassait le découpage.)
+      // Compat conservée pour les fronts en cache.
+      let v1 = typeof body.contract_v1 === "string" ? body.contract_v1 : "";
+      let v2 = typeof body.contract_v2 === "string" ? body.contract_v2 : "";
+      if (!v1 && !v2 && document_context) {
+        const parts = document_context.split("---");
+        v1 = parts[0] ? parts[0].replace("CONTRAT V1:", "").trim() : "";
+        v2 = parts[1] ? parts[1].replace("CONTRAT V2:", "").trim() : "";
+      }
+
+      // Fenêtres V1 contiguës ; V2 est partitionné par ANCRAGE : le début de
+      // chaque fenêtre V1 est recherché textuellement dans V2 (les intitulés
+      // de clauses inchangés servent d'ancres). À défaut, prorata positionnel.
+      // Chaque paire couvre ainsi TOUT V1 et TOUT V2 : une clause supprimée
+      // manque dans la zone V2 de sa paire, une clause ajoutée apparaît dans
+      // la zone V2 entre deux ancres.
+      const WINDOW = 14000;
+      const MAX_WINDOWS = 8;   // ~110k caractères par version (~40 pages)
+      const V2_MARGIN = 800;   // chevauchement : une clause en bordure reste visible entière
+      const starts: number[] = [];
+      for (let p = 0; p < Math.max(1, v1.length) && starts.length < MAX_WINDOWS; p += WINDOW) {
+        starts.push(p);
+      }
+      const anchors: number[] = [0];
+      for (let i = 1; i < starts.length; i++) {
+        const probe = v1.slice(starts[i], starts[i] + 140).trim();
+        let pos = probe.length >= 40 ? v2.indexOf(probe, anchors[i - 1]) : -1;
+        if (pos === -1) {
+          const probe2 = v1.slice(starts[i] + 200, starts[i] + 320).trim();
+          pos = probe2.length >= 40 ? v2.indexOf(probe2, anchors[i - 1]) : -1;
+        }
+        if (pos === -1) pos = Math.round((starts[i] / Math.max(1, v1.length)) * v2.length);
+        anchors.push(Math.max(pos, anchors[i - 1]));
+      }
+      anchors.push(v2.length);
+
+      // Quota v2 : facturé au volume réellement comparé (1 unité par paire)
       if (orgId) {
-        const quotaCheck = await checkOrgQuota(orgId, "doc_comparison", 1);
+        const quotaCheck = await checkOrgQuota(orgId, "doc_comparison", starts.length);
         if (!quotaCheck.allowed) {
           return new Response(JSON.stringify({
             error: quotaCheck.reason || "Quota organisation atteint pour les comparaisons",
             code: "QUOTA_EXCEEDED",
-            remaining_credits: quotaCheck.remaining,
+            remaining_credits: quotaCheck.remaining_credits,
           }), {
             status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
       }
 
-      const parts = document_context.split("---");
-      const v1 = parts[0] ? parts[0].replace("CONTRAT V1:", "").trim() : "";
-      const v2 = parts[1] ? parts[1].replace("CONTRAT V2:", "").trim() : "";
-
-      const compareSystem = [
+      const compareSystemFor = (part: number, total: number) => [
         "Tu es expert juridique marocain. Compare LIGNE PAR LIGNE ces deux versions de contrat.",
+        total > 1
+          ? `\n⚠️ Tu reçois la PARTIE ${part}/${total} de chaque version, alignées approximativement. Les bords peuvent couper une clause en deux : une clause TRONQUÉE en début ou fin de partie ne doit PAS être signalée comme supprimée ou ajoutée.\n`
+          : "",
         "",
         "🔴 PRIORITÉ ABSOLUE - DÉTECTER LES SUPPRESSIONS:",
         "- Identifie CHAQUE clause, paragraphe ou section présent en V1 mais ABSENT en V2",
         "- Les suppressions incluent: clauses de confidentialité, délais de préavis, congés payés, assurances, responsabilités, durée du contrat, salaire, conditions de résiliation, garanties, conditions d'emploi",
         "- Si V1 contient une clause et V2 ne la contient pas (même reformulée), c'est une SUPPRESSION",
-        "- Cherche: 'ABSENT en V2', 'NON MENTIONNÉ dans V2', 'RETIRÉ', 'NE FIGURE PLUS'",
         "",
         "📝 FORMAT REQUIS - Retourne UNIQUEMENT JSON valide:",
         '{"summary": "résumé global", "changes": [',
@@ -350,33 +386,67 @@ serve(async (req) => {
         "Si aucune différence trouvée: {\"summary\": \"Aucune différence\", \"changes\": []}",
       ].join("\n");
 
-      const compareMessages: any[] = [
-        { role: "system", content: compareSystem },
-        // 24k caractères par version (~6k tokens chacune) : gpt-4o-mini (128k)
-        // encaisse largement. Le vrai chantier (diff aligné par clauses,
-        // map-reduce) reste à faire pour les très longs contrats.
-        { role: "user", content: "CONTRAT V1 (original):\n" + v1.slice(0, 24000) + "\n\n---SÉPARATEUR---\n\nCONTRAT V2 (modifié):\n" + v2.slice(0, 24000) }
-      ];
+      const parseCompare = (rawResult: any) => {
+        try {
+          const answer = rawResult.answer || JSON.stringify(rawResult);
+          const clean = answer.replace(/```json/g, "").replace(/```/g, "").trim();
+          const start = clean.indexOf("{");
+          const end = clean.lastIndexOf("}");
+          if (start !== -1 && end !== -1) return JSON.parse(clean.slice(start, end + 1));
+        } catch (_e) { /* ignore */ }
+        return { summary: rawResult?.answer || "Erreur parsing", changes: [] };
+      };
 
-      const rawResult = await callOpenAIMessages(compareMessages, 4000);
-      let compareData = { summary: "", changes: [] };
-      try {
-        const answer = rawResult.answer || JSON.stringify(rawResult);
-        const clean = answer.replace(/```json/g, "").replace(/```/g, "").trim();
-        const start = clean.indexOf("{");
-        const end = clean.lastIndexOf("}");
-        if (start !== -1 && end !== -1) {
-          compareData = JSON.parse(clean.slice(start, end + 1));
+      // MAP : diff de chaque paire alignée, 3 appels en parallèle maximum
+      const pairResults: any[] = new Array(starts.length);
+      let nextPair = 0;
+      await Promise.all(
+        Array.from({ length: Math.min(3, starts.length) }, async () => {
+          while (nextPair < starts.length) {
+            const i = nextPair++;
+            const v1Slice = v1.slice(starts[i], starts[i] + WINDOW);
+            const v2Slice = v2.slice(Math.max(0, anchors[i] - V2_MARGIN), Math.min(v2.length, anchors[i + 1] + V2_MARGIN));
+            const raw = await callOpenAIMessages([
+              { role: "system", content: compareSystemFor(i + 1, starts.length) },
+              { role: "user", content: "CONTRAT V1 (original)" + (starts.length > 1 ? ` — partie ${i + 1}/${starts.length}` : "") + ":\n" + v1Slice + "\n\n=====\n\nCONTRAT V2 (modifié), zone correspondante:\n" + v2Slice },
+            ], 3000);
+            pairResults[i] = parseCompare(raw);
+          }
+        }),
+      );
+
+      // REDUCE : fusion + dédoublonnage (les marges V2 peuvent faire voir un
+      // même ajout dans deux paires voisines)
+      let compareData = pairResults[0] || { summary: "", changes: [] };
+      if (starts.length > 1) {
+        const allChanges = pairResults.flatMap((r) => Array.isArray(r?.changes) ? r.changes : []);
+        const partSummaries = pairResults.map((r, i) => `Partie ${i + 1}: ${r?.summary || "—"}`).join(" | ");
+        const mergeRaw = await callOpenAIMessages([
+          {
+            role: "system",
+            content: [
+              "Tu es expert juridique marocain. On te donne les changements détectés sur les parties successives d'une comparaison de deux versions d'un MEME contrat.",
+              "Fusionne en un résultat global : DÉDOUBLONNE les changements qui décrivent la même clause (les zones se chevauchent aux bords), en conservant la version la plus complète.",
+              "Écris un summary global (2-4 phrases) hiérarchisant les changements majeurs.",
+              "Types UNIQUEMENT: ajout, suppression, modification. Impact: majeur, mineur, neutre.",
+              'Retourne UNIQUEMENT un JSON: {"summary": "...", "changes": [{"type","clause","v1","v2","impact","description"}]}',
+              "Conserve les textes v1/v2 INTÉGRAUX tels que fournis, ne les résume pas.",
+            ].join("\n"),
+          },
+          { role: "user", content: "Résumés partiels: " + partSummaries + "\n\nChangements détectés: " + JSON.stringify(allChanges).slice(0, 90000) },
+        ], 6000);
+        compareData = parseCompare(mergeRaw);
+        if (!Array.isArray(compareData.changes) || (compareData.changes.length === 0 && allChanges.length > 0)) {
+          // Filet de sécurité : si la fusion échoue, renvoyer la concaténation brute
+          compareData = { summary: partSummaries, changes: allChanges };
         }
-      } catch(e) {
-        compareData = { summary: rawResult.answer || "Erreur parsing", changes: [] };
       }
 
       await incrementQuota();
 
-      // Log quota usage asynchronously
+      // Log quota usage asynchronously (facturé au nombre de paires comparées)
       if (orgId) {
-        logQuotaUsage(orgId, "doc_comparison", 1).catch(e =>
+        logQuotaUsage(orgId, "doc_comparison", starts.length).catch(e =>
           console.warn("[smart-endpoint] Quota log failed:", e)
         );
       }

@@ -923,7 +923,11 @@ window.startComparison = async function startComparison() {
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
       body: JSON.stringify({
         question: 'Comparer les deux versions de contrat',
-        document_context: 'CONTRAT V1:\n' + contractText1 + '\n\n---\n\nCONTRAT V2:\n' + contractText2,
+        // Champs séparés : l'ancien transport concaténé "V1 --- V2" cassait
+        // si un contrat contenait lui-même "---". Le serveur compare
+        // désormais les versions INTÉGRALES (diff aligné par fenêtres).
+        contract_v1: contractText1,
+        contract_v2: contractText2,
         mode: 'compare',
         history: []
       }),
