@@ -48,7 +48,7 @@ match the DB CHECK constraint (`responsabilite`, `paiement`, `resiliation`,
 `confidentialite`, `force_majeure`, `garantie`, `non_concurrence`, `arbitrage`,
 `autre`). Original table DDL is archived in the migration file.
 
-### `06_quota_system_v2.sql` — ⚠️ À APPLIQUER (SQL editor)
+### `06_quota_system_v2.sql`
 Système de quota v2 : budget global de crédits par organisation.
 - `organizations.monthly_quota` (défaut 1000, `-1` = illimité)
 - `operation_costs` : coût unitaire par type (`synthesis` 1.0, `risk_analysis` 0.5,
@@ -57,14 +57,15 @@ Système de quota v2 : budget global de crédits par organisation.
   atomiquement via `log_org_usage()` (SECURITY DEFINER, réservée au service role)
 - RLS : chaque membre actif lit la consommation de sa propre org
 
-### `07_superadmin.sql` — ⚠️ À APPLIQUER (SQL editor)
+### `07_superadmin.sql`
 Back-office fondateur (`superadmin.html` + edge function `superadmin`).
 - Table `superadmins` (accès plateforme, distinct des rôles d'organisation)
 - RLS : chacun ne peut vérifier que son propre statut
 - Seed : `anaslaghezali@gmail.com`
 
-> Une fois 06 et 07 exécutées dans le SQL editor et vérifiées, retirer la
-> mention « À APPLIQUER » ci-dessus.
+> 06 et 07 ont été appliquées le 2026-07-09 via le workflow
+> `apply-migrations.yml` (API de management Supabase) et vérifiées :
+> `operation_costs=4, superadmins=1, monthly_quota_col=1`.
 
 ## Verified behavior (RLS ON)
 
