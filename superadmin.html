@@ -255,7 +255,15 @@
       <div class="field">
         <label>Email</label>
         <input type="email" id="cAdminEmail" placeholder="contact@cabinet.ma"/>
-        <div class="field-hint">Il recevra le rôle « owner » et créera son compte avec cet email.</div>
+        <div class="field-hint">Le compte est créé immédiatement (rôle « owner »), prêt à se connecter.</div>
+      </div>
+      <div class="field">
+        <label>Mot de passe</label>
+        <div style="display:flex;gap:7px">
+          <input type="text" id="cAdminPassword" placeholder="8 caractères minimum" autocomplete="off" style="flex:1"/>
+          <button class="btn btn-sm" type="button" onclick="genPassword()">Générer</button>
+        </div>
+        <div class="field-hint">À transmettre au client avec son email — il pourra le changer ensuite.</div>
       </div>
       <div class="field-row">
         <div class="field"><label>Prénom</label><input type="text" id="cAdminFirst"/></div>
@@ -263,7 +271,7 @@
       </div>
 
       <div class="invite-box" id="inviteBox" style="display:none">
-        <p>✓ Organisation créée. Transmettez ce lien au client pour qu'il crée son compte :</p>
+        <p>✓ Organisation et compte créés. Transmettez ces identifiants au client :</p>
         <div class="invite-link">
           <input type="text" id="inviteLink" readonly/>
           <button class="btn btn-sm" onclick="copyInvite()">Copier</button>
@@ -517,9 +525,22 @@ function openCreateModal() {
   document.getElementById('createModal').classList.add('show');
 }
 
+function genPassword() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  const buf = new Uint32Array(14);
+  crypto.getRandomValues(buf);
+  document.getElementById('cAdminPassword').value =
+    Array.from(buf, n => chars[n % chars.length]).join('');
+}
+
 async function createOrg() {
   const btn = document.getElementById('cSubmit');
   const unlimited = document.getElementById('cUnlimited').checked;
+  const password = document.getElementById('cAdminPassword').value;
+  if (!password || password.length < 8) {
+    toast('Mot de passe requis (8 caractères minimum)', 'error');
+    return;
+  }
   btn.disabled = true;
   try {
     const data = await api({
@@ -529,12 +550,14 @@ async function createOrg() {
       max_users: parseInt(document.getElementById('cMaxUsers').value, 10),
       monthly_quota: unlimited ? -1 : parseInt(document.getElementById('cQuota').value, 10),
       admin_email: document.getElementById('cAdminEmail').value,
+      admin_password: password,
       admin_first_name: document.getElementById('cAdminFirst').value,
       admin_last_name: document.getElementById('cAdminLast').value,
     });
-    toast('Organisation créée ✓', 'success');
-    const link = new URL(data.invite_link, window.location.href).href;
-    document.getElementById('inviteLink').value = link;
+    toast('Organisation et compte créés ✓', 'success');
+    const loginUrl = new URL(data.login_link, window.location.href).href;
+    document.getElementById('inviteLink').value =
+      `${loginUrl} — email : ${data.admin_email} — mot de passe : ${password}`;
     document.getElementById('inviteBox').style.display = 'block';
     await loadOrgs();
   } catch (e) {

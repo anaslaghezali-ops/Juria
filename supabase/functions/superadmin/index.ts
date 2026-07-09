@@ -115,14 +115,36 @@ serve(async (req) => {
     }
 
     // ── CREATE_ORG ───────────────────────────────────────────────────────
+    // Modèle provisioning : le superadmin définit email + mot de passe du
+    // premier admin ; le compte est créé confirmé, prêt à se connecter.
     if (action === "create_org") {
-      const { name, plan, monthly_quota, max_users, admin_email, admin_first_name, admin_last_name } = body;
+      const { name, plan, monthly_quota, max_users, admin_email, admin_password, admin_first_name, admin_last_name } = body;
       if (!name || !String(name).trim()) return json(400, { error: "Nom d'organisation requis" }, corsHeaders);
       if (plan && !PLANS.includes(plan)) return json(400, { error: `Plan invalide (${PLANS.join(", ")})` }, corsHeaders);
       const quota = Number.isFinite(Number(monthly_quota)) ? Number(monthly_quota) : 1000;
       if (quota < -1) return json(400, { error: "Quota invalide (-1 = illimité)" }, corsHeaders);
-      if (!admin_email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(admin_email)) {
+      const email = String(admin_email || "").toLowerCase().trim();
+      if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
         return json(400, { error: "Email du premier admin requis et valide" }, corsHeaders);
+      }
+      if (!admin_password || typeof admin_password !== "string" || admin_password.length < 8) {
+        return json(400, { error: "Mot de passe du premier admin requis (8 caractères minimum)" }, corsHeaders);
+      }
+
+      // Compte auth d'abord : si l'email existe déjà, on n'a rien créé.
+      const fullName = [admin_first_name, admin_last_name].filter(Boolean).join(" ").trim();
+      const { data: created, error: createError } = await admin.auth.admin.createUser({
+        email,
+        password: admin_password,
+        email_confirm: true,
+        user_metadata: fullName ? { full_name: fullName } : {},
+      });
+      if (createError || !created?.user) {
+        const msg = createError?.message || "Création du compte impossible";
+        const already = /already|exists|registered/i.test(msg);
+        return json(already ? 409 : 500, {
+          error: already ? "Un compte existe déjà avec cet email." : `Création du compte impossible : ${msg}`,
+        }, corsHeaders);
       }
 
       const { data: org, error: orgError } = await admin
@@ -137,16 +159,17 @@ serve(async (req) => {
         })
         .select("id, name, slug, plan, max_users, monthly_quota")
         .single();
-      if (orgError) return json(500, { error: orgError.message }, corsHeaders);
+      if (orgError) {
+        await admin.auth.admin.deleteUser(created.user.id).catch(() => {});
+        return json(500, { error: orgError.message }, corsHeaders);
+      }
 
-      // Premier admin : invitation par email (réclamée au signup via
-      // link-user-to-org, même mécanique que invite-user).
       const { error: memberError } = await admin
         .from("organization_users")
         .insert({
           organization_id: org.id,
-          user_id: null,
-          email: String(admin_email).toLowerCase().trim(),
+          user_id: created.user.id,
+          email,
           first_name: admin_first_name || null,
           last_name: admin_last_name || null,
           role: "owner",
@@ -155,17 +178,17 @@ serve(async (req) => {
           is_active: true,
         });
       if (memberError) {
-        // Org créée mais invitation échouée : on remonte l'erreur sans casser l'org.
-        return json(500, {
-          error: `Organisation créée mais invitation échouée : ${memberError.message}`,
-          org,
-        }, corsHeaders);
+        // Rollback complet : ni compte orphelin, ni org vide.
+        await admin.from("organizations").delete().eq("id", org.id).catch(() => {});
+        await admin.auth.admin.deleteUser(created.user.id).catch(() => {});
+        return json(500, { error: `Rattachement du premier admin impossible : ${memberError.message}` }, corsHeaders);
       }
 
       return json(200, {
         success: true,
         org,
-        invite_link: "auth.html?email=" + encodeURIComponent(String(admin_email).toLowerCase().trim()),
+        admin_email: email,
+        login_link: "auth.html?email=" + encodeURIComponent(email),
       }, corsHeaders);
     }
 

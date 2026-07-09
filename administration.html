@@ -333,6 +333,13 @@
         <input type="email" class="form-input" id="inviteEmail" placeholder="Ex: jean@example.com" />
       </div>
       <div class="form-group">
+        <label class="form-label">Mot de passe</label>
+        <div style="display:flex;gap:8px;">
+          <input type="text" class="form-input" id="invitePassword" placeholder="8 caractères minimum" autocomplete="off" style="flex:1;" />
+          <button type="button" class="btn-cancel" id="btnGenPassword" style="white-space:nowrap;">Générer</button>
+        </div>
+      </div>
+      <div class="form-group">
         <label class="form-label">Rôle</label>
         <select class="form-select" id="inviteRole">
           <option value="member">Membre</option>
@@ -341,12 +348,12 @@
         </select>
       </div>
       <div style="font-size:12px;color:var(--slate-500);background:var(--slate-50);padding:12px;border-radius:6px;">
-        ℹ️ Un email d'invitation sera envoyé à l'utilisateur.
+        ℹ️ Le compte est créé immédiatement. Transmettez l'email et le mot de passe à l'utilisateur — il pourra se connecter directement.
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn-cancel" id="btnCancelInvite">Annuler</button>
-      <button class="btn-submit" id="btnSubmitInvite" disabled>Envoyer l'invitation</button>
+      <button class="btn-submit" id="btnSubmitInvite" disabled>Créer le compte</button>
     </div>
   </div>
 </div>
@@ -515,12 +522,23 @@ async function deleteMember(memberId) {
     alert('Vous n\'avez pas les permissions pour supprimer des utilisateurs');
     return;
   }
-  if (!confirm('Supprimer définitivement cet utilisateur?')) return;
+  if (!confirm('Supprimer définitivement cet utilisateur ?\n\nSon compte sera supprimé et il ne pourra plus se connecter.')) return;
   try {
-    const result = await orgService.deleteMember(memberId);
-    if (result) {
-      await loadMembers();
-    }
+    // Suppression via l'edge function : retire le membre ET supprime son
+    // compte auth (une suppression DB directe laisserait un compte orphelin
+    // capable de se connecter).
+    const session = await _sb.auth.getSession();
+    const response = await fetch(JURIA_CONFIG.INVITE_USER_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + session.data.session.access_token,
+      },
+      body: JSON.stringify({ action: 'remove', orgId: currentOrg.id, memberId }),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Suppression impossible');
+    await loadMembers();
   } catch (err) {
     alert('Erreur: ' + err.message);
   }
@@ -541,59 +559,74 @@ function closeInviteModal() {
   document.getElementById('inviteFirstName').value = '';
   document.getElementById('inviteLastName').value = '';
   document.getElementById('inviteEmail').value = '';
+  document.getElementById('invitePassword').value = '';
   document.getElementById('inviteRole').value = 'member';
   document.getElementById('btnSubmitInvite').disabled = true;
+}
+
+function generateInvitePassword() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  const buf = new Uint32Array(14);
+  crypto.getRandomValues(buf);
+  document.getElementById('invitePassword').value =
+    Array.from(buf, n => chars[n % chars.length]).join('');
+  document.getElementById('invitePassword').dispatchEvent(new Event('input'));
 }
 
 async function submitInvite() {
   const firstName = document.getElementById('inviteFirstName').value.trim();
   const lastName = document.getElementById('inviteLastName').value.trim();
-  const email = document.getElementById('inviteEmail').value.trim();
+  const email = document.getElementById('inviteEmail').value.trim().toLowerCase();
+  const password = document.getElementById('invitePassword').value;
   const role = document.getElementById('inviteRole').value;
 
-  if (!firstName || !lastName || !email) {
+  if (!firstName || !lastName || !email || !password) {
     alert('Veuillez remplir tous les champs');
     return;
   }
-
   if (!email.includes('@')) {
     alert('Email invalide');
+    return;
+  }
+  if (password.length < 8) {
+    alert('Le mot de passe doit contenir au moins 8 caractères');
     return;
   }
 
   try {
     document.getElementById('btnSubmitInvite').disabled = true;
 
+    const session = await _sb.auth.getSession();
     const response = await fetch(JURIA_CONFIG.INVITE_USER_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + session.data.session.access_token,
       },
       body: JSON.stringify({
         email,
+        password,
         firstName,
         lastName,
         role,
         orgId: currentOrg.id,
-        invitedBy: currentUser.id,
       }),
     });
 
+    const result = await response.json();
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Erreur lors de l\'invitation');
+      throw new Error(result.error || 'Erreur lors de la création du compte');
     }
 
-    const result = await response.json();
-    const inviteLink = result.inviteLink ?
-      (window.location.origin + result.inviteLink) :
-      (window.location.origin + '/auth.html?email=' + encodeURIComponent(email));
+    const loginLink = window.location.origin +
+      (result.loginLink || ('/auth.html?email=' + encodeURIComponent(email)));
 
     alert(
-      'Invitation créée!\n\n' +
-      'Email: ' + email + '\n\n' +
-      'L\'utilisateur doit créer son compte ici:\n' +
-      inviteLink
+      'Compte créé !\n\n' +
+      'Transmettez ces identifiants à l\'utilisateur :\n\n' +
+      'Email : ' + email + '\n' +
+      'Mot de passe : ' + password + '\n\n' +
+      'Connexion : ' + loginLink
     );
     closeInviteModal();
     await loadMembers();
@@ -626,14 +659,16 @@ document.getElementById('btnLogout').addEventListener('click', async function() 
 });
 
 // Valider le formulaire
-['inviteFirstName', 'inviteLastName', 'inviteEmail'].forEach(id => {
+['inviteFirstName', 'inviteLastName', 'inviteEmail', 'invitePassword'].forEach(id => {
   document.getElementById(id).addEventListener('input', function() {
     const canSubmit = document.getElementById('inviteFirstName').value.trim() &&
                      document.getElementById('inviteLastName').value.trim() &&
-                     document.getElementById('inviteEmail').value.trim();
+                     document.getElementById('inviteEmail').value.trim() &&
+                     document.getElementById('invitePassword').value.length >= 8;
     document.getElementById('btnSubmitInvite').disabled = !canSubmit;
   });
 });
+document.getElementById('btnGenPassword').addEventListener('click', generateInvitePassword);
 
 // Close modal when clicking outside
 document.getElementById('inviteModal').addEventListener('click', function(e) {
