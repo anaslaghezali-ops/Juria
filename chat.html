@@ -1852,7 +1852,14 @@ async function handleRagQuestion(question, token) {
   var res = await fetch(JURIA_CONFIG.CHAT_DOC_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-    body: JSON.stringify({ mode: 'rag', question: question, context: context })
+    body: JSON.stringify({
+      mode: 'rag',
+      question: question,
+      context: context,
+      // Historique (sans la question courante) : permet les relances du type
+      // « non mais il y a une date ! » sans repartir de zero.
+      history: conversationHistory.slice(0, -1)
+    })
   });
   var data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Erreur Edge Function');
