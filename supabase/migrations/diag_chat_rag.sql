@@ -43,7 +43,7 @@ union all
 select 'd_rls',
        c.relname,
        'rls=' || c.relrowsecurity::text,
-       coalesce((select string_agg(p.polname || '[' || p.polcmd || ']', ', ')
+       coalesce((select string_agg(p.polname || '[' || p.polcmd::text || ']', ', ')
                  from pg_policy p where p.polrelid = c.oid), 'AUCUNE POLICY')
 from pg_class c
 join pg_namespace ns on ns.oid = c.relnamespace

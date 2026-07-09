@@ -8,20 +8,36 @@ interface ProcessChunksRequest {
   chunk_version: number
 }
 
-// ✅ OWNERSHIP CHECK: Verify user owns the document
-async function verifyDocumentOwnership(
+// ✅ ACCESS CHECK : uploadeur du document, ou membre ACTIF de son org.
+// NB : documents n'a PAS de colonne user_id (c'est uploaded_by) — l'ancienne
+// version sélectionnait documents.user_id, la requête échouait donc sur
+// CHAQUE appel → 403 systématique → embeddings jamais calculés → chunks
+// bloqués en 'pending' → le RAG ne trouvait aucun passage.
+async function verifyDocumentAccess(
   documentId: string,
   userId: string,
   sb: any
 ): Promise<boolean> {
-  const { data } = await sb
+  const { data: doc } = await sb
     .from('documents')
-    .select('user_id')
+    .select('organization_id, uploaded_by')
     .eq('id', documentId)
-    .eq('user_id', userId)
-    .single();
+    .maybeSingle();
 
-  return !!data;
+  if (!doc) return false;
+  if (doc.uploaded_by === userId) return true;
+  if (!doc.organization_id) return false;
+
+  const { data: member } = await sb
+    .from('organization_users')
+    .select('id')
+    .eq('organization_id', doc.organization_id)
+    .eq('user_id', userId)
+    .eq('is_active', true)
+    .limit(1)
+    .maybeSingle();
+
+  return !!member;
 }
 
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
@@ -135,9 +151,9 @@ Deno.serve(async (req) => {
       return errorResponse(400, 'chunk_version is required', corsHeaders);
     }
 
-    // ✅ OWNERSHIP CHECK - Prevent User A from processing User B's documents
+    // ✅ ACCESS CHECK - Prevent User A from processing User B's documents
     const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    const isOwner = await verifyDocumentOwnership(body.document_id, userId, sb);
+    const isOwner = await verifyDocumentAccess(body.document_id, userId, sb);
 
     if (!isOwner) {
       return errorResponse(403, 'Forbidden: You do not have access to this document', corsHeaders);
