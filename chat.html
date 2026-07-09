@@ -283,6 +283,7 @@
 <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
 <script src="config.js"></script>
 <script src="init-common.js"></script>
+<script src="services/chunk-utils.js"></script>
 <script src="fetch-safe.js"></script>
 <script src="auth-guard.js"></script>
 <script src="rate-limit.js"></script>
@@ -530,7 +531,10 @@ const ConversationManager = {
 };
 
 // ---- MODE RAG (chat sur un document spécifique) ----
-const ragDocId = new URLSearchParams(window.location.search).get('id');
+// `let` : un document uploadé dans le chat est désormais ingéré comme
+// document de l'organisation, puis interrogé via le même pipeline RAG
+// que les documents analysés (ragDocId est alors défini après ingestion).
+let ragDocId = new URLSearchParams(window.location.search).get('id');
 let ragMode = !!ragDocId; // true si on arrive avec ?id=UUID
 var conversationHistory = []; // Mémoire des 3 derniers échanges
 
@@ -1467,6 +1471,14 @@ document.getElementById('contractFile').addEventListener('change', async functio
     }
     userInput.value = 'Analyse ce contrat et identifie les problèmes.';
     userInput.dispatchEvent(new Event('input'));
+
+    // Ingestion : le document devient un document de l'organisation
+    // (chunké + indexé), et les questions passent par le pipeline RAG —
+    // plus de troncature. En cas d'échec (pas d'organisation, quota de
+    // stockage atteint…), on garde l'ancien chemin en mémoire.
+    ingestChatDocument(file, uploadedContractText).catch(function(e) {
+      console.warn('[chat] Ingestion RAG impossible, mode mémoire conservé:', e.message || e);
+    });
   } catch(e) {
     console.error('File error:', e);
     alert('Erreur lors de la lecture du fichier. Réessayez.');
@@ -1474,9 +1486,80 @@ document.getElementById('contractFile').addEventListener('change', async functio
   }
 });
 
+// ── INGESTION : document du chat → document d'organisation + chunks RAG ──
+async function ingestChatDocument(file, extractedText) {
+  if (!extractedText || extractedText.trim().length === 0) return;
+  if (!currentUser) return;
+
+  var membership = await _sb
+    .from('organization_users')
+    .select('organization_id')
+    .eq('user_id', currentUser.id)
+    .eq('is_active', true)
+    .limit(1)
+    .maybeSingle();
+  if (!membership.data?.organization_id) throw new Error('Aucune organisation active');
+  var orgId = membership.data.organization_id;
+
+  // 1. Le document (mêmes champs que l'upload documents.html ; le trigger
+  //    de quota de stockage s'applique ici aussi)
+  var docRes = await _sb.from('documents').insert({
+    organization_id: orgId, uploaded_by: currentUser.id,
+    name: file.name, file_type: file.name.split('.').pop().toLowerCase(),
+    file_size: file.size, document_type: 'autre', language: 'fr',
+    governing_law: 'Droit marocain', storage_bucket: 'juria-documents',
+    currency: 'MAD', chunk_version: 1, status: 'imported',
+    is_starred: false, is_archived: false,
+    created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+  }).select().single();
+  if (docRes.error) throw new Error(docRes.error.message);
+  var doc = docRes.data;
+
+  // 2. Le texte extrait
+  await _sb.from('document_content').upsert({
+    document_id: doc.id,
+    extracted_text: extractedText,
+    updated_at: new Date().toISOString(),
+  });
+
+  // 3. Les chunks (embeddings calculés par process-chunks, en lots)
+  var chunkRows = juriaPrepareChunks(extractedText).map(function(c) {
+    c.document_id = doc.id;
+    c.chunk_version = 1;
+    delete c.embedding;
+    return c;
+  });
+  if (chunkRows.length > 0) {
+    var chunksRes = await _sb.from('document_chunks').insert(chunkRows);
+    if (chunksRes.error) throw new Error(chunksRes.error.message);
+
+    // Indexation en arrière-plan : si une question arrive avant la fin,
+    // handleRagQuestion relance process-chunks et réessaie tout seul.
+    var session = await _sb.auth.getSession();
+    fetch(JURIA_CONFIG.SUPABASE_URL + '/functions/v1/process-chunks', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + session.data.session.access_token,
+      },
+      body: JSON.stringify({ document_id: doc.id, chunk_version: 1 }),
+    }).catch(function(e) { console.warn('[chat] process-chunks:', e); });
+  }
+
+  // 4. Basculer les questions vers le pipeline RAG
+  ragDocId = doc.id;
+  ragMode = true;
+  console.log('[chat] Document ingéré pour RAG:', doc.id, '(' + chunkRows.length + ' chunks)');
+}
+
 function clearFile() {
   uploadedContractText = null;
   uploadedFileName = null;
+  // Revenir au contexte d'origine : si le RAG venait de l'ingestion du
+  // fichier (et non de l'URL ?id=), les questions redeviennent générales.
+  var urlDocId = new URLSearchParams(window.location.search).get('id');
+  ragDocId = urlDocId;
+  ragMode = !!urlDocId;
   document.getElementById('contractFile').value = '';
   document.getElementById('userInput').placeholder = 'Posez votre question juridique…';
   document.getElementById('filePreview').style.display = 'none';
