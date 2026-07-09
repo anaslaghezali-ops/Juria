@@ -5,7 +5,10 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.0'
 
 interface ProcessChunksRequest {
   document_id: string
-  chunk_version: number
+  // Optionnel : sans version, traite TOUS les chunks pending/failed du
+  // document (permet de réindexer un document dont l'indexation initiale
+  // a échoué — ex. le bug documents.user_id qui rendait tout appel 403).
+  chunk_version?: number
 }
 
 // ✅ ACCESS CHECK : uploadeur du document, ou membre ACTIF de son org.
@@ -72,12 +75,17 @@ async function getEmbedding(text: string): Promise<number[]> {
 async function processChunks(request: ProcessChunksRequest) {
   const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
-  const { data: pendingChunks, error: fetchError } = await sb
+  let query = sb
     .from('document_chunks')
     .select('*')
     .eq('document_id', request.document_id)
-    .eq('chunk_version', request.chunk_version)
-    .eq('indexing_status', 'pending')
+    .in('indexing_status', ['pending', 'failed'])
+
+  if (request.chunk_version !== undefined) {
+    query = query.eq('chunk_version', request.chunk_version)
+  }
+
+  const { data: pendingChunks, error: fetchError } = await query
 
   if (fetchError) throw fetchError
   if (!pendingChunks || pendingChunks.length === 0) {
@@ -147,8 +155,8 @@ Deno.serve(async (req) => {
     if (!body.document_id || typeof body.document_id !== 'string') {
       return errorResponse(400, 'document_id is required', corsHeaders);
     }
-    if (body.chunk_version === undefined || typeof body.chunk_version !== 'number') {
-      return errorResponse(400, 'chunk_version is required', corsHeaders);
+    if (body.chunk_version !== undefined && typeof body.chunk_version !== 'number') {
+      return errorResponse(400, 'chunk_version must be a number', corsHeaders);
     }
 
     // ✅ ACCESS CHECK - Prevent User A from processing User B's documents

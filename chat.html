@@ -295,7 +295,6 @@
 // JURIA_CONFIG loaded from config.js with CHAT_DOC_URL pre-configured
 
 let currentUser = null;
-let currentOrgId = null;
 let userProfile = null;
 let isLoading   = false;
 let currentConversationId = null;
@@ -328,7 +327,10 @@ const ConversationManager = {
 
   // Créer une nouvelle conversation
   createNew: function() {
-    const id = 'conv_' + Date.now();
+    // UUID natif : chat_conversations.id est de type uuid en base — les
+    // anciens ids 'conv_<timestamp>' faisaient échouer CHAQUE upsert de
+    // persistance avec 400 « invalid input syntax for type uuid ».
+    const id = (crypto.randomUUID) ? crypto.randomUUID() : 'conv_' + Date.now();
     const conversation = {
       id: id,
       title: 'Nouvelle discussion',
@@ -573,24 +575,6 @@ async function init() {
   document.getElementById('sidebarAvatar').textContent = initials;
   document.getElementById('sidebarName').textContent   = name;
 
-  // Charger l'organization_id de l'utilisateur
-  try {
-    const { data: membership, error: membershipError } = await _sb
-      .from('organization_users')
-      .select('organization_id')
-      .eq('user_id', currentUser.id)
-      .eq('is_active', true)
-      .limit(1)
-      .maybeSingle();
-    if (membership) {
-      currentOrgId = membership.organization_id;
-    } else {
-      console.warn('No organization found for user:', currentUser.id);
-    }
-  } catch (e) {
-    console.warn('Failed to load organization:', e);
-  }
-
   try {
     const { data: profile, error } = await _sb.from('user_profiles_compat').select('*').eq('id', currentUser.id).single();
     if (error) {
@@ -687,11 +671,14 @@ async function syncConversationsWithSupabase() {
 // Sauvegarder une conversation dans Supabase (async)
 async function persistConversationToSupabase(conversation) {
   if (!currentUser || !_sb) return;
+  // Conversations héritées ('conv_<timestamp>') : id non-uuid, la base les
+  // refuse (400). Elles restent en localStorage uniquement.
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(conversation.id);
+  if (!isUuid) return;
   try {
     const convData = {
       id: conversation.id,
       user_id: currentUser.id,
-      organization_id: currentOrgId,
       title: conversation.title,
       updated_at: conversation.updated_at
     };
@@ -707,7 +694,6 @@ async function persistConversationToSupabase(conversation) {
     if (conversation.messages && conversation.messages.length > 0) {
       const msgData = conversation.messages.map(msg => ({
         conversation_id: conversation.id,
-        organization_id: currentOrgId,
         role: msg.role,
         content: msg.content,
         created_at: msg.created_at || new Date().toISOString()
@@ -945,7 +931,6 @@ async function saveConversation(question, answer, articles) {
     if (!currentUser) return;
     await _sb.from('conversations').insert({
       user_id: currentUser.id,
-      organization_id: currentOrgId,
       question: question,
       answer: answer,
       articles_cited: articles.map(function(a){ return { id: a.id, numero: a.numero_article }; })
@@ -1832,7 +1817,32 @@ async function handleRagQuestion(question, token) {
   if (result.error) throw new Error('Erreur recherche: ' + result.error.message);
 
   if (!result.data || result.data.length === 0) {
-    return '❌ Aucun passage pertinent trouvé. Le document est peut-être en cours d\'indexation.';
+    // Aucun passage : les embeddings du document manquent peut-être
+    // (indexation initiale échouée). On relance process-chunks (traite
+    // tous les chunks pending/failed) puis on réessaie UNE fois.
+    console.warn('[RAG] 0 passage — tentative de réindexation du document', ragDocId);
+    try {
+      var reindex = await fetch(JURIA_CONFIG.SUPABASE_URL + '/functions/v1/process-chunks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ document_id: ragDocId })
+      });
+      var reindexData = await reindex.json().catch(function() { return {}; });
+      console.log('[RAG] process-chunks:', reindex.status, reindexData);
+      if (reindex.ok && reindexData.processed > 0) {
+        result = await _sb.rpc('match_document_chunks', {
+          document_id: ragDocId,
+          query_embedding: embedding,
+          match_count: 10
+        });
+      }
+    } catch (e) {
+      console.warn('[RAG] Réindexation impossible:', e);
+    }
+  }
+
+  if (!result.data || result.data.length === 0) {
+    return '❌ Aucun passage pertinent trouvé. Le document est peut-être en cours d\'indexation — réessayez dans une minute, ou relancez l\'analyse du document.';
   }
 
   var context = result.data
