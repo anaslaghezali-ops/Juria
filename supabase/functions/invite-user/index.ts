@@ -102,7 +102,11 @@ serve(async (req) => {
     const isOrgAdmin = ["owner", "admin"].includes(membershipRes.data?.role || "")
     const isSuperadmin = !!superadminRes.data
     if (!isOrgAdmin && !isSuperadmin) {
-      return json(403, { error: "Seul un administrateur de l'organisation peut gérer les membres" })
+      // Le rôle détecté est inclus : distingue "compte non admin" (member,
+      // viewer…) de "adhésion introuvable" (mauvais orgId, membre inactif).
+      return json(403, {
+        error: `Seul un administrateur de l'organisation peut gérer les membres (votre rôle : ${membershipRes.data?.role || "aucune adhésion active trouvée"}).`,
+      })
     }
 
     // ── ACTION REMOVE : retirer un membre ────────────────────────────────

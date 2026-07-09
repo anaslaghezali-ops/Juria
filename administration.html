@@ -444,11 +444,15 @@ async function loadMembers() {
       </td>
       <td>${m.email}</td>
       <td>
+        ${m.role === 'owner' ? `
+          <span class="badge badge-active" title="Propriétaire de l'organisation">Propriétaire</span>
+        ` : `
         <select class="role-select" onchange="changeRole('${m.id}', this.value)" ${!isCurrentUserAdmin ? 'disabled' : ''}>
           <option value="viewer" ${m.role === 'viewer' ? 'selected' : ''}>Lecteur</option>
           <option value="member" ${m.role === 'member' ? 'selected' : ''}>Membre</option>
           <option value="admin" ${m.role === 'admin' ? 'selected' : ''}>Admin</option>
         </select>
+        `}
       </td>
       <td>
         <span class="badge ${m.is_active ? 'badge-active' : 'badge-inactive'}">

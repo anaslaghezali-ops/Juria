@@ -75,6 +75,15 @@ organique, tous deux corrigés dans `link-user-to-org`), rattache le compte à
 Depuis ce fix, Juria est **sur invitation uniquement** : aucun compte ne peut
 être créé sans invitation préalable (superadmin ou admin d'organisation).
 
+### `09_superadmin_purge_org.sql`
+Fonction `superadmin_purge_organization(uuid)` (SECURITY DEFINER, service
+role uniquement) : purge complète d'une organisation par introspection —
+enfants des documents (`document_id`), messages des conversations
+(`conversation_id`), toute table portant `organization_id` / `org_id`, puis
+l'organisation. Appelée par l'action `delete_org` de l'edge function
+superadmin, qui supprime ensuite les comptes auth des membres n'appartenant
+à aucune autre organisation.
+
 ## Verified behavior (RLS ON)
 
 | Context       | Own org | Sees members | Writes |

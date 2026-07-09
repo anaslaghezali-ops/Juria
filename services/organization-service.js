@@ -363,15 +363,18 @@ class OrganizationService extends BaseService {
    * @returns {Promise<Object|null>}
    */
   async getMemberByUserId(orgId, userId) {
+    // limit(1) + maybeSingle : .single() échoue aussi bien sur ZÉRO ligne
+    // que sur PLUSIEURS (ex. double invitation réclamée) — et un admin
+    // légitime se retrouvait détecté non-admin.
     const { data, error } = await this._sb
       .from(this._table)
       .select('*')
       .eq('organization_id', orgId)
       .eq('user_id', userId)
-      .single();
+      .limit(1)
+      .maybeSingle();
 
     if (error) {
-      if (error.code === 'PGRST116') return null; // Not found
       this._handleError('getMemberByUserId', error);
       return null;
     }

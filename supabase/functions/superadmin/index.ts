@@ -11,8 +11,9 @@ import { getCorsHeaders, handleCorsPreFlight } from "../_shared/cors.ts";
  *
  * Actions (POST { action, ...payload }) :
  *   - list_orgs    : organisations + membres + consommation du mois
- *   - create_org   : créer une org cliente + inviter son premier admin
+ *   - create_org   : créer une org cliente + son premier admin (provisioning)
  *   - update_org   : modifier name / plan / monthly_quota / max_users
+ *   - delete_org   : purge complète (données + comptes des membres)
  *   - org_usage    : historique de consommation d'une org (12 mois)
  *   - update_cost  : ajuster le coût unitaire d'une opération
  */
@@ -230,6 +231,61 @@ serve(async (req) => {
       return json(200, { success: true, org }, corsHeaders);
     }
 
+    // ── DELETE_ORG : purge complète (données + comptes membres) ─────────
+    if (action === "delete_org") {
+      const { org_id, confirm_name } = body;
+      if (!org_id) return json(400, { error: "org_id requis" }, corsHeaders);
+
+      const { data: org } = await admin
+        .from("organizations")
+        .select("id, name")
+        .eq("id", org_id)
+        .maybeSingle();
+      if (!org) return json(404, { error: "Organisation introuvable" }, corsHeaders);
+
+      // Confirmation forte : le nom exact doit être fourni.
+      if (confirm_name !== org.name) {
+        return json(400, { error: "confirm_name ne correspond pas au nom de l'organisation" }, corsHeaders);
+      }
+
+      // Membres AVANT purge (pour supprimer leurs comptes auth ensuite)
+      const { data: members } = await admin
+        .from("organization_users")
+        .select("user_id")
+        .eq("organization_id", org_id)
+        .not("user_id", "is", null);
+      const userIds: string[] = [...new Set((members || []).map((m) => m.user_id))];
+
+      // Purge SQL (documents + enfants, conversations, usage, membres, org)
+      const { error: purgeError } = await admin.rpc("superadmin_purge_organization", {
+        p_org_id: org_id,
+      });
+      if (purgeError) return json(500, { error: `Purge impossible : ${purgeError.message}` }, corsHeaders);
+
+      // Comptes auth : supprimés seulement s'ils n'appartiennent à aucune
+      // autre organisation (et jamais un superadmin).
+      let deletedAccounts = 0;
+      for (const uid of userIds) {
+        const [{ count }, { data: isSa }] = await Promise.all([
+          admin.from("organization_users")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", uid),
+          admin.from("superadmins").select("user_id").eq("user_id", uid).maybeSingle(),
+        ]);
+        if ((count ?? 0) === 0 && !isSa) {
+          const { error: delError } = await admin.auth.admin.deleteUser(uid);
+          if (!delError) deletedAccounts++;
+          else console.error("[superadmin] deleteUser failed:", uid, delError.message);
+        }
+      }
+
+      return json(200, {
+        success: true,
+        message: `Organisation « ${org.name} » supprimée (${deletedAccounts} compte(s) supprimé(s)).`,
+        deleted_accounts: deletedAccounts,
+      }, corsHeaders);
+    }
+
     // ── ORG_USAGE (historique 12 mois) ──────────────────────────────────
     if (action === "org_usage") {
       const { org_id } = body;
@@ -268,7 +324,7 @@ serve(async (req) => {
       return json(200, { success: true, cost: data }, corsHeaders);
     }
 
-    return json(400, { error: "action invalide (list_orgs | create_org | update_org | org_usage | update_cost)" }, corsHeaders);
+    return json(400, { error: "action invalide (list_orgs | create_org | update_org | delete_org | org_usage | update_cost)" }, corsHeaders);
   } catch (error) {
     const message = (error as { message?: string })?.message || "Erreur interne";
     console.error("[superadmin]", message);

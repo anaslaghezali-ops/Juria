@@ -270,14 +270,6 @@
         <div class="field"><label>Nom</label><input type="text" id="cAdminLast"/></div>
       </div>
 
-      <div class="invite-box" id="inviteBox" style="display:none">
-        <p>✓ Organisation et compte créés. Transmettez ces identifiants au client :</p>
-        <div class="invite-link">
-          <input type="text" id="inviteLink" readonly/>
-          <button class="btn btn-sm" onclick="copyInvite()">Copier</button>
-        </div>
-      </div>
-
       <div class="modal-actions">
         <button class="btn" onclick="closeModal('createModal')">Fermer</button>
         <button class="btn btn-primary" id="cSubmit" onclick="createOrg()">Créer l'organisation</button>
@@ -320,6 +312,15 @@
       <div class="modal-actions">
         <button class="btn" onclick="closeModal('editModal')">Annuler</button>
         <button class="btn btn-primary" id="eSubmit" onclick="saveOrg()">Enregistrer</button>
+      </div>
+
+      <div style="margin-top:22px;padding-top:16px;border-top:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--red);margin-bottom:8px">Zone danger</div>
+        <p style="font-size:12.5px;color:var(--slate-500);margin-bottom:10px;line-height:1.5">
+          Supprime définitivement l'organisation, toutes ses données (documents,
+          analyses, synthèses, conversations) et les comptes de ses membres.
+        </p>
+        <button class="btn btn-sm" style="color:var(--red);border-color:#fecaca" onclick="deleteOrg()">Supprimer l'organisation…</button>
       </div>
     </div>
   </div>
@@ -520,7 +521,6 @@ async function saveCost(type) {
 
 // ── Création ─────────────────────────────────────────────────────────────
 function openCreateModal() {
-  document.getElementById('inviteBox').style.display = 'none';
   document.getElementById('cSubmit').disabled = false;
   document.getElementById('createModal').classList.add('show');
 }
@@ -554,23 +554,17 @@ async function createOrg() {
       admin_first_name: document.getElementById('cAdminFirst').value,
       admin_last_name: document.getElementById('cAdminLast').value,
     });
-    toast('Organisation et compte créés ✓', 'success');
-    const loginUrl = new URL(data.login_link, window.location.href).href;
-    document.getElementById('inviteLink').value =
-      `${loginUrl} — email : ${data.admin_email} — mot de passe : ${password}`;
-    document.getElementById('inviteBox').style.display = 'block';
+    toast(`Organisation créée ✓ — ${data.admin_email} peut se connecter`, 'success');
+    closeModal('createModal');
+    ['cName', 'cAdminEmail', 'cAdminPassword', 'cAdminFirst', 'cAdminLast'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
     await loadOrgs();
   } catch (e) {
     toast(e.message, 'error');
+  } finally {
     btn.disabled = false;
   }
-}
-
-function copyInvite() {
-  const input = document.getElementById('inviteLink');
-  navigator.clipboard.writeText(input.value)
-    .then(() => toast('Lien copié ✓', 'success'))
-    .catch(() => { input.select(); document.execCommand('copy'); toast('Lien copié ✓', 'success'); });
 }
 
 // ── Édition ──────────────────────────────────────────────────────────────
@@ -611,6 +605,27 @@ async function saveOrg() {
     toast(e.message, 'error');
   } finally {
     btn.disabled = false;
+  }
+}
+
+async function deleteOrg() {
+  const o = orgsCache.find(x => x.id === editingOrgId);
+  if (!o) return;
+  const typed = prompt(
+    `SUPPRESSION DÉFINITIVE de « ${o.name} »\n\n` +
+    `Toutes ses données et les comptes de ses membres seront supprimés.\n\n` +
+    `Pour confirmer, tapez le nom exact de l'organisation :`
+  );
+  if (typed === null) return;
+  if (typed !== o.name) { toast('Nom incorrect — suppression annulée', 'error'); return; }
+
+  try {
+    const data = await api({ action: 'delete_org', org_id: o.id, confirm_name: typed });
+    toast(data.message || 'Organisation supprimée ✓', 'success');
+    closeModal('editModal');
+    await loadOrgs();
+  } catch (e) {
+    toast(e.message, 'error');
   }
 }
 

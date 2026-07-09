@@ -23,7 +23,7 @@ on:
       - '.github/workflows/apply-migrations.yml'
 
 env:
-  PENDING_MIGRATIONS: "08_fix_cabinet_duplicate_org.sql"
+  PENDING_MIGRATIONS: "09_superadmin_purge_org.sql"
 
 jobs:
   apply:
