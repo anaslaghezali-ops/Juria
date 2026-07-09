@@ -84,6 +84,16 @@ l'organisation. Appelée par l'action `delete_org` de l'edge function
 superadmin, qui supprime ensuite les comptes auth des membres n'appartenant
 à aucune autre organisation.
 
+### `diag_*.sql` (pas des migrations)
+Fichiers de diagnostic en lecture seule, exécutés à la demande via le
+workflow `apply-migrations` (input `files=diag_….sql`), qui affiche le
+résultat des SELECT dans les logs du run. `diag_chat_rag.sql` a établi la
+cause racine du bug « Aucun passage pertinent trouvé » : chunks bloqués en
+`pending` (process-chunks interrogeait la colonne inexistante
+`documents.user_id` → 403 systématique → embeddings jamais calculés), et
+ids de conversation non-uuid (`conv_<timestamp>`) rejetés par
+`chat_conversations.id` (le 400 de persistance).
+
 ## Verified behavior (RLS ON)
 
 | Context       | Own org | Sees members | Writes |
