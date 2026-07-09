@@ -23,7 +23,7 @@ on:
       - '.github/workflows/apply-migrations.yml'
 
 env:
-  PENDING_MIGRATIONS: "06_quota_system_v2.sql 07_superadmin.sql"
+  PENDING_MIGRATIONS: "08_fix_cabinet_duplicate_org.sql"
 
 jobs:
   apply:

@@ -263,7 +263,7 @@ async function handleLogin() {
 
 async function handleSignup() {
   const name     = document.getElementById('signupName').value.trim();
-  const email    = document.getElementById('signupEmail').value.trim();
+  const email    = document.getElementById('signupEmail').value.trim().toLowerCase();
   const password = document.getElementById('signupPassword').value;
 
   if (!name || !email || !password) { showError('Veuillez remplir tous les champs.'); return; }
@@ -279,20 +279,42 @@ async function handleSignup() {
   setLoading('btnSignup', true);
   hideAlerts();
 
+  const LINK_URL = JURIA_CONFIG.LINK_USER_TO_ORG_URL || 'https://dnrudcpaqcqyybpbbrum.supabase.co/functions/v1/link-user-to-org';
+
+  // Juria est sur invitation uniquement : on vérifie AVANT de créer le
+  // compte auth qu'une invitation existe pour cet email.
+  try {
+    const checkRes = await fetch(LINK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email, check: true })
+    });
+    const checkData = await checkRes.json();
+    if (!checkRes.ok || !checkData.invited) {
+      setLoading('btnSignup', false);
+      showError("Aucune invitation trouvée pour cet email. Les comptes Juria sont créés sur invitation — rapprochez-vous de l'administrateur de votre organisation.");
+      return;
+    }
+  } catch (err) {
+    setLoading('btnSignup', false);
+    showError("Impossible de vérifier votre invitation. Réessayez dans un instant.");
+    return;
+  }
+
   const { data: authData, error } = await _sb.auth.signUp({
     email,
-    password
+    password,
+    options: { data: { full_name: name } }
   });
 
   setLoading('btnSignup', false);
 
   if (error) { showError(error.message); return; }
 
-  // Provision organization membership: claims a pending invitation if one
-  // exists, otherwise creates a personal organization for this user.
+  // Réclame l'invitation en attente (lie le compte à son organisation).
   if (authData.user?.id) {
     try {
-      const linkResponse = await fetch(JURIA_CONFIG.LINK_USER_TO_ORG_URL || 'https://dnrudcpaqcqyybpbbrum.supabase.co/functions/v1/link-user-to-org', {
+      const linkResponse = await fetch(LINK_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -303,6 +325,10 @@ async function handleSignup() {
       });
       const linkResult = await linkResponse.json();
       console.log('[handleSignup] Link result:', linkResult);
+      if (!linkResponse.ok) {
+        showError(linkResult.error || "Votre compte a été créé mais n'a pas pu être rattaché à une organisation. Contactez votre administrateur.");
+        return;
+      }
     } catch (err) {
       console.error('[handleSignup] Error linking user to organization:', err);
     }

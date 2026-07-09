@@ -67,6 +67,14 @@ Back-office fondateur (`superadmin.html` + edge function `superadmin`).
 > `apply-migrations.yml` (API de management Supabase) et vérifiées :
 > `operation_costs=4, superadmins=1, monthly_quota_col=1`.
 
+### `08_fix_cabinet_duplicate_org.sql`
+Data fix : supprime l'org trial créée en doublon au signup de
+`cabinet@cabinet.com` (claim d'invitation sensible à la casse + signup
+organique, tous deux corrigés dans `link-user-to-org`), rattache le compte à
+« Cabinet 1 », et normalise en minuscules les emails d'invitations en attente.
+Depuis ce fix, Juria est **sur invitation uniquement** : aucun compte ne peut
+être créé sans invitation préalable (superadmin ou admin d'organisation).
+
 ## Verified behavior (RLS ON)
 
 | Context       | Own org | Sees members | Writes |

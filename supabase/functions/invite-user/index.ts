@@ -39,12 +39,14 @@ serve(async (req) => {
 
     // Simply add to organization_users with user_id = null
     // User will create their own account later via auth.html
+    // Email normalisé : le claim (link-user-to-org) matche déjà en
+    // insensible à la casse, mais on garde la base propre.
     const { data: member, error: addError } = await supabase
       .from("organization_users")
       .insert({
         organization_id: orgId,
         user_id: null,
-        email,
+        email: String(email).toLowerCase().trim(),
         first_name: firstName || null,
         last_name: lastName || null,
         role: role || "member",
