@@ -502,11 +502,24 @@ serve(async (req) => {
     const isContract = contractKeywords.some(kw => question.toLowerCase().includes(kw));
 
     if (isContract) {
+      if (orgId) {
+        const quotaCheck = await checkOrgQuota(orgId, "chat", 1);
+        if (!quotaCheck.allowed) {
+          return new Response(JSON.stringify({
+            error: quotaCheck.reason || "Quota organisation atteint",
+            code: "QUOTA_EXCEEDED",
+            remaining_credits: quotaCheck.remaining_credits,
+          }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+      }
       const articles = await vectorSearch(question, 5);
       const articlesContext = articles.map((a: any) => a.numero_article + " : " + a.contenu).join(" === ");
       const contractSystem = "Tu es Juria, expert juridique marocain. Rédige un contrat complet conforme au droit marocain. Utilise [INFORMATION À COMPLÉTER] pour les champs variables. Structure: EN-TÊTE, PARTIES, PRÉAMBULE, OBJET, DURÉE, CONDITIONS FINANCIÈRES, OBLIGATIONS, RÉSILIATION, LITIGES, SIGNATURES. Articles: " + articlesContext + ". Retourne UNIQUEMENT un JSON: {\"answer\": \"contrat complet\", \"used_indices\": [], \"based_on_articles\": false}";
       const result = await callOpenAI(contractSystem, "Demande: " + question, 2000);
       await incrementQuota();
+      if (orgId) {
+        logQuotaUsage(orgId, "chat", 1).catch(e => console.warn("[smart-endpoint] Quota log failed:", e));
+      }
       return new Response(JSON.stringify({ answer: result.answer || "", citations: [], is_contract: true }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -514,6 +527,16 @@ serve(async (req) => {
 
     // ---- MODE LIVRABLE (génération de document) ----
     if (mode === "deliverable") {
+      if (orgId) {
+        const quotaCheck = await checkOrgQuota(orgId, "chat", 1);
+        if (!quotaCheck.allowed) {
+          return new Response(JSON.stringify({
+            error: quotaCheck.reason || "Quota organisation atteint",
+            code: "QUOTA_EXCEEDED",
+            remaining_credits: quotaCheck.remaining_credits,
+          }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+      }
       const deliverableSystem = [
         "Tu es Juria, expert juridique marocain senior. Tu génères des documents professionnels structurés pour des praticiens du droit.",
         "Le document doit être complet, précis, directement utilisable et basé sur le droit marocain.",
@@ -530,6 +553,9 @@ serve(async (req) => {
 
       const delivResult = await callOpenAIMessages(deliverableMessages, 2000);
       await incrementQuota();
+      if (orgId) {
+        logQuotaUsage(orgId, "chat", 1).catch(e => console.warn("[smart-endpoint] Quota log failed:", e));
+      }
       return new Response(
         JSON.stringify({ answer: delivResult.answer || "", citations: [], is_contract: false, needs_clarification: false }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -537,6 +563,21 @@ serve(async (req) => {
     }
 
     // ---- MODE QUESTION JURIDIQUE ----
+    // Quota v2 : les questions juridiques générales consomment des crédits
+    // "chat" comme les questions sur document (trou de facturation corrigé).
+    if (orgId) {
+      const quotaCheck = await checkOrgQuota(orgId, "chat", 1);
+      if (!quotaCheck.allowed) {
+        return new Response(JSON.stringify({
+          error: quotaCheck.reason || "Quota organisation atteint",
+          code: "QUOTA_EXCEEDED",
+          remaining_credits: quotaCheck.remaining_credits,
+        }), {
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     // ETAPE 1 : Reconstruire la question comme une question autonome (remplace l'ancienne extraction de "topic")
     let searchQuery = question;
     let standaloneQuestion = question;
@@ -577,24 +618,13 @@ serve(async (req) => {
       console.warn("Reformulation failed:", e);
     }
 
-    // ETAPE 2 : Classifier juridique — identifier les codes pertinents
-    let codeFilter: string[] = [];
-    try {
-      const classifierResult = await callOpenAI(
-        "Tu es expert juridique marocain. Identifie les codes juridiques pertinents pour la question. Retourne UNIQUEMENT un JSON avec: codes (noms des codes parmi: Code des Assurances Loi 17-99 / Code de Commerce / Code du Travail Loi 65-99 / Code des Obligations et Contrats / Legislation commerciale) et confidence (0 a 1). Si general ou multi-codes, confidence < 0.7.",
-        "Question: " + standaloneQuestion + " | Recherche: " + searchQuery,
-        100
-      );
+    // ETAPE 2 (supprimée) : le classifier de codes était désactivé depuis le
+    // 21/06 (il excluait à tort les lois spécialisées type OPCI absentes de sa
+    // liste) mais l'appel GPT restait exécuté à CHAQUE question, pour rien.
+    // La recherche hybride BM25+vecteur couvre tous les codes sans filtre.
+    const codeFilter: string[] = [];
 
-      if (classifierResult.confidence >= 0.7 && classifierResult.codes && classifierResult.codes.length > 0) {
-        console.log("Classifier (DESACTIVE temporairement):", classifierResult.codes, "confidence:", classifierResult.confidence);
-        // codeFilter = classifierResult.codes; // DESACTIVE le 2026-06-21 pour diagnostiquer pourquoi certains articles (ex: Loi 70-14 OPCI) ne remontent pas. Le classifier ne connait que les codes traditionnels (Commerce, Travail, Assurances...) et exclut a tort des lois specialisees (OPCI, marche des capitaux, etc.) absentes de sa liste.
-      }
-    } catch(e) {
-      console.warn("Classifier failed, searching all codes:", e);
-    }
-
-    // ETAPE 3 : Recherche hybride — Top 30 candidats (filtrée par code si classifier confiant)
+    // ETAPE 3 : Recherche hybride — Top 30 candidats
     const candidateArticles = await vectorSearch(searchQuery, 30, codeFilter);
 
     // DEBUG: logguer le TOP30 brut avant reranking pour diagnostiquer si le retrieval trouve les bons articles
@@ -694,6 +724,9 @@ serve(async (req) => {
       const fallbackIndices: number[] = result.used_indices || [];
       const fallbackCitations = fallbackIndices.map((i: number) => articles[i]).filter(Boolean);
       await incrementQuota();
+      if (orgId) {
+        logQuotaUsage(orgId, "chat", 1).catch(e => console.warn("[smart-endpoint] Quota log failed:", e));
+      }
       return new Response(
         JSON.stringify({ answer: result.answer || "", citations: fallbackCitations, is_contract: false, needs_clarification: result.needs_clarification || false }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -703,6 +736,9 @@ serve(async (req) => {
     const legalTopic = result.legal_topic || "default";
     const deliverables = getDeliverables(legalTopic + " " + standaloneQuestion);
     await incrementQuota();
+    if (orgId) {
+      logQuotaUsage(orgId, "chat", 1).catch(e => console.warn("[smart-endpoint] Quota log failed:", e));
+    }
     return new Response(
       JSON.stringify({ answer: result.answer || "", citations: validatedCitations, is_contract: false, needs_clarification: result.needs_clarification || false, deliverables: deliverables, legal_topic: legalTopic }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }

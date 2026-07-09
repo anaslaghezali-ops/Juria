@@ -94,6 +94,12 @@ Quota de stockage par organisation (variable payante gérée au superadmin) :
 Affichage : colonne + champs dans superadmin.html ; carte « Consommation »
 (crédits IA du mois + stockage) dans administration.html pour l'admin d'org.
 
+### `11_match_threshold.sql`
+`match_document_chunks` déclarait un paramètre `match_threshold` qu'elle
+n'appliquait pas : le top-N était renvoyé même totalement hors sujet, et l'IA
+répondait « basé sur 10 passages » à partir de bruit. Le seuil de similarité
+est désormais appliqué (défaut 0.2, calibré pour text-embedding-3-small).
+
 ### `diag_*.sql` (pas des migrations)
 Fichiers de diagnostic en lecture seule, exécutés à la demande via le
 workflow `apply-migrations` (input `files=diag_….sql`), qui affiche le

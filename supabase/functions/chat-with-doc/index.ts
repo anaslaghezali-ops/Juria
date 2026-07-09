@@ -1,5 +1,6 @@
 import { getCorsHeaders, handleCorsPreFlight } from "../_shared/cors.ts";
 import { authenticateRequest, errorResponse } from "../_shared/auth.ts";
+import { checkOrgQuota, getOrgIdForUser, logQuotaUsage } from "../_shared/quota-utils.ts";
 
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
 
@@ -73,6 +74,28 @@ Deno.serve(async (req) => {
       .filter((m: any) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
       .slice(-6)
       .map((m: any) => ({ role: m.role, content: m.content.slice(0, 4000) }))
+
+    // Quota v2 : les réponses aux questions sur document (rag) et l'analyse
+    // globale consomment des crédits "chat". Les modes techniques internes
+    // (classifier, section-summary — étape d'indexation mise en cache) restent
+    // non facturés. Un compte sans organisation n'est pas bloqué.
+    const isBilled = mode !== 'classifier' && mode !== 'section-summary'
+    let orgId: string | null = null
+    if (isBilled) {
+      try {
+        orgId = await getOrgIdForUser(userId)
+        const quotaCheck = await checkOrgQuota(orgId, 'chat', 1)
+        if (!quotaCheck.allowed) {
+          return new Response(JSON.stringify({
+            error: quotaCheck.reason || 'Quota organisation atteint',
+            code: 'QUOTA_EXCEEDED',
+            remaining_credits: quotaCheck.remaining_credits,
+          }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+        }
+      } catch (_e) {
+        orgId = null // pas d'organisation active : on ne bloque pas
+      }
+    }
 
     let answer = ''
 
@@ -251,6 +274,12 @@ Reponds en francais.`
           content: 'Passages du document :\n' + context + '\n\nQuestion : ' + question
         }
       ], 1024, 0.2, 0.2)
+    }
+
+    if (isBilled && orgId) {
+      logQuotaUsage(orgId, 'chat', 1).catch((e) =>
+        console.warn('[chat-with-doc] Quota log failed:', e)
+      )
     }
 
     return new Response(

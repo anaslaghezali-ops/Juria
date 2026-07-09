@@ -48,9 +48,10 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
 
-async function getEmbedding(text: string): Promise<number[]> {
-  // Tronquer à 8000 tokens max (≈ 32000 chars)
-  const truncated = text.slice(0, 32000)
+// L'API embeddings accepte un TABLEAU d'entrées : un document de 50 chunks
+// s'indexe en 1 appel au lieu de 50 (l'ancienne version séquentielle avec
+// pause de 100 ms mettait ~1 s par chunk).
+async function getEmbeddingsBatch(texts: string[]): Promise<number[][]> {
   const response = await fetch('https://api.openai.com/v1/embeddings', {
     method: 'POST',
     headers: {
@@ -59,7 +60,8 @@ async function getEmbedding(text: string): Promise<number[]> {
     },
     body: JSON.stringify({
       model: 'text-embedding-3-small',
-      input: truncated
+      // Tronquer chaque entrée à ≈ 8000 tokens (32000 chars)
+      input: texts.map(t => (t || ' ').slice(0, 32000))
     })
   })
 
@@ -69,7 +71,8 @@ async function getEmbedding(text: string): Promise<number[]> {
   }
 
   const data = await response.json()
-  return data.data[0].embedding
+  // L'API garantit l'ordre : data[i].embedding correspond à input[i]
+  return data.data.map((d: { embedding: number[] }) => d.embedding)
 }
 
 async function processChunks(request: ProcessChunksRequest) {
@@ -93,36 +96,35 @@ async function processChunks(request: ProcessChunksRequest) {
   }
 
   let processedCount = 0
+  const BATCH_SIZE = 64 // 64 × ~400 tokens ≈ 26k tokens, très en deçà des limites API
 
-  for (const chunk of pendingChunks) {
+  for (let start = 0; start < pendingChunks.length; start += BATCH_SIZE) {
+    const batch = pendingChunks.slice(start, start + BATCH_SIZE)
     try {
-      console.log(`Processing chunk ${chunk.chunk_index}/${pendingChunks.length}`)
-      
-      const embedding = await getEmbedding(chunk.content)
-      
-      const { error: updateError } = await sb
-        .from('document_chunks')
-        .update({
-          embedding,
-          indexing_status: 'done',
-          indexed_at: new Date().toISOString()
-        })
-        .eq('id', chunk.id)
+      console.log(`Embedding batch ${start / BATCH_SIZE + 1} (${batch.length} chunks)`)
+      const embeddings = await getEmbeddingsBatch(batch.map((c: any) => c.content))
 
-      if (updateError) throw updateError
-      processedCount++
-
-      await new Promise(resolve => setTimeout(resolve, 100))
+      // Écritures en parallèle par petits groupes
+      const now = new Date().toISOString()
+      for (let i = 0; i < batch.length; i += 10) {
+        const results = await Promise.all(
+          batch.slice(i, i + 10).map((chunk: any, j: number) =>
+            sb.from('document_chunks')
+              .update({ embedding: embeddings[i + j], indexing_status: 'done', indexed_at: now })
+              .eq('id', chunk.id)
+          )
+        )
+        processedCount += results.filter(r => !r.error).length
+        for (const r of results) {
+          if (r.error) console.error('Chunk update failed:', r.error.message)
+        }
+      }
     } catch (error) {
-      console.error(`Error processing chunk ${chunk.chunk_index}:`, error)
-      
+      console.error(`Error embedding batch at ${start}:`, error)
       await sb
         .from('document_chunks')
-        .update({
-          indexing_status: 'failed',
-          indexed_at: new Date().toISOString()
-        })
-        .eq('id', chunk.id)
+        .update({ indexing_status: 'failed', indexed_at: new Date().toISOString() })
+        .in('id', batch.map((c: any) => c.id))
     }
   }
 
