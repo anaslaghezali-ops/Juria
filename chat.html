@@ -295,6 +295,7 @@
 // JURIA_CONFIG loaded from config.js with CHAT_DOC_URL pre-configured
 
 let currentUser = null;
+let currentOrgId = null;
 let userProfile = null;
 let isLoading   = false;
 let currentConversationId = null;
@@ -572,6 +573,24 @@ async function init() {
   document.getElementById('sidebarAvatar').textContent = initials;
   document.getElementById('sidebarName').textContent   = name;
 
+  // Charger l'organization_id de l'utilisateur
+  try {
+    const { data: membership, error: membershipError } = await _sb
+      .from('organization_users')
+      .select('organization_id')
+      .eq('user_id', currentUser.id)
+      .eq('is_active', true)
+      .limit(1)
+      .maybeSingle();
+    if (membership) {
+      currentOrgId = membership.organization_id;
+    } else {
+      console.warn('No organization found for user:', currentUser.id);
+    }
+  } catch (e) {
+    console.warn('Failed to load organization:', e);
+  }
+
   try {
     const { data: profile, error } = await _sb.from('user_profiles_compat').select('*').eq('id', currentUser.id).single();
     if (error) {
@@ -672,6 +691,7 @@ async function persistConversationToSupabase(conversation) {
     const convData = {
       id: conversation.id,
       user_id: currentUser.id,
+      organization_id: currentOrgId,
       title: conversation.title,
       updated_at: conversation.updated_at
     };
@@ -687,6 +707,7 @@ async function persistConversationToSupabase(conversation) {
     if (conversation.messages && conversation.messages.length > 0) {
       const msgData = conversation.messages.map(msg => ({
         conversation_id: conversation.id,
+        organization_id: currentOrgId,
         role: msg.role,
         content: msg.content,
         created_at: msg.created_at || new Date().toISOString()
@@ -924,6 +945,7 @@ async function saveConversation(question, answer, articles) {
     if (!currentUser) return;
     await _sb.from('conversations').insert({
       user_id: currentUser.id,
+      organization_id: currentOrgId,
       question: question,
       answer: answer,
       articles_cited: articles.map(function(a){ return { id: a.id, numero: a.numero_article }; })
