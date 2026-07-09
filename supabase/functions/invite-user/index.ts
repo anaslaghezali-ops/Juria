@@ -60,7 +60,10 @@ serve(async (req) => {
     } else if (!memberId) {
       return json(400, { error: "memberId requis" })
     }
-    const memberRole = ["member", "admin", "viewer", "lawyer"].includes(role) ? role : "member"
+    // Doit correspondre à la contrainte organization_users_role_check
+    // (owner|admin|lawyer|member|reader) — "viewer" n'a jamais été un rôle
+    // valide en base : l'insertion échouait et annulait le compte créé.
+    const memberRole = ["member", "admin", "reader", "lawyer"].includes(role) ? role : "member"
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")
     const serviceKey = Deno.env.get("SERVICE_ROLE_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
