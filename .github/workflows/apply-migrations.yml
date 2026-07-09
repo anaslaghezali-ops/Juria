@@ -75,7 +75,7 @@ jobs:
               FAILED=1
             fi
             # Toujours afficher la réponse (résultats des SELECT des fichiers diag_*)
-            jq . /tmp/response.json 2>/dev/null | head -c 6000 || cat /tmp/response.json
+            jq . /tmp/response.json 2>/dev/null | head -c 24000 || cat /tmp/response.json
           done
 
           exit $FAILED

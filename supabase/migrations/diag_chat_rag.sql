@@ -22,12 +22,21 @@ where document_id = '85ce31f5-3a34-4285-801c-093ad67f303b'
 
 union all
 
-select 'c_document',
-       coalesce(d.name, '?'),
-       coalesce(d.user_id::text, 'user_id NULL'),
-       coalesce(d.organization_id::text, 'org NULL')
-from documents d
-where d.id = '85ce31f5-3a34-4285-801c-093ad67f303b'
+select 'c_doc_cols',
+       'documents',
+       c.column_name,
+       c.is_nullable
+from information_schema.columns c
+where c.table_schema = 'public' and c.table_name = 'documents'
+
+union all
+
+select 'c_document_exists',
+       'documents',
+       count(*)::text,
+       '-'
+from documents
+where id = '85ce31f5-3a34-4285-801c-093ad67f303b'
 
 union all
 
