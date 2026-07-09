@@ -473,9 +473,11 @@ async function startAnalysis() {
     var session = await _sb.auth.getSession();
     var token = session.data.session.access_token;
 
-    // Envoyer les paragraphes numérotés à GPT pour identification précise
-    var paragraphsForGPT = contractParagraphs.slice(0, 150).map(function(p) {
-      return '[' + p.id + '] ' + p.text.slice(0, 300);
+    // Paragraphes numérotés INTÉGRAUX : le serveur découpe désormais en
+    // fenêtres (map-reduce) et lit tout le contrat. L'ancienne coupe à
+    // 150 paragraphes × 300 caractères amputait les clauses en pleine phrase.
+    var paragraphsForGPT = contractParagraphs.slice(0, 1500).map(function(p) {
+      return '[' + p.id + '] ' + p.text.slice(0, 6000);
     }).join('\n');
 
     var res = await fetch(EDGE_URL, {

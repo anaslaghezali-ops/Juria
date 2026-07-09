@@ -908,7 +908,9 @@ async function askAI(question, documentContext) {
   
   var body = { question: question, history: history };
   if (documentContext) {
-    body.document_context = documentContext.slice(0, 12000);
+    // 48k caractères ≈ 12k tokens : gpt-4o-mini (128k) encaisse sans problème.
+    // L'ancienne coupe à 12k rendait invisible tout ce qui suivait ~4 pages.
+    body.document_context = documentContext.slice(0, 48000);
     body.mode = 'document_question';
   }
   

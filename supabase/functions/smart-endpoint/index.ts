@@ -352,7 +352,10 @@ serve(async (req) => {
 
       const compareMessages: any[] = [
         { role: "system", content: compareSystem },
-        { role: "user", content: "CONTRAT V1 (original):\n" + v1.slice(0, 8000) + "\n\n---SÉPARATEUR---\n\nCONTRAT V2 (modifié):\n" + v2.slice(0, 8000) }
+        // 24k caractères par version (~6k tokens chacune) : gpt-4o-mini (128k)
+        // encaisse largement. Le vrai chantier (diff aligné par clauses,
+        // map-reduce) reste à faire pour les très longs contrats.
+        { role: "user", content: "CONTRAT V1 (original):\n" + v1.slice(0, 24000) + "\n\n---SÉPARATEUR---\n\nCONTRAT V2 (modifié):\n" + v2.slice(0, 24000) }
       ];
 
       const rawResult = await callOpenAIMessages(compareMessages, 4000);
@@ -384,11 +387,29 @@ serve(async (req) => {
       );
     }
 
-    // ---- MODE ANALYSE DE CONTRAT ----
+    // ---- MODE ANALYSE DE CONTRAT (map-reduce : lit TOUT le contrat) ----
     if (mode === "analyze" && contract_to_analyze) {
-      // Check quota v2 if organization is available
+      // L'ancienne version tronquait a 8 000 caracteres : tout ce qui se
+      // trouvait au-dela de ~3 pages n'etait JAMAIS analyse. Le contrat est
+      // desormais decoupe en fenetres avec chevauchement : chaque fenetre est
+      // analysee (map), puis les analyses partielles sont fusionnees (reduce).
+      const WINDOW_CHARS = 9000;   // ~2 250 tokens par fenetre
+      const OVERLAP_CHARS = 600;   // une clause a cheval sur deux fenetres est vue en entier au moins une fois
+      const MAX_WINDOWS = 12;      // plafond ~100k caracteres (~40 pages)
+      const fullText = String(contract_to_analyze);
+      const windows: string[] = [];
+      let cursor = 0;
+      while (cursor < fullText.length && windows.length < MAX_WINDOWS) {
+        windows.push(fullText.slice(cursor, cursor + WINDOW_CHARS));
+        if (cursor + WINDOW_CHARS >= fullText.length) break;
+        cursor += WINDOW_CHARS - OVERLAP_CHARS;
+      }
+      if (windows.length === 0) windows.push(fullText);
+
+      // Quota v2 : facture au volume reellement analyse (1 unite par fenetre).
+      // Un contrat court coute comme avant ; 40 pages coutent 12 unites.
       if (orgId) {
-        const quotaCheck = await checkOrgQuota(orgId, "risk_analysis", 1);
+        const quotaCheck = await checkOrgQuota(orgId, "risk_analysis", windows.length);
         if (!quotaCheck.allowed) {
           return new Response(JSON.stringify({
             error: quotaCheck.reason || "Quota organisation atteint pour les analyses de risques",
@@ -404,8 +425,11 @@ serve(async (req) => {
       const articlesContext = articles.length > 0
         ? articles.map((a: any) => a.numero_article + " : " + a.contenu).join(" === ")
         : "";
-      const analyzeSystem = [
+      const analyzeSystemFor = (part: number, total: number) => [
         "Tu es Juria, expert juridique marocain senior specialise en droit des contrats.",
+        total > 1
+          ? `Tu recois la PARTIE ${part}/${total} d'un contrat plus long (decoupage avec chevauchement). Analyse UNIQUEMENT ce qui figure dans cette partie ; les clauses manquantes seront recoupees avec les autres parties.`
+          : "",
         "ETAPE 1: Identifie le type de contrat (contrat de travail, bail commercial, bail habitation, promesse de bail, contrat de vente, contrat de societe, ou autre).",
         "ETAPE 2: Applique UNIQUEMENT les regles juridiques du domaine concerne.",
         "Si CONTRAT DE TRAVAIL: Code du Travail Loi 65-99. SMIG=3111 MAD, periode essai cadres=3 mois renouvelable, conges=18 jours/an Art.231.",
@@ -421,14 +445,49 @@ serve(async (req) => {
         "5. Score: 10=parfaitement conforme, 1=illegal selon le droit marocain applicable.",
         "Articles de reference: " + articlesContext,
         "Retourne UNIQUEMENT un JSON: {contract_type: string, score: number, summary: string, issues: [{paragraph_id: number, severity: string, clause: string, problem: string, suggestion: string}], missing_clauses: [string]}. paragraph_id = le numero entre crochets [N] du paragraphe concerne dans le contrat fourni.",
-      ].join(" ");
-      const contractText = "Contrat: " + contract_to_analyze.slice(0, 8000);
-      const analysis = await callOpenAI(analyzeSystem, contractText, 1500);
+      ].filter(Boolean).join(" ");
+
+      // MAP : analyse de chaque fenetre, 4 appels OpenAI en parallele maximum
+      const partResults: any[] = new Array(windows.length);
+      let nextWindow = 0;
+      await Promise.all(
+        Array.from({ length: Math.min(4, windows.length) }, async () => {
+          while (nextWindow < windows.length) {
+            const i = nextWindow++;
+            partResults[i] = await callOpenAI(
+              analyzeSystemFor(i + 1, windows.length),
+              "Contrat" + (windows.length > 1 ? ` (partie ${i + 1}/${windows.length})` : "") + ": " + windows[i],
+              1500,
+            );
+          }
+        }),
+      );
+
+      // REDUCE : fusion des analyses partielles en une analyse globale
+      let analysis = partResults[0];
+      if (windows.length > 1) {
+        const mergeSystem = [
+          "Tu es Juria, expert juridique marocain senior. On te donne les analyses partielles d'un MEME contrat, decoupe en parties avec chevauchement.",
+          "Fusionne-les en UNE analyse globale coherente :",
+          "- contract_type : le type identifie par la majorite des parties.",
+          "- issues : rassemble toutes les issues ; DEDOUBLONNE celles qui decrivent la meme clause (le chevauchement fait qu'une clause peut apparaitre dans deux parties) ; conserve le paragraph_id d'origine et la severity la plus haute en cas de doublon.",
+          "- missing_clauses : une clause n'est manquante que si AUCUNE partie ne la contient. Retire toute clause signalee manquante par une partie mais presente ou traitee dans une autre.",
+          "- score : score global 1-10 du contrat ENTIER (10 = parfaitement conforme), coherent avec la gravite cumulee des issues retenues.",
+          "- summary : synthese globale en 2-4 phrases.",
+          "Retourne UNIQUEMENT un JSON: {contract_type: string, score: number, summary: string, issues: [{paragraph_id: number, severity: string, clause: string, problem: string, suggestion: string}], missing_clauses: [string]}",
+        ].join(" ");
+        analysis = await callOpenAI(
+          mergeSystem,
+          "Analyses partielles (dans l'ordre du contrat) : " + JSON.stringify(partResults).slice(0, 90000),
+          3000,
+        );
+      }
+
       await incrementQuota();
 
-      // Log quota usage asynchronously
+      // Log quota usage asynchronously (facture au nombre de fenetres analysees)
       if (orgId) {
-        logQuotaUsage(orgId, "risk_analysis", 1).catch(e =>
+        logQuotaUsage(orgId, "risk_analysis", windows.length).catch(e =>
           console.warn("[smart-endpoint] Quota log failed:", e)
         );
       }
