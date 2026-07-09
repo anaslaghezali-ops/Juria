@@ -140,15 +140,17 @@ serve(async (req) => {
         .eq("id", user.id);
     };
 
-    // Get organization ID for quota system v2
+    // Get organization ID for quota system v2 (lien via organization_users)
     let orgId: string | null = null;
     try {
-      const { data: userData } = await supabaseAdmin
-        .from("users")
+      const { data: membership } = await supabaseAdmin
+        .from("organization_users")
         .select("organization_id")
-        .eq("id", user.id)
-        .single();
-      orgId = userData?.organization_id || null;
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .limit(1)
+        .maybeSingle();
+      orgId = membership?.organization_id || null;
     } catch (e) {
       console.warn("[smart-endpoint] Failed to get org_id:", e);
     }

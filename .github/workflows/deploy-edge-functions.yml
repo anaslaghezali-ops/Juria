@@ -55,6 +55,7 @@ jobs:
             "process-chunks"
             "vector-search"
             "generate-synthesis"
+            "superadmin"
           )
 
           # Fonctions SANS vérification JWT : appelées pendant le signup,

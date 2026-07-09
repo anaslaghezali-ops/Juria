@@ -1,7 +1,6 @@
 import { getCorsHeaders, handleCorsPreFlight } from "../_shared/cors.ts";
 import { authenticateRequest, errorResponse } from "../_shared/auth.ts";
-import { checkOrgQuota, logQuotaUsage } from "../_shared/quota-utils.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkOrgQuota, logQuotaUsage, getOrgIdForUser } from "../_shared/quota-utils.ts";
 
 /**
  * JURIA — generate-synthesis
@@ -27,33 +26,7 @@ const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
 // Chaque org a un monthly_quota (en crédits).
 // Chaque opération consomme un nombre de crédits (cf. operation_costs).
 // -1 = illimité. Protection serveur, non contournable par client.
-
-interface QuotaCheckResult {
-  allowed: boolean;
-  remaining_credits: number;
-  total_quota: number;
-  is_unlimited: boolean;
-  reason?: string;
-}
-
-async function getOrgIdForUser(userId: string): Promise<string> {
-  const admin = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-  );
-
-  const { data: user, error } = await admin
-    .from("users")
-    .select("organization_id")
-    .eq("id", userId)
-    .single();
-
-  if (error || !user?.organization_id) {
-    throw { status: 403, message: "Aucune organisation active" };
-  }
-
-  return user.organization_id;
-}
+// checkOrgQuota / logQuotaUsage / getOrgIdForUser : cf. _shared/quota-utils.ts
 
 // ── Appel OpenAI non-streamé ─────────────────────────────────────────────
 async function callGPT(
@@ -325,7 +298,7 @@ Deno.serve(async (req) => {
           return new Response(JSON.stringify({
             error: quotaCheck.reason || "Quota organisation atteint",
             code: "QUOTA_EXCEEDED",
-            remaining_credits: quotaCheck.remaining,
+            remaining_credits: quotaCheck.remaining_credits,
           }), {
             status: 429,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
