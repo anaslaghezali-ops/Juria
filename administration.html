@@ -531,19 +531,32 @@ async function deleteMember(memberId) {
     // Suppression via l'edge function : retire le membre ET supprime son
     // compte auth (une suppression DB directe laisserait un compte orphelin
     // capable de se connecter).
-    const session = await _sb.auth.getSession();
+    const sessionResult = await _sb.auth.getSession();
+
+    if (!sessionResult.data?.session?.access_token) {
+      throw new Error('Session invalide ou token manquant');
+    }
+
+    const payload = { action: 'remove', orgId: currentOrg.id, memberId };
+    console.log('[deleteMember] Payload:', payload);
+
     const response = await fetch(JURIA_CONFIG.INVITE_USER_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + session.data.session.access_token,
+        'Authorization': 'Bearer ' + sessionResult.data.session.access_token,
       },
-      body: JSON.stringify({ action: 'remove', orgId: currentOrg.id, memberId }),
+      body: JSON.stringify(payload),
     });
+
+    console.log('[deleteMember] Response status:', response.status);
     const result = await response.json();
-    if (!response.ok) throw new Error(result.error || 'Suppression impossible');
+    console.log('[deleteMember] Response body:', result);
+
+    if (!response.ok) throw new Error(result.error || `HTTP ${response.status}: Suppression impossible`);
     await loadMembers();
   } catch (err) {
+    console.error('[deleteMember] Error:', err);
     alert('Erreur: ' + err.message);
   }
 }
@@ -600,26 +613,40 @@ async function submitInvite() {
   try {
     document.getElementById('btnSubmitInvite').disabled = true;
 
-    const session = await _sb.auth.getSession();
+    const sessionResult = await _sb.auth.getSession();
+    console.log('[submitInvite] Session result:', sessionResult);
+
+    if (!sessionResult.data?.session?.access_token) {
+      throw new Error('Session invalide ou token manquant');
+    }
+
+    const payload = {
+      email,
+      password,
+      firstName,
+      lastName,
+      role,
+      orgId: currentOrg.id,
+    };
+    console.log('[submitInvite] Payload:', { ...payload, password: '***' });
+
     const response = await fetch(JURIA_CONFIG.INVITE_USER_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + session.data.session.access_token,
+        'Authorization': 'Bearer ' + sessionResult.data.session.access_token,
       },
-      body: JSON.stringify({
-        email,
-        password,
-        firstName,
-        lastName,
-        role,
-        orgId: currentOrg.id,
-      }),
+      body: JSON.stringify(payload),
     });
 
+    console.log('[submitInvite] Response status:', response.status, response.statusText);
+    console.log('[submitInvite] Response headers:', [...response.headers.entries()]);
+
     const result = await response.json();
+    console.log('[submitInvite] Response body:', result);
+
     if (!response.ok) {
-      throw new Error(result.error || 'Erreur lors de la création du compte');
+      throw new Error(result.error || `HTTP ${response.status}: ${response.statusText}`);
     }
 
     const loginLink = window.location.origin +
@@ -635,6 +662,7 @@ async function submitInvite() {
     closeInviteModal();
     await loadMembers();
   } catch (err) {
+    console.error('[submitInvite] Error:', err);
     alert('Erreur: ' + err.message);
   } finally {
     document.getElementById('btnSubmitInvite').disabled = false;
