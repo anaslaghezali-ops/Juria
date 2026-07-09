@@ -84,6 +84,16 @@ l'organisation. Appelée par l'action `delete_org` de l'edge function
 superadmin, qui supprime ensuite les comptes auth des membres n'appartenant
 à aucune autre organisation.
 
+### `10_storage_quota.sql`
+Quota de stockage par organisation (variable payante gérée au superadmin) :
+- `organizations.max_storage_mb` (défaut 500, `-1` = illimité)
+- `fn_org_storage_bytes(org)` : octets consommés (somme `documents.file_size`),
+  appelable par un membre actif de l'org, un superadmin ou le service role
+- Trigger `trg_enforce_org_storage_quota` sur `documents` : refuse l'INSERT
+  au-delà du plafond (enforcement serveur, non contournable)
+Affichage : colonne + champs dans superadmin.html ; carte « Consommation »
+(crédits IA du mois + stockage) dans administration.html pour l'admin d'org.
+
 ### `diag_*.sql` (pas des migrations)
 Fichiers de diagnostic en lecture seule, exécutés à la demande via le
 workflow `apply-migrations` (input `files=diag_….sql`), qui affiche le

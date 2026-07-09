@@ -199,12 +199,13 @@
             <th>Plan</th>
             <th>Membres</th>
             <th>Quota mensuel</th>
+            <th>Stockage</th>
             <th>Créée le</th>
             <th></th>
           </tr>
         </thead>
         <tbody id="orgsBody">
-          <tr class="empty-row"><td colspan="6">Chargement…</td></tr>
+          <tr class="empty-row"><td colspan="7">Chargement…</td></tr>
         </tbody>
       </table>
     </div>
@@ -249,6 +250,11 @@
         <label>Quota mensuel (crédits)</label>
         <input type="number" id="cQuota" value="1000" min="-1"/>
         <div class="checkline"><input type="checkbox" id="cUnlimited" onchange="document.getElementById('cQuota').disabled=this.checked"/><label for="cUnlimited" style="margin:0;font-weight:400">Illimité</label></div>
+      </div>
+      <div class="field">
+        <label>Stockage maximal (Mo)</label>
+        <input type="number" id="cStorage" value="500" min="-1"/>
+        <div class="checkline"><input type="checkbox" id="cStorageUnlimited" onchange="document.getElementById('cStorage').disabled=this.checked"/><label for="cStorageUnlimited" style="margin:0;font-weight:400">Illimité</label></div>
       </div>
 
       <div class="fieldset-label">Premier administrateur</div>
@@ -308,6 +314,11 @@
         <label>Quota mensuel (crédits)</label>
         <input type="number" id="eQuota" min="-1"/>
         <div class="checkline"><input type="checkbox" id="eUnlimited" onchange="document.getElementById('eQuota').disabled=this.checked"/><label for="eUnlimited" style="margin:0;font-weight:400">Illimité</label></div>
+      </div>
+      <div class="field">
+        <label>Stockage maximal (Mo)</label>
+        <input type="number" id="eStorage" min="-1"/>
+        <div class="checkline"><input type="checkbox" id="eStorageUnlimited" onchange="document.getElementById('eStorage').disabled=this.checked"/><label for="eStorageUnlimited" style="margin:0;font-weight:400">Illimité</label></div>
       </div>
       <div class="modal-actions">
         <button class="btn" onclick="closeModal('editModal')">Annuler</button>
@@ -414,7 +425,7 @@ async function loadOrgs() {
 function renderOrgs() {
   const body = document.getElementById('orgsBody');
   if (!orgsCache.length) {
-    body.innerHTML = '<tr class="empty-row"><td colspan="6">Aucune organisation. Créez la première avec « + Nouvelle organisation ».</td></tr>';
+    body.innerHTML = '<tr class="empty-row"><td colspan="7">Aucune organisation. Créez la première avec « + Nouvelle organisation ».</td></tr>';
     return;
   }
 
@@ -434,6 +445,18 @@ function renderOrgs() {
         <div class="quota-bar"><div class="quota-fill ${cls}" style="width:${pct}%"></div></div>`;
     }
 
+    let storageCell;
+    if (o.max_storage_mb === -1) {
+      storageCell = `<span class="quota-inf"><b>${fmtBytes(o.storage_bytes)}</b> — illimité</span>`;
+    } else {
+      const maxBytes = (o.max_storage_mb || 0) * 1024 * 1024;
+      const spct = maxBytes > 0 ? Math.min(100, (o.storage_bytes / maxBytes) * 100) : 100;
+      const scls = spct >= 100 ? 'full' : spct >= 75 ? 'warn' : '';
+      storageCell = `
+        <div class="quota-nums"><b>${fmtBytes(o.storage_bytes)}</b> / ${o.max_storage_mb ?? '—'} Mo</div>
+        <div class="quota-bar"><div class="quota-fill ${scls}" style="width:${spct}%"></div></div>`;
+    }
+
     const detail = expandedOrgId === o.id ? renderDetailRow(o) : '';
 
     return `
@@ -442,6 +465,7 @@ function renderOrgs() {
         <td><span class="plan-pill ${esc(o.plan || '')}">${esc(o.plan || '—')}</span></td>
         <td class="members-cell">${o.members.active} / ${o.max_users || '—'}${pendingStr}</td>
         <td class="quota-cell">${quotaCell}</td>
+        <td class="quota-cell">${storageCell}</td>
         <td style="white-space:nowrap">${created}</td>
         <td style="white-space:nowrap;text-align:right">
           <button class="btn btn-sm" onclick="toggleDetail('${o.id}')">${expandedOrgId === o.id ? 'Fermer' : 'Détail'}</button>
@@ -460,7 +484,7 @@ function renderDetailRow(o) {
     : '<span class="usage-chip">Aucune consommation ce mois-ci</span>';
 
   return `
-    <tr><td colspan="6" style="padding:0">
+    <tr><td colspan="7" style="padding:0">
       <div class="usage-detail">
         <h4>Consommation du mois par opération</h4>
         <div class="usage-chips">${chipsHtml}</div>
@@ -549,6 +573,8 @@ async function createOrg() {
       plan: document.getElementById('cPlan').value,
       max_users: parseInt(document.getElementById('cMaxUsers').value, 10),
       monthly_quota: unlimited ? -1 : parseInt(document.getElementById('cQuota').value, 10),
+      max_storage_mb: document.getElementById('cStorageUnlimited').checked
+        ? -1 : parseInt(document.getElementById('cStorage').value, 10),
       admin_email: document.getElementById('cAdminEmail').value,
       admin_password: password,
       admin_first_name: document.getElementById('cAdminFirst').value,
@@ -580,6 +606,10 @@ function openEditModal(orgId) {
   document.getElementById('eUnlimited').checked = unlimited;
   document.getElementById('eQuota').disabled = unlimited;
   document.getElementById('eQuota').value = unlimited ? 1000 : o.monthly_quota;
+  const storageUnlimited = o.max_storage_mb === -1;
+  document.getElementById('eStorageUnlimited').checked = storageUnlimited;
+  document.getElementById('eStorage').disabled = storageUnlimited;
+  document.getElementById('eStorage').value = storageUnlimited ? 500 : (o.max_storage_mb ?? 500);
   document.getElementById('editModal').classList.add('show');
 }
 
@@ -596,6 +626,8 @@ async function saveOrg() {
         plan: document.getElementById('ePlan').value,
         max_users: parseInt(document.getElementById('eMaxUsers').value, 10),
         monthly_quota: unlimited ? -1 : parseInt(document.getElementById('eQuota').value, 10),
+        max_storage_mb: document.getElementById('eStorageUnlimited').checked
+          ? -1 : parseInt(document.getElementById('eStorage').value, 10),
       },
     });
     toast('Organisation mise à jour ✓', 'success');
@@ -636,6 +668,13 @@ document.querySelectorAll('.modal-overlay').forEach(m => {
 });
 
 function fmt(n) { return Math.round((n || 0) * 10) / 10; }
+function fmtBytes(b) {
+  b = b || 0;
+  if (b >= 1024 * 1024 * 1024) return (b / (1024 * 1024 * 1024)).toFixed(2) + ' Go';
+  if (b >= 1024 * 1024) return (b / (1024 * 1024)).toFixed(1) + ' Mo';
+  if (b >= 1024) return Math.round(b / 1024) + ' Ko';
+  return b + ' o';
+}
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, c =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));

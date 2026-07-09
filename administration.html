@@ -278,6 +278,40 @@
       </div>
     </div>
 
+    <!-- Consommation : crédits IA + stockage -->
+    <div class="license-banner" id="usageBanner" style="display:none;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:28px;">
+        <div>
+          <div class="license-info" style="margin-bottom:10px;">
+            <div class="license-icon">⚡</div>
+            <div>
+              <div class="license-text"><strong>Crédits IA</strong> — <span id="creditsMonthLabel">ce mois-ci</span></div>
+              <div style="font-size:12px;color:var(--slate-400);margin-top:2px;" id="creditsDetail">Chargement…</div>
+            </div>
+          </div>
+          <div class="license-bar-bg"><div class="license-bar-fill" id="creditsBar" style="width:0%"></div></div>
+          <div class="license-bar-text" style="margin-top:6px;">
+            <span>Synthèses, analyses, comparaisons, chat</span>
+            <span id="creditsPercent">—</span>
+          </div>
+        </div>
+        <div>
+          <div class="license-info" style="margin-bottom:10px;">
+            <div class="license-icon">🗄️</div>
+            <div>
+              <div class="license-text"><strong>Stockage documents</strong></div>
+              <div style="font-size:12px;color:var(--slate-400);margin-top:2px;" id="storageDetail">Chargement…</div>
+            </div>
+          </div>
+          <div class="license-bar-bg"><div class="license-bar-fill" id="storageBar" style="width:0%"></div></div>
+          <div class="license-bar-text" style="margin-top:6px;">
+            <span>Espace utilisé</span>
+            <span id="storagePercent">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Members Table -->
     <div class="members-section" id="membersSection">
       <div class="members-header">
@@ -404,6 +438,80 @@ async function init() {
 
   // Charger les données
   await loadMembers();
+  loadConsumption().catch(function(e) { console.warn('Consommation indisponible:', e); });
+}
+
+// ── CONSOMMATION (crédits IA du mois + stockage) ──
+function fmtBytes(b) {
+  b = b || 0;
+  if (b >= 1024 * 1024 * 1024) return (b / (1024 * 1024 * 1024)).toFixed(2) + ' Go';
+  if (b >= 1024 * 1024) return (b / (1024 * 1024)).toFixed(1) + ' Mo';
+  if (b >= 1024) return Math.round(b / 1024) + ' Ko';
+  return b + ' o';
+}
+
+function paintUsageBar(barId, pctId, pct, unlimited) {
+  var bar = document.getElementById(barId);
+  var label = document.getElementById(pctId);
+  if (unlimited) {
+    bar.style.width = '100%';
+    bar.style.background = 'var(--slate-300)';
+    label.textContent = 'Illimité';
+    return;
+  }
+  pct = Math.min(100, Math.round(pct));
+  bar.style.width = pct + '%';
+  bar.style.background = pct >= 100 ? 'var(--red)' : pct >= 75 ? 'var(--amber)' : 'var(--green)';
+  label.textContent = pct + '%';
+}
+
+async function loadConsumption() {
+  document.getElementById('usageBanner').style.display = 'block';
+
+  var now = new Date();
+  document.getElementById('creditsMonthLabel').textContent =
+    now.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+  var monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
+    .toISOString().split('T')[0];
+
+  // Crédits consommés ce mois-ci (RLS : chaque membre actif voit son org)
+  var usageRes = await _sb
+    .from('organization_usage')
+    .select('total_cost')
+    .eq('org_id', currentOrg.id)
+    .eq('month', monthStart);
+  var used = (usageRes.data || []).reduce(function(s, u) { return s + (u.total_cost || 0); }, 0);
+  used = Math.round(used * 10) / 10;
+
+  var quota = currentOrg.monthly_quota;
+  if (quota === -1) {
+    document.getElementById('creditsDetail').innerHTML =
+      '<strong>' + used + '</strong> crédits consommés · quota illimité';
+    paintUsageBar('creditsBar', 'creditsPercent', 0, true);
+  } else {
+    var remaining = Math.max(0, Math.round((quota - used) * 10) / 10);
+    document.getElementById('creditsDetail').innerHTML =
+      '<strong>' + used + '</strong> / ' + (quota || 0) + ' crédits · ' + remaining + ' restant(s)';
+    paintUsageBar('creditsBar', 'creditsPercent', quota > 0 ? (used / quota) * 100 : 100, false);
+  }
+
+  // Stockage (fonction SQL sécurisée : membre actif, superadmin ou service role)
+  var storageRes = await _sb.rpc('fn_org_storage_bytes', { p_org_id: currentOrg.id });
+  if (storageRes.error) throw new Error(storageRes.error.message);
+  var bytes = storageRes.data || 0;
+
+  var maxMb = currentOrg.max_storage_mb;
+  if (maxMb === -1) {
+    document.getElementById('storageDetail').innerHTML =
+      '<strong>' + fmtBytes(bytes) + '</strong> utilisés · stockage illimité';
+    paintUsageBar('storageBar', 'storagePercent', 0, true);
+  } else {
+    var maxBytes = (maxMb || 0) * 1024 * 1024;
+    document.getElementById('storageDetail').innerHTML =
+      '<strong>' + fmtBytes(bytes) + '</strong> / ' + (maxMb || 0) + ' Mo · ' +
+      fmtBytes(Math.max(0, maxBytes - bytes)) + ' disponible(s)';
+    paintUsageBar('storageBar', 'storagePercent', maxBytes > 0 ? (bytes / maxBytes) * 100 : 100, false);
+  }
 }
 
 // ── LOAD MEMBERS ──

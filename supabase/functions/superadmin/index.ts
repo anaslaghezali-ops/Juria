@@ -73,9 +73,9 @@ serve(async (req) => {
 
     // ── LIST_ORGS ────────────────────────────────────────────────────────
     if (action === "list_orgs") {
-      const [orgsRes, membersRes, usageRes, costsRes] = await Promise.all([
+      const [orgsRes, membersRes, usageRes, costsRes, docsRes] = await Promise.all([
         admin.from("organizations")
-          .select("id, name, slug, plan, max_users, monthly_quota, created_at")
+          .select("id, name, slug, plan, max_users, monthly_quota, max_storage_mb, created_at")
           .order("created_at", { ascending: false }),
         admin.from("organization_users")
           .select("organization_id, user_id, is_active"),
@@ -84,8 +84,16 @@ serve(async (req) => {
           .eq("month", monthStart),
         admin.from("operation_costs")
           .select("operation_type, base_cost, description"),
+        admin.from("documents")
+          .select("organization_id, file_size"),
       ]);
       if (orgsRes.error) return json(500, { error: orgsRes.error.message }, corsHeaders);
+
+      // Stockage consommé par org (somme des tailles de fichiers)
+      const storage: Record<string, number> = {};
+      for (const d of docsRes.data || []) {
+        storage[d.organization_id] = (storage[d.organization_id] || 0) + (d.file_size || 0);
+      }
 
       const members: Record<string, { total: number; active: number; pending: number }> = {};
       for (const m of membersRes.data || []) {
@@ -110,6 +118,7 @@ serve(async (req) => {
         members: members[o.id] || { total: 0, active: 0, pending: 0 },
         used_credits: Math.round((usage[o.id]?.used || 0) * 100) / 100,
         breakdown: usage[o.id]?.breakdown || {},
+        storage_bytes: storage[o.id] || 0,
       }));
 
       return json(200, { orgs, month: monthStart, costs: costsRes.data || [] }, corsHeaders);
@@ -119,11 +128,13 @@ serve(async (req) => {
     // Modèle provisioning : le superadmin définit email + mot de passe du
     // premier admin ; le compte est créé confirmé, prêt à se connecter.
     if (action === "create_org") {
-      const { name, plan, monthly_quota, max_users, admin_email, admin_password, admin_first_name, admin_last_name } = body;
+      const { name, plan, monthly_quota, max_users, max_storage_mb, admin_email, admin_password, admin_first_name, admin_last_name } = body;
       if (!name || !String(name).trim()) return json(400, { error: "Nom d'organisation requis" }, corsHeaders);
       if (plan && !PLANS.includes(plan)) return json(400, { error: `Plan invalide (${PLANS.join(", ")})` }, corsHeaders);
       const quota = Number.isFinite(Number(monthly_quota)) ? Number(monthly_quota) : 1000;
       if (quota < -1) return json(400, { error: "Quota invalide (-1 = illimité)" }, corsHeaders);
+      const storageMb = Number.isFinite(Number(max_storage_mb)) ? Number(max_storage_mb) : 500;
+      if (storageMb < -1) return json(400, { error: "Stockage invalide (-1 = illimité)" }, corsHeaders);
       const email = String(admin_email || "").toLowerCase().trim();
       if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
         return json(400, { error: "Email du premier admin requis et valide" }, corsHeaders);
@@ -157,8 +168,9 @@ serve(async (req) => {
           max_users: Number(max_users) > 0 ? Number(max_users) : 5,
           country: "MA",
           monthly_quota: quota,
+          max_storage_mb: storageMb,
         })
-        .select("id, name, slug, plan, max_users, monthly_quota")
+        .select("id, name, slug, plan, max_users, monthly_quota, max_storage_mb")
         .single();
       if (orgError) {
         await admin.auth.admin.deleteUser(created.user.id).catch(() => {});
@@ -218,13 +230,18 @@ serve(async (req) => {
         if (!Number.isFinite(m) || m < 1) return json(400, { error: "max_users invalide" }, corsHeaders);
         allowed.max_users = m;
       }
+      if (updates.max_storage_mb !== undefined) {
+        const s = Number(updates.max_storage_mb);
+        if (!Number.isFinite(s) || s < -1) return json(400, { error: "max_storage_mb invalide (-1 = illimité)" }, corsHeaders);
+        allowed.max_storage_mb = s;
+      }
       if (Object.keys(allowed).length === 0) return json(400, { error: "Aucun champ modifiable fourni" }, corsHeaders);
 
       const { data: org, error } = await admin
         .from("organizations")
         .update(allowed)
         .eq("id", org_id)
-        .select("id, name, plan, max_users, monthly_quota")
+        .select("id, name, plan, max_users, monthly_quota, max_storage_mb")
         .single();
       if (error) return json(500, { error: error.message }, corsHeaders);
 

@@ -23,7 +23,7 @@ on:
       - '.github/workflows/apply-migrations.yml'
 
 env:
-  PENDING_MIGRATIONS: "09_superadmin_purge_org.sql"
+  PENDING_MIGRATIONS: "10_storage_quota.sql"
 
 jobs:
   apply:
