@@ -133,6 +133,30 @@ trigger, partage puis re-comptage) — **21/21 PASS en prod**, fixtures
 auto-nettoyées. Également validée sur un sandbox Postgres 16 local
 (schéma miroir + simulation JWT) avant tout envoi en prod.
 
+### `14_performance_indexes.sql`
+Indexes de l'audit scalabilité (appliquée le 2026-07-10) : composites
+org-scopés sur documents / document_risks / tasks / counterparties /
+folders / analyses / commentaires, `organization_users(user_id,
+is_active)` au service de chaque évaluation de policy RLS, et lookups
+par document pour `fn_document_access` et les chunks RAG.
+
+### `15_sharing_notifications.sql`
+Partage de dossiers, Phase 3 (appliquée et vérifiée le 2026-07-10) :
+- `notifications` : boîte personnelle (partage / changement de rôle /
+  révocation), chacun ne lit et ne marque que les siennes.
+- `folder_access_log` : journal d'audit immuable (qui a invité qui,
+  quand, révocations, changements de visibilité), lisible par le
+  propriétaire du dossier et l'admin ; survit à la suppression du
+  dossier (nom dénormalisé).
+- Écriture UNIQUEMENT par triggers SECURITY DEFINER sur `folder_members`
+  et `folders.visibility` : aucune notification forgeable ou oubliable
+  côté client (aucun grant INSERT). Pas d'auto-notification.
+
+Vérifiée par `diag_test_sharing_notifications.sql` — **8/8 PASS en
+prod** (ordre du journal, absence d'auto-notification, payload,
+marquage lu, journal invisible au non-propriétaire, forge refusée,
+vue admin), après validation sur le sandbox Postgres local.
+
 ### `diag_*.sql` (pas des migrations)
 Fichiers de diagnostic en lecture seule, exécutés à la demande via le
 workflow `apply-migrations` (input `files=diag_….sql`), qui affiche le
