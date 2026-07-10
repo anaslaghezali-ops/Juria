@@ -58,12 +58,12 @@ INSERT INTO public.folders (id, organization_id, name, created_by, visibility, p
 INSERT INTO public.folder_members (folder_id, user_id, role, granted_by) VALUES
   ('5a000000-0000-4000-a000-000000000f02','5a000000-0000-4000-a000-0000000000cc','viewer','5a000000-0000-4000-a000-0000000000aa');
 
-INSERT INTO public.documents (id, organization_id, folder_id, uploaded_by, name) VALUES
-  ('5a000000-0000-4000-a000-000000000d01','5a000000-0000-4000-a000-000000000001','5a000000-0000-4000-a000-000000000f01','5a000000-0000-4000-a000-0000000000aa','ZZ doc privé.pdf'),
-  ('5a000000-0000-4000-a000-000000000d02','5a000000-0000-4000-a000-000000000001','5a000000-0000-4000-a000-000000000f02','5a000000-0000-4000-a000-0000000000aa','ZZ doc partagé.pdf'),
-  ('5a000000-0000-4000-a000-000000000d03','5a000000-0000-4000-a000-000000000001','5a000000-0000-4000-a000-000000000f03','5a000000-0000-4000-a000-0000000000bb','ZZ doc org.pdf'),
-  ('5a000000-0000-4000-a000-000000000d04','5a000000-0000-4000-a000-000000000001',NULL,                                     '5a000000-0000-4000-a000-0000000000bb','ZZ doc libre B.pdf'),
-  ('5a000000-0000-4000-a000-000000000d05','5a000000-0000-4000-a000-000000000001','5a000000-0000-4000-a000-000000000f04','5a000000-0000-4000-a000-0000000000aa','ZZ doc sous-dossier.pdf');
+INSERT INTO public.documents (id, organization_id, folder_id, uploaded_by, name, file_type) VALUES
+  ('5a000000-0000-4000-a000-000000000d01','5a000000-0000-4000-a000-000000000001','5a000000-0000-4000-a000-000000000f01','5a000000-0000-4000-a000-0000000000aa','ZZ doc privé.pdf','pdf'),
+  ('5a000000-0000-4000-a000-000000000d02','5a000000-0000-4000-a000-000000000001','5a000000-0000-4000-a000-000000000f02','5a000000-0000-4000-a000-0000000000aa','ZZ doc partagé.pdf','pdf'),
+  ('5a000000-0000-4000-a000-000000000d03','5a000000-0000-4000-a000-000000000001','5a000000-0000-4000-a000-000000000f03','5a000000-0000-4000-a000-0000000000bb','ZZ doc org.pdf','pdf'),
+  ('5a000000-0000-4000-a000-000000000d04','5a000000-0000-4000-a000-000000000001',NULL,                                     '5a000000-0000-4000-a000-0000000000bb','ZZ doc libre B.pdf','pdf'),
+  ('5a000000-0000-4000-a000-000000000d05','5a000000-0000-4000-a000-000000000001','5a000000-0000-4000-a000-000000000f04','5a000000-0000-4000-a000-0000000000aa','ZZ doc sous-dossier.pdf','pdf');
 
 INSERT INTO public.document_risks (id, document_id, organization_id, severity, category, clause_name, problem, status) VALUES
   ('5a000000-0000-4000-a000-000000000e01','5a000000-0000-4000-a000-000000000d01','5a000000-0000-4000-a000-000000000001','high','autre','ZZ clause privée','test','open'),
@@ -143,9 +143,9 @@ DO $$ DECLARE n int; BEGIN
 END $$;
 
 DO $$ BEGIN
-  INSERT INTO public.documents (id, organization_id, folder_id, uploaded_by, name)
+  INSERT INTO public.documents (id, organization_id, folder_id, uploaded_by, name, file_type)
   VALUES ('5a000000-0000-4000-a000-000000000d99','5a000000-0000-4000-a000-000000000001',
-          '5a000000-0000-4000-a000-000000000f02','5a000000-0000-4000-a000-0000000000cc','ZZ intrusion.pdf');
+          '5a000000-0000-4000-a000-000000000f02','5a000000-0000-4000-a000-0000000000cc','ZZ intrusion.pdf','pdf');
   INSERT INTO public.zz_share_test_results VALUES ('12_viewer_insert_doc', 'refus RLS', 'insert accepté', 'FAIL');
 EXCEPTION WHEN OTHERS THEN
   INSERT INTO public.zz_share_test_results VALUES ('12_viewer_insert_doc', 'refus RLS', 'refusé', 'PASS');
