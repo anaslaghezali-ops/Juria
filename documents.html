@@ -114,6 +114,29 @@
     .folder-card-clickable { padding: 20px; cursor: pointer; }
     .folder-card-actions { display: flex; gap: 2px; }
     .folder-card-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
+
+    /* ── Partage de dossiers ── */
+    .tree-share { font-size: 10px; margin-left: 2px; flex-shrink: 0; opacity: 0.8; }
+    .tree-owner { font-size: 10.5px; color: var(--slate-400); margin-left: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .share-avatars { display: inline-flex; align-items: center; margin-right: 6px; cursor: pointer; }
+    .share-avatars .sh-av { width: 22px; height: 22px; border-radius: 50%; background: var(--indigo); color: #fff; font-size: 9px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; border: 2px solid var(--white); margin-left: -6px; }
+    .share-avatars .sh-av:first-child { margin-left: 0; }
+    .share-avatars .sh-av.more { background: var(--slate-400); }
+    .share-member-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+    .share-member-row:last-child { border-bottom: none; }
+    .share-member-row .sh-av { width: 30px; height: 30px; border-radius: 50%; background: var(--indigo); color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .share-member-info { flex: 1; min-width: 0; }
+    .share-member-name { font-size: 13px; font-weight: 600; color: var(--slate-900); }
+    .share-member-email { font-size: 11px; color: var(--slate-400); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .share-role-select { font-size: 12px; padding: 4px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--white); color: var(--slate-700); }
+    .share-owner-tag { font-size: 11px; color: var(--slate-400); font-weight: 600; padding: 4px 8px; }
+    .share-vis-row { display: flex; gap: 8px; margin-bottom: 16px; }
+    .share-vis-opt { flex: 1; border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 12px; cursor: pointer; font-size: 12.5px; color: var(--slate-600); transition: all 0.15s; }
+    .share-vis-opt.active { border-color: var(--indigo); background: rgba(79,70,229,0.05); color: var(--slate-900); }
+    .share-vis-opt b { display: block; font-size: 13px; margin-bottom: 2px; }
+    .share-add-row { display: flex; gap: 8px; margin-top: 14px; align-items: center; }
+    .share-add-row select { flex: 1; }
+    .share-hint { font-size: 11.5px; color: var(--amber-700, #b45309); background: #fef3c7; border-radius: 6px; padding: 6px 10px; margin-top: 6px; }
     .folder-icon { font-size: 28px; }
     .folder-menu-btn { background: none; border: none; color: var(--slate-400); cursor: pointer; padding: 4px; border-radius: 6px; font-size: 15px; }
     .folder-menu-btn:hover { background: var(--slate-100); color: var(--slate-700); }
@@ -910,9 +933,11 @@
                   <span class="ws-detail-badge" id="wsDetailBadge"></span>
                 </div>
                 <div class="ws-detail-actions">
+                  <span class="share-avatars" id="wsShareAvatars" onclick="openShareModal(currentDetailFolderId)" title="Voir les accès"></span>
+                  <button class="ws-action-btn" id="wsShareBtn" onclick="openShareModal(currentDetailFolderId)" title="Gérer les accès" style="display:none">👥 Partager</button>
                   <button class="ws-action-btn" id="wsAddSubBtn" onclick="wsAddSubFolder()" title="Ajouter un sous-dossier">+ Sous-dossier</button>
-                  <button class="ws-action-btn" onclick="wsImportDoc()" title="Importer un document">+ Document</button>
-                  <button class="ws-action-btn ghost" onclick="wsEditFolder()" title="Modifier">✏️</button>
+                  <button class="ws-action-btn" id="wsImportBtn" onclick="wsImportDoc()" title="Importer un document">+ Document</button>
+                  <button class="ws-action-btn ghost" id="wsEditBtn" onclick="wsEditFolder()" title="Modifier">✏️</button>
                 </div>
               </div>
             </div>
@@ -1411,6 +1436,25 @@
 </div>
 
 <!-- MODAL: NOUVELLE ÉCHÉANCE -->
+<!-- ══════════ MODAL: PARTAGER UN DOSSIER ══════════ -->
+<div class="modal-overlay" id="shareModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeShareModal()">×</button>
+    <div class="modal-title" id="shareModalTitle">Partager le dossier</div>
+    <div class="modal-sub">Le dossier, ses sous-dossiers, documents, risques et échéances suivent ces accès.</div>
+    <div class="share-vis-row" id="shareVisRow"></div>
+    <div id="shareMembersList"></div>
+    <div class="share-add-row" id="shareAddRow">
+      <select class="form-input" id="shareAddSelect"></select>
+      <select class="form-input" id="shareAddRole" style="flex:0 0 110px">
+        <option value="viewer">Lecteur</option>
+        <option value="editor">Éditeur</option>
+      </select>
+      <button class="btn-primary" style="white-space:nowrap" onclick="shareAddMember()">Inviter</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="deadlineModal">
   <div class="modal">
     <button class="modal-close" onclick="closeDeadlineModal()">×</button>
@@ -1876,6 +1920,8 @@ async function loadData() {
     }
   }
 
+  await loadSharingData();
+
   initRiskStatuses();
   updateNavCounts();
   renderDashboard();
@@ -2040,6 +2086,235 @@ let wsSortDir = _wsInit.sortDir || 'asc';               // asc|desc
 let wsTreeInitialized = false;
 
 /**
+ * ══════════════════════════════════════════════
+ *  PARTAGE DE DOSSIERS (Phase 2 — UI)
+ *  La vérité d'accès reste la RLS serveur ; ces helpers ne font
+ *  que refléter fn_folder_access côté client pour l'affichage.
+ * ══════════════════════════════════════════════
+ */
+let allFolderMembers = [];
+let folderMembersByFolder = {};
+let allOrgMembers = [];
+let myOrgRole = 'member';
+let shareFolderId = null;
+
+async function loadSharingData() {
+  try {
+    const [fmRes, members] = await Promise.all([
+      _sb.from('folder_members').select('folder_id, user_id, role, granted_by, created_at'),
+      Services?.organizations ? Services.organizations.getMembers(currentOrgId) : Promise.resolve([]),
+    ]);
+    allFolderMembers = fmRes?.data || [];
+    folderMembersByFolder = {};
+    allFolderMembers.forEach(m => {
+      (folderMembersByFolder[m.folder_id] = folderMembersByFolder[m.folder_id] || []).push(m);
+    });
+    allOrgMembers = (members || []).filter(m => m.is_active);
+    myOrgRole = allOrgMembers.find(m => m.user_id === currentUser?.id)?.role || 'member';
+  } catch (e) { console.warn('[Partage] chargement échoué:', e?.message); }
+}
+
+/** Dossier racine (l'unité de partage), en suivant parent_id. */
+function rootFolderOf(folderId) {
+  let f = allFolders.find(x => x.id === folderId);
+  let depth = 0;
+  while (f && f.parent_id && depth++ < 10) {
+    f = allFolders.find(x => x.id === f.parent_id);
+  }
+  return f || null;
+}
+
+/** Miroir client de fn_folder_access : 'owner' | 'editor' | 'viewer' | null. */
+function folderAccess(folderId) {
+  const root = rootFolderOf(folderId);
+  if (!root) return null;
+  if (myOrgRole === 'owner' || myOrgRole === 'admin') return 'owner';
+  if (root.created_by === currentUser?.id) return 'owner';
+  const fm = (folderMembersByFolder[root.id] || []).find(m => m.user_id === currentUser?.id);
+  if (fm) return fm.role;
+  // visibility absente = données démo / fallback : comportement historique
+  if (root.visibility === 'org' || !root.visibility) return myOrgRole === 'reader' ? 'viewer' : 'editor';
+  return null;
+}
+
+/** État de partage pour l'affichage (badges, sections de l'arbre). */
+function folderShareState(folder) {
+  const root = rootFolderOf(folder.id) || folder;
+  if (!root.visibility) return 'org'; // données démo / fallback
+  const members = folderMembersByFolder[root.id] || [];
+  if (root.created_by === currentUser?.id) {
+    if (root.visibility === 'org') return 'org';
+    return members.length ? 'mine-shared' : 'mine-private';
+  }
+  if (members.some(m => m.user_id === currentUser?.id)) return 'shared-with-me';
+  if (root.visibility === 'org') return 'org';
+  return 'supervision'; // visible uniquement grâce au rôle admin/owner d'org
+}
+
+function memberLabel(userId) {
+  const m = allOrgMembers.find(x => x.user_id === userId);
+  if (!m) return '—';
+  const n = [m.first_name, m.last_name].filter(Boolean).join(' ').trim();
+  return n || (m.email || '').split('@')[0] || '—';
+}
+
+function memberInitials(userId) {
+  const n = memberLabel(userId);
+  return (n.split(/\s+/).map(w => w[0]).slice(0, 2).join('') || '?').toUpperCase();
+}
+
+function folderShareBadge(folder) {
+  const st = folderShareState(folder);
+  if (st === 'mine-private') return '<span class="tree-share" title="Privé — visible par vous seul">🔒</span>';
+  if (st === 'mine-shared') {
+    const n = (folderMembersByFolder[folder.id] || []).length;
+    return `<span class="tree-share" title="Partagé avec ${n} personne${n > 1 ? 's' : ''}">👥</span>`;
+  }
+  if (st === 'org') return '<span class="tree-share" title="Visible par toute l\'organisation">🏢</span>';
+  return '';
+}
+
+function shareAvatarsHtml(folderId) {
+  const root = rootFolderOf(folderId);
+  if (!root) return '';
+  const members = folderMembersByFolder[root.id] || [];
+  if (!members.length) return '';
+  const shown = members.slice(0, 4);
+  let html = shown.map(m =>
+    `<span class="sh-av" title="${escHtml(memberLabel(m.user_id))} · ${m.role === 'editor' ? 'éditeur' : 'lecteur'}">${escHtml(memberInitials(m.user_id))}</span>`
+  ).join('');
+  if (members.length > shown.length) html += `<span class="sh-av more">+${members.length - shown.length}</span>`;
+  return html;
+}
+
+// ── Modal de partage ──────────────────────────
+function openShareModal(folderId) {
+  const root = rootFolderOf(folderId);
+  if (!root) return;
+  if (folderAccess(root.id) !== 'owner') { showToast('Seul le propriétaire du dossier gère ses accès.', 'error'); return; }
+  shareFolderId = root.id;
+  renderShareModal();
+  document.getElementById('shareModal').classList.add('show');
+}
+
+function closeShareModal() {
+  document.getElementById('shareModal').classList.remove('show');
+  shareFolderId = null;
+}
+
+function renderShareModal() {
+  const folder = allFolders.find(f => f.id === shareFolderId);
+  if (!folder) return;
+  const members = folderMembersByFolder[shareFolderId] || [];
+
+  document.getElementById('shareModalTitle').textContent = `Partager « ${folder.name} »`;
+
+  // Visibilité : privé (+ invitations) ou organisation
+  const vis = folder.visibility || 'private';
+  document.getElementById('shareVisRow').innerHTML = `
+    <div class="share-vis-opt ${vis === 'private' ? 'active' : ''}" onclick="shareSetVisibility('private')">
+      <b>🔒 Privé</b>Vous${members.length ? ' + ' + members.length + ' invité' + (members.length > 1 ? 's' : '') : ' seul'} (et l'admin)
+    </div>
+    <div class="share-vis-opt ${vis === 'org' ? 'active' : ''}" onclick="shareSetVisibility('org')">
+      <b>🏢 Organisation</b>Visible et modifiable par tous les membres
+    </div>`;
+
+  // Liste : propriétaire d'abord, puis les invités
+  const ownerRow = `
+    <div class="share-member-row">
+      <span class="sh-av">${escHtml(memberInitials(folder.created_by))}</span>
+      <div class="share-member-info">
+        <div class="share-member-name">${escHtml(memberLabel(folder.created_by))}${folder.created_by === currentUser?.id ? ' (vous)' : ''}</div>
+        <div class="share-member-email">${escHtml(allOrgMembers.find(m => m.user_id === folder.created_by)?.email || '')}</div>
+      </div>
+      <span class="share-owner-tag">Propriétaire</span>
+    </div>`;
+
+  const memberRows = members.map(m => `
+    <div class="share-member-row">
+      <span class="sh-av">${escHtml(memberInitials(m.user_id))}</span>
+      <div class="share-member-info">
+        <div class="share-member-name">${escHtml(memberLabel(m.user_id))}</div>
+        <div class="share-member-email">${escHtml(allOrgMembers.find(x => x.user_id === m.user_id)?.email || '')}</div>
+      </div>
+      <select class="share-role-select" onchange="shareChangeRole('${m.user_id}', this.value)">
+        <option value="viewer" ${m.role === 'viewer' ? 'selected' : ''}>Lecteur</option>
+        <option value="editor" ${m.role === 'editor' ? 'selected' : ''}>Éditeur</option>
+      </select>
+      <button class="action-btn danger" title="Révoquer l'accès" onclick="shareRemoveMember('${m.user_id}')">✕</button>
+    </div>`).join('');
+
+  document.getElementById('shareMembersList').innerHTML = ownerRow + memberRows;
+
+  // Sélecteur d'invitation : membres actifs non encore invités, hors
+  // propriétaire et hors admins (qui voient déjà tout).
+  const invitable = allOrgMembers.filter(m =>
+    m.user_id !== folder.created_by &&
+    m.role !== 'owner' && m.role !== 'admin' &&
+    !members.some(x => x.user_id === m.user_id)
+  );
+  const addRow = document.getElementById('shareAddRow');
+  if (invitable.length) {
+    addRow.style.display = '';
+    document.getElementById('shareAddSelect').innerHTML =
+      invitable.map(m => `<option value="${m.user_id}">${escHtml(memberLabel(m.user_id))} — ${escHtml(m.email || '')}</option>`).join('');
+  } else {
+    addRow.style.display = 'none';
+  }
+}
+
+function _shareRefreshUI() {
+  renderTree();
+  if (wsSelectedFolderId && wsSelectedFolderId !== '__all__') renderFolderDetail(wsSelectedFolderId);
+  if (shareFolderId) renderShareModal();
+}
+
+async function shareAddMember() {
+  const userId = document.getElementById('shareAddSelect').value;
+  const role = document.getElementById('shareAddRole').value;
+  if (!userId || !shareFolderId) return;
+  const { error } = await _sb.from('folder_members').insert({
+    folder_id: shareFolderId, user_id: userId, role, granted_by: currentUser.id,
+  });
+  if (error) { showToast('Erreur : ' + error.message, 'error'); return; }
+  (folderMembersByFolder[shareFolderId] = folderMembersByFolder[shareFolderId] || [])
+    .push({ folder_id: shareFolderId, user_id: userId, role, granted_by: currentUser.id });
+  _shareRefreshUI();
+  showToast(`${memberLabel(userId)} a maintenant accès au dossier.`, 'success');
+}
+
+async function shareChangeRole(userId, role) {
+  const { error } = await _sb.from('folder_members')
+    .update({ role }).eq('folder_id', shareFolderId).eq('user_id', userId);
+  if (error) { showToast('Erreur : ' + error.message, 'error'); renderShareModal(); return; }
+  const m = (folderMembersByFolder[shareFolderId] || []).find(x => x.user_id === userId);
+  if (m) m.role = role;
+  _shareRefreshUI();
+}
+
+async function shareRemoveMember(userId) {
+  if (!confirm(`Révoquer l'accès de ${memberLabel(userId)} ?`)) return;
+  const { error } = await _sb.from('folder_members')
+    .delete().eq('folder_id', shareFolderId).eq('user_id', userId);
+  if (error) { showToast('Erreur : ' + error.message, 'error'); return; }
+  folderMembersByFolder[shareFolderId] =
+    (folderMembersByFolder[shareFolderId] || []).filter(x => x.user_id !== userId);
+  _shareRefreshUI();
+  showToast('Accès révoqué.', 'success');
+}
+
+async function shareSetVisibility(vis) {
+  const folder = allFolders.find(f => f.id === shareFolderId);
+  if (!folder || folder.visibility === vis) return;
+  const { error } = await _sb.from('folders')
+    .update({ visibility: vis }).eq('id', shareFolderId);
+  if (error) { showToast('Erreur : ' + error.message, 'error'); return; }
+  folder.visibility = vis;
+  _shareRefreshUI();
+  showToast(vis === 'org' ? 'Dossier visible par toute l\'organisation.' : 'Dossier repassé en privé.', 'success');
+}
+
+/**
  * Point d'entrée : rend l'arborescence. Remplace l'ancien renderFolders.
  */
 function renderFolders() {
@@ -2084,13 +2359,18 @@ function renderTree(searchFilter) {
     return { docCount: docs.length, highRisks: highR, subCount: subs.length };
   }
 
-  // Dossiers principaux (parent_id null)
+  // Dossiers principaux (parent_id null), répartis par provenance :
+  // les miens + visibles org restent groupés par contrepartie ; ceux
+  // qui me sont partagés (et la supervision admin) ont leurs sections.
   const mainFolders = allFolders.filter(f => !f.parent_id);
+  const sharedWithMe = mainFolders.filter(f => folderShareState(f) === 'shared-with-me');
+  const supervision  = mainFolders.filter(f => folderShareState(f) === 'supervision');
+  const ownFolders   = mainFolders.filter(f => !sharedWithMe.includes(f) && !supervision.includes(f));
 
   // Grouper par contrepartie
   const byCounterparty = {};
   const noCp = [];
-  mainFolders.forEach(f => {
+  ownFolders.forEach(f => {
     if (f.counterparty_id) {
       (byCounterparty[f.counterparty_id] = byCounterparty[f.counterparty_id] || []).push(f);
     } else {
@@ -2153,6 +2433,26 @@ function renderTree(searchFilter) {
     }
   }
 
+  // Dossiers que des collègues m'ont partagés
+  if (sharedWithMe.length) {
+    const filtered = sharedWithMe.filter(f => !q || f.name.toLowerCase().includes(q) ||
+      getSubFoldersFast(f.id).some(s => s.name.toLowerCase().includes(q)));
+    if (filtered.length) {
+      html += `<div class="tree-section-label">Partagés avec moi</div>`;
+      filtered.forEach(f => { html += renderTreeFolder(f, 0, q, folderStats, memberLabel(f.created_by)); });
+    }
+  }
+
+  // Vue de supervision de l'admin : dossiers privés des autres membres
+  if (supervision.length) {
+    const filtered = supervision.filter(f => !q || f.name.toLowerCase().includes(q) ||
+      getSubFoldersFast(f.id).some(s => s.name.toLowerCase().includes(q)));
+    if (filtered.length) {
+      html += `<div class="tree-section-label" title="Visibles uniquement grâce à votre rôle d'administrateur">Supervision (admin)</div>`;
+      filtered.forEach(f => { html += renderTreeFolder(f, 0, q, folderStats, memberLabel(f.created_by)); });
+    }
+  }
+
   // Bouton nouveau dossier client
   html += `<div class="ws-tree-newclient" onclick="openFolderModal()">+ Nouveau dossier client</div>`;
 
@@ -2162,13 +2462,15 @@ function renderTree(searchFilter) {
 /**
  * Rend un dossier principal + ses sous-dossiers dans l'arbre.
  */
-function renderTreeFolder(folder, level, q, folderStats) {
+function renderTreeFolder(folder, level, q, folderStats, ownerLabel) {
   const subs = getSubFoldersFast(folder.id);
   const nodeId = folder.id;
   const expanded = wsExpandedNodes.has(nodeId);
   const hasChildren = subs.length > 0;
   const stats = folderStats(folder.id, folder.name);
   const selected = wsSelectedFolderId === folder.id;
+  const access = folderAccess(folder.id);
+  const canEdit = access === 'owner' || access === 'editor';
 
   const riskBadge = stats.highRisks > 0
     ? `<span class="tree-badge-risk">${stats.highRisks}</span>` : '';
@@ -2177,18 +2479,23 @@ function renderTreeFolder(folder, level, q, folderStats) {
   const caretClick = hasChildren
     ? `onclick="event.stopPropagation();toggleTreeNode('${nodeId}')"` : '';
 
+  const actions = canEdit ? `
+        <span class="tree-actions">
+          <button class="tree-action" onclick="event.stopPropagation();openSubFolderModal('${folder.id}')" title="Sous-dossier">+</button>
+          <button class="tree-action" onclick="event.stopPropagation();editFolder('${folder.id}')" title="Modifier">✏️</button>
+        </span>` : '';
+
   let html = `
     <div class="tree-node" data-level="${level}">
       <div class="tree-row ${selected ? 'selected' : ''}" onclick="selectFolder('${folder.id}')">
         <span class="tree-caret ${caretClass}" ${caretClick}>▶</span>
         <span class="tree-icon">📁</span>
         <span class="tree-name">${escHtml(folder.name)}</span>
+        ${folderShareBadge(folder)}
+        ${ownerLabel ? `<span class="tree-owner" title="Propriétaire : ${escHtml(ownerLabel)}">· ${escHtml(ownerLabel)}</span>` : ''}
         ${riskBadge}
         <span class="tree-badge">${stats.docCount}</span>
-        <span class="tree-actions">
-          <button class="tree-action" onclick="event.stopPropagation();openSubFolderModal('${folder.id}')" title="Sous-dossier">+</button>
-          <button class="tree-action" onclick="event.stopPropagation();editFolder('${folder.id}')" title="Modifier">✏️</button>
-        </span>
+        ${actions}
       </div>`;
 
   if (hasChildren) {
@@ -2206,9 +2513,9 @@ function renderTreeFolder(folder, level, q, folderStats) {
             <span class="tree-name">${escHtml(sf.name)}</span>
             ${subRiskBadge}
             <span class="tree-badge">${subDocs.length}</span>
-            <span class="tree-actions">
+            ${canEdit ? `<span class="tree-actions">
               <button class="tree-action" onclick="event.stopPropagation();editFolder('${sf.id}')" title="Modifier">✏️</button>
-            </span>
+            </span>` : ''}
           </div>
         </div>`;
       }).join('')}
@@ -2332,11 +2639,31 @@ function renderFolderDetail(folderId) {
   crumbs.push(`<span class="current">${escHtml(folder.name)}</span>`);
   document.getElementById('wsBreadcrumb').innerHTML = crumbs.join('<span class="sep">›</span>');
 
-  // Titre + badge
+  // Titre + badge (état de partage inclus)
+  const access = folderAccess(folderId);
+  const canEdit = access === 'owner' || access === 'editor';
+  const shareState = folderShareState(folder);
+  const root = rootFolderOf(folderId) || folder;
+  const stateLabel = {
+    'mine-private':   '🔒 Privé',
+    'mine-shared':    '👥 Partagé',
+    'org':            '🏢 Organisation',
+    'shared-with-me': `👥 Partagé par ${memberLabel(root.created_by)} · ${access === 'editor' ? 'éditeur' : 'lecteur'}`,
+    'supervision':    `🔒 Privé de ${memberLabel(root.created_by)} · vue admin`,
+  }[shareState] || '';
   document.getElementById('wsDetailIcon').textContent = isMain ? '📁' : '📂';
   document.getElementById('wsDetailName').textContent = folder.name;
-  document.getElementById('wsDetailBadge').textContent = isMain ? 'Dossier' : 'Sous-dossier';
-  document.getElementById('wsAddSubBtn').style.display = isMain ? '' : 'none';
+  document.getElementById('wsDetailBadge').textContent =
+    (isMain ? 'Dossier' : 'Sous-dossier') + (stateLabel ? ' · ' + stateLabel : '');
+
+  // Boutons selon l'accès (la RLS reste la vérité côté serveur)
+  document.getElementById('wsAddSubBtn').style.display = (isMain && canEdit) ? '' : 'none';
+  document.getElementById('wsImportBtn').style.display = canEdit ? '' : 'none';
+  document.getElementById('wsEditBtn').style.display = canEdit ? '' : 'none';
+  const shareBtn = document.getElementById('wsShareBtn');
+  if (shareBtn) shareBtn.style.display = (access === 'owner' && !root.parent_id) ? '' : 'none';
+  const avatars = document.getElementById('wsShareAvatars');
+  if (avatars) avatars.innerHTML = shareAvatarsHtml(folderId);
 
   // KPIs
   document.getElementById('wsKpiDocs').textContent = docsInFolder.length;
@@ -2709,8 +3036,11 @@ function populateFolderFilter() {
 }
 
 function populateFolderSelect() {
-  // Afficher les dossiers principaux avec leurs sous-dossiers indentés
-  const mainFolders = allFolders.filter(f => !f.parent_id);
+  // Dossiers principaux + sous-dossiers indentés — uniquement ceux où
+  // l'utilisateur peut écrire (un import dans un dossier en lecture seule
+  // serait refusé par la RLS de toute façon).
+  const mainFolders = allFolders.filter(f => !f.parent_id)
+    .filter(f => ['owner', 'editor'].includes(folderAccess(f.id)));
   let optionsHtml = '';
   mainFolders.forEach(f => {
     optionsHtml += `<option value="${f.id}">${escHtml(f.name)}</option>`;
@@ -3510,8 +3840,8 @@ function openUploadModal(preselectFolderId) {
   // Pré-sélection du dossier si fourni (ex: on est déjà dans un dossier)
   if (preselectFolderId && preselectFolderId !== '__all__' && fs) {
     fs.value = preselectFolderId;
-    onUploadFolderChange();  // hérite la contrepartie du dossier
   }
+  onUploadFolderChange();  // hérite la contrepartie + indice de visibilité
   document.getElementById('uploadModal').classList.add('show');
 }
 function closeUploadModal() {
@@ -3525,6 +3855,32 @@ function closeUploadModal() {
  */
 function onUploadFolderChange() {
   const folderId = document.getElementById('folderSelect').value;
+
+  // Avertir sur qui verra le document selon le dossier choisi
+  const sel = document.getElementById('folderSelect');
+  let hint = document.getElementById('folderShareHint');
+  if (!hint && sel) {
+    sel.insertAdjacentHTML('afterend', '<div class="share-hint" id="folderShareHint" style="display:none"></div>');
+    hint = document.getElementById('folderShareHint');
+  }
+  if (hint) {
+    let msg = '';
+    if (folderId) {
+      const folder = allFolders.find(f => f.id === folderId);
+      const st = folder ? folderShareState(folder) : null;
+      const root = folder ? (rootFolderOf(folderId) || folder) : null;
+      if (st === 'org') msg = '🏢 Ce dossier est visible par toute l\'organisation — le document le sera aussi.';
+      else if (st === 'mine-shared') {
+        const n = (folderMembersByFolder[root.id] || []).length;
+        msg = `👥 Ce dossier est partagé — le document sera visible par ${n} personne${n > 1 ? 's' : ''} invitée${n > 1 ? 's' : ''}.`;
+      } else if (st === 'shared-with-me') msg = `👥 Dossier de ${memberLabel(root.created_by)} — le document sera visible par ses membres.`;
+    } else {
+      msg = '🔒 Sans dossier, le document ne sera visible que par vous (et l\'admin).';
+    }
+    hint.textContent = msg;
+    hint.style.display = msg ? '' : 'none';
+  }
+
   const cpSelect = document.getElementById('counterpartySelect');
   if (!folderId || !cpSelect) return;
 
