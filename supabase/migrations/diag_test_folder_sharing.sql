@@ -19,6 +19,7 @@ GRANT ALL ON public.zz_share_test_results TO authenticated;
 
 -- ── 1) Purge d'un éventuel run précédent (enfants → parents) ─────────
 DELETE FROM public.document_risks       WHERE organization_id = '5a000000-0000-4000-a000-000000000001';
+DELETE FROM public.document_analyses    WHERE organization_id = '5a000000-0000-4000-a000-000000000001';
 DELETE FROM public.document_obligations WHERE organization_id = '5a000000-0000-4000-a000-000000000001';
 DELETE FROM public.tasks                WHERE organization_id = '5a000000-0000-4000-a000-000000000001';
 DELETE FROM public.documents            WHERE organization_id = '5a000000-0000-4000-a000-000000000001';
@@ -65,9 +66,13 @@ INSERT INTO public.documents (id, organization_id, folder_id, uploaded_by, name,
   ('5a000000-0000-4000-a000-000000000d04','5a000000-0000-4000-a000-000000000001',NULL,                                     '5a000000-0000-4000-a000-0000000000bb','ZZ doc libre B.pdf','pdf'),
   ('5a000000-0000-4000-a000-000000000d05','5a000000-0000-4000-a000-000000000001','5a000000-0000-4000-a000-000000000f04','5a000000-0000-4000-a000-0000000000aa','ZZ doc sous-dossier.pdf','pdf');
 
-INSERT INTO public.document_risks (id, document_id, organization_id, severity, category, clause_name, problem, status) VALUES
-  ('5a000000-0000-4000-a000-000000000e01','5a000000-0000-4000-a000-000000000d01','5a000000-0000-4000-a000-000000000001','high','autre','ZZ clause privée','test','open'),
-  ('5a000000-0000-4000-a000-000000000e02','5a000000-0000-4000-a000-000000000d02','5a000000-0000-4000-a000-000000000001','high','autre','ZZ clause partagée','test','open');
+INSERT INTO public.document_analyses (id, document_id, organization_id) VALUES
+  ('5a000000-0000-4000-a000-000000000a01','5a000000-0000-4000-a000-000000000d01','5a000000-0000-4000-a000-000000000001'),
+  ('5a000000-0000-4000-a000-000000000a02','5a000000-0000-4000-a000-000000000d02','5a000000-0000-4000-a000-000000000001');
+
+INSERT INTO public.document_risks (id, analysis_id, document_id, organization_id, severity, category, clause_name, problem, status) VALUES
+  ('5a000000-0000-4000-a000-000000000e01','5a000000-0000-4000-a000-000000000a01','5a000000-0000-4000-a000-000000000d01','5a000000-0000-4000-a000-000000000001','high','autre','ZZ clause privée','test','open'),
+  ('5a000000-0000-4000-a000-000000000e02','5a000000-0000-4000-a000-000000000a02','5a000000-0000-4000-a000-000000000d02','5a000000-0000-4000-a000-000000000001','high','autre','ZZ clause partagée','test','open');
 
 INSERT INTO public.document_obligations (id, document_id, organization_id, description, source, created_by) VALUES
   ('5a000000-0000-4000-a000-000000000c01','5a000000-0000-4000-a000-000000000d01','5a000000-0000-4000-a000-000000000001','ZZ échéance doc privé','analysis','5a000000-0000-4000-a000-0000000000aa'),
@@ -223,6 +228,7 @@ RESET ROLE;
 
 -- ── 9) Nettoyage des fixtures ────────────────────────────────────────
 DELETE FROM public.document_risks       WHERE organization_id = '5a000000-0000-4000-a000-000000000001';
+DELETE FROM public.document_analyses    WHERE organization_id = '5a000000-0000-4000-a000-000000000001';
 DELETE FROM public.document_obligations WHERE organization_id = '5a000000-0000-4000-a000-000000000001';
 DELETE FROM public.tasks                WHERE organization_id = '5a000000-0000-4000-a000-000000000001';
 DELETE FROM public.documents            WHERE organization_id = '5a000000-0000-4000-a000-000000000001';
