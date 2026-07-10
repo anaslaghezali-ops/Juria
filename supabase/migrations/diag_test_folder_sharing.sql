@@ -66,17 +66,18 @@ INSERT INTO public.documents (id, organization_id, folder_id, uploaded_by, name,
   ('5a000000-0000-4000-a000-000000000d04','5a000000-0000-4000-a000-000000000001',NULL,                                     '5a000000-0000-4000-a000-0000000000bb','ZZ doc libre B.pdf','pdf'),
   ('5a000000-0000-4000-a000-000000000d05','5a000000-0000-4000-a000-000000000001','5a000000-0000-4000-a000-000000000f04','5a000000-0000-4000-a000-0000000000aa','ZZ doc sous-dossier.pdf','pdf');
 
-INSERT INTO public.document_analyses (id, document_id, organization_id, analyzed_by, score) VALUES
-  ('5a000000-0000-4000-a000-000000000a01','5a000000-0000-4000-a000-000000000d01','5a000000-0000-4000-a000-000000000001','5a000000-0000-4000-a000-0000000000aa',5),
-  ('5a000000-0000-4000-a000-000000000a02','5a000000-0000-4000-a000-000000000d02','5a000000-0000-4000-a000-000000000001','5a000000-0000-4000-a000-0000000000aa',5);
+INSERT INTO public.document_analyses (id, document_id, organization_id, analyzed_by, score, summary) VALUES
+  ('5a000000-0000-4000-a000-000000000a01','5a000000-0000-4000-a000-000000000d01','5a000000-0000-4000-a000-000000000001','5a000000-0000-4000-a000-0000000000aa',5,'ZZ test'),
+  ('5a000000-0000-4000-a000-000000000a02','5a000000-0000-4000-a000-000000000d02','5a000000-0000-4000-a000-000000000001','5a000000-0000-4000-a000-0000000000aa',5,'ZZ test');
 
 INSERT INTO public.document_risks (id, analysis_id, document_id, organization_id, severity, category, clause_name, problem, status) VALUES
   ('5a000000-0000-4000-a000-000000000e01','5a000000-0000-4000-a000-000000000a01','5a000000-0000-4000-a000-000000000d01','5a000000-0000-4000-a000-000000000001','high','autre','ZZ clause privée','test','open'),
   ('5a000000-0000-4000-a000-000000000e02','5a000000-0000-4000-a000-000000000a02','5a000000-0000-4000-a000-000000000d02','5a000000-0000-4000-a000-000000000001','high','autre','ZZ clause partagée','test','open');
 
-INSERT INTO public.document_obligations (id, document_id, organization_id, description, source, created_by) VALUES
-  ('5a000000-0000-4000-a000-000000000c01','5a000000-0000-4000-a000-000000000d01','5a000000-0000-4000-a000-000000000001','ZZ échéance doc privé','analysis','5a000000-0000-4000-a000-0000000000aa'),
-  ('5a000000-0000-4000-a000-000000000c02',NULL,                                     '5a000000-0000-4000-a000-000000000001','ZZ échéance manuelle libre','manual','5a000000-0000-4000-a000-0000000000bb');
+-- La 2e échéance (manuelle, analysis_id NULL) vérifie le DROP NOT NULL de la migration 13.
+INSERT INTO public.document_obligations (id, document_id, analysis_id, organization_id, description, source, created_by) VALUES
+  ('5a000000-0000-4000-a000-000000000c01','5a000000-0000-4000-a000-000000000d01','5a000000-0000-4000-a000-000000000a01','5a000000-0000-4000-a000-000000000001','ZZ échéance doc privé','analysis','5a000000-0000-4000-a000-0000000000aa'),
+  ('5a000000-0000-4000-a000-000000000c02',NULL,NULL,                               '5a000000-0000-4000-a000-000000000001','ZZ échéance manuelle libre','manual','5a000000-0000-4000-a000-0000000000bb');
 
 -- ── 3) Tests utilisateur A (lawyer, propriétaire de F_priv/F_shared) ─
 SELECT set_config('request.jwt.claims', '{"sub":"5a000000-0000-4000-a000-0000000000aa","role":"authenticated"}', true);

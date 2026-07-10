@@ -1629,6 +1629,7 @@ async function saveAnalysisToDatabase(analysisResult, selectedFile, extractedTex
         .filter(o => o && o.description)
         .map(o => ({
           document_id: docId,
+          analysis_id: analysisId,
           organization_id: orgId,
           description: String(o.description).slice(0, 500),
           due_date: /^\d{4}-\d{2}-\d{2}$/.test(o.due_date || '') ? o.due_date : null,

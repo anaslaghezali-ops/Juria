@@ -50,6 +50,15 @@ DO $$ BEGIN
     ADD CONSTRAINT folders_visibility_check CHECK (visibility IN ('private','org'));
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
+-- FIX échéances (découvert en écrivant les tests d'accès) : la table
+-- document_obligations PRÉEXISTAIT à la migration 12 avec analysis_id
+-- NOT NULL — chaque INSERT d'échéance (extraite comme manuelle) violait la
+-- contrainte et échouait silencieusement. Une échéance manuelle n'a pas
+-- d'analyse : la contrainte saute. (No-op si la colonne n'existe pas.)
+DO $$ BEGIN
+  ALTER TABLE public.document_obligations ALTER COLUMN analysis_id DROP NOT NULL;
+EXCEPTION WHEN undefined_column THEN NULL; END $$;
+
 CREATE TABLE IF NOT EXISTS public.folder_members (
   folder_id  uuid NOT NULL REFERENCES public.folders(id) ON DELETE CASCADE,
   user_id    uuid NOT NULL,
