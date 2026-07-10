@@ -100,6 +100,39 @@ n'appliquait pas : le top-N était renvoyé même totalement hors sujet, et l'IA
 répondait « basé sur 10 passages » à partir de bruit. Le seuil de similarité
 est désormais appliqué (défaut 0.2, calibré pour text-embedding-3-small).
 
+### `12_document_obligations.sql`
+Échéances réelles (page Échéances / dashboard) : `document_obligations`
+devient la source de vérité — organization_id + backfill, `source`
+(analysis | manual), document_id optionnel, RLS org-scopée.
+
+### `13_folder_sharing.sql`
+Partage de dossiers, Phase 1 (appliquée et vérifiée le 2026-07-10) :
+- `folders.visibility` (`private` | `org`) — existants backfillés à `org`
+  (personne ne perd l'accès), nouveaux dossiers privés par défaut ;
+  l'état « partagé » de l'UI est dérivé (privé + invitations).
+- `folder_members` (viewer | editor) : invitations nominatives par le
+  propriétaire (`folders.created_by`), dossiers RACINE uniquement ;
+  sous-dossiers, documents, risques, échéances, analyses, contenu,
+  chunks RAG, résumés et commentaires héritent de la racine.
+- Primitives `fn_folder_access` / `fn_document_access`
+  (owner | editor | viewer | NULL, SECURITY DEFINER) réutilisées par
+  toutes les policies ; admin/owner d'org : accès de supervision.
+- Trigger garde-fou : visibilité/propriétaire/rattachement modifiables
+  par le seul propriétaire.
+- Supprime deux vieilles policies permissives qui auraient contourné le
+  partage (`document_chunks`, `document_summaries`).
+- **Fix échéances** : `document_obligations.analysis_id` était NOT NULL
+  (table préexistante à la 12) → tout INSERT d'échéance échouait
+  silencieusement. Contrainte supprimée ; analyse-contrat.html envoie
+  désormais `analysis_id`.
+
+Vérifiée par `diag_test_folder_sharing.sql` : suite de 21 tests d'accès
+(matrice lawyer / member / invité viewer / admin, refus d'écriture du
+viewer, auto-promotion bloquée, partage de sous-dossier interdit,
+trigger, partage puis re-comptage) — **21/21 PASS en prod**, fixtures
+auto-nettoyées. Également validée sur un sandbox Postgres 16 local
+(schéma miroir + simulation JWT) avant tout envoi en prod.
+
 ### `diag_*.sql` (pas des migrations)
 Fichiers de diagnostic en lecture seule, exécutés à la demande via le
 workflow `apply-migrations` (input `files=diag_….sql`), qui affiche le
