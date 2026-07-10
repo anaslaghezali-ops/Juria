@@ -23,7 +23,7 @@ on:
       - '.github/workflows/apply-migrations.yml'
 
 env:
-  PENDING_MIGRATIONS: "12_document_obligations.sql 13_folder_sharing.sql"
+  PENDING_MIGRATIONS: "12_document_obligations.sql 13_folder_sharing.sql 14_performance_indexes.sql 15_sharing_notifications.sql"
 
 jobs:
   apply:
