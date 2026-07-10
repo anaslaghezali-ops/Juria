@@ -1863,29 +1863,31 @@ async function init() {
   document.getElementById('sidebarAvatar').textContent = name.charAt(0).toUpperCase();
   document.getElementById('sidebarName').textContent = name;
 
-  // Charger le profil — table centralisée dans PROFILE_TABLE (bootstrap.js)
-  let profile = null;
-  const _profileTable = (typeof PROFILE_TABLE !== 'undefined') ? PROFILE_TABLE : 'user_profiles_compat';
-  const { data: _profileData, error: _profileErr } = await _sb
-    .from(_profileTable)
-    .select('plan, organization_id')
-    .eq('id', currentUser.id)
-    .single();
-  if (!_profileErr && _profileData) profile = _profileData;
-  else console.warn('[init] Profil non trouvé dans', _profileTable, ':', _profileErr?.message);
-  if (profile) {
-    const planMap = { trial:'', essential:'Essentiel', pro:'Pro', cabinet:'Cabinet' };
-    document.getElementById('sidebarPlan').textContent = planMap[profile.plan] || '';
-  }
+  // L'organisation active : organization_users est la SOURCE DE VÉRITÉ.
+  // (user_profiles_compat, vue legacy, pouvait renvoyer une org périmée →
+  // currentOrgId pointait une org où l'utilisateur n'est pas membre →
+  // toutes les écritures refusées par la RLS en 42501 et lectures vides.)
+  const { data: orgRow } = await _sb.from('organization_users')
+    .select('organization_id')
+    .eq('user_id', currentUser.id)
+    .eq('is_active', true)
+    .limit(1)
+    .maybeSingle();
+  currentOrgId = orgRow?.organization_id || null;
+  if (!currentOrgId) console.warn('[init] Aucune appartenance active pour', currentUser.email);
 
-  // Récupérer l'orgId
-  let orgId = profile?.organization_id || null;
-  if (!orgId) {
-    const { data: orgRow } = await _sb.from('organization_users')
-      .select('organization_id').eq('user_id', currentUser.id).single();
-    orgId = orgRow?.organization_id || null;
+  // Le profil legacy ne sert plus qu'à l'affichage du plan.
+  const _profileTable = (typeof PROFILE_TABLE !== 'undefined') ? PROFILE_TABLE : 'user_profiles_compat';
+  const { data: _profileData } = await _sb
+    .from(_profileTable)
+    .select('plan')
+    .eq('id', currentUser.id)
+    .maybeSingle();
+  if (_profileData) {
+    const planMap = { trial:'', essential:'Essentiel', pro:'Pro', cabinet:'Cabinet' };
+    document.getElementById('sidebarPlan').textContent = planMap[_profileData.plan] || '';
   }
-  currentOrgId = orgId;
+  const orgId = currentOrgId;
 
   // Initialiser Store + Services
   if (typeof Store !== 'undefined') {

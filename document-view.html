@@ -607,7 +607,9 @@ async function init() {
     .from('organization_users')
     .select('organization_id')
     .eq('user_id', currentUser.id)
-    .single();
+    .eq('is_active', true)
+    .limit(1)
+    .maybeSingle();
 
   if (orgRow) currentOrgId = orgRow.organization_id;
 

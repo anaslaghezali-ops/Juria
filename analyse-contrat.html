@@ -1343,12 +1343,15 @@ async function saveAnalysisToDatabase(analysisResult, selectedFile, extractedTex
     const uid = session.user.id;
     console.log(`✓ Utilisateur connecté : ${uid}`);
     
-    // Récupérer l'organisation de l'utilisateur
+    // Récupérer l'organisation de l'utilisateur (appartenance ACTIVE ;
+    // maybeSingle : plusieurs memberships ne doivent pas faire un 406)
     const { data: userOrg, error: orgError } = await _sb
       .from('organization_users')
       .select('organization_id')
       .eq('user_id', uid)
-      .single();
+      .eq('is_active', true)
+      .limit(1)
+      .maybeSingle();
     
     if (orgError || !userOrg) {
       throw new Error('Aucune organisation trouvée pour cet utilisateur.');
