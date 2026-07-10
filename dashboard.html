@@ -239,7 +239,7 @@ async function init() {
     const used = profile.questions_used || 0;
     const limit = profile.questions_limit || 20;
     const pct = Math.min(100, Math.round(used / limit * 100));
-    const planMap = { trial: 'Essai gratuit', essential: 'Essentiel', pro: 'Pro', cabinet: 'Cabinet' };
+    const planMap = { trial: '', essential: 'Essentiel', pro: 'Pro', cabinet: 'Cabinet' };
 
     document.getElementById('quotaUsed').textContent = used;
     document.getElementById('quotaLimit').textContent = limit;

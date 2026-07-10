@@ -95,27 +95,9 @@ serve(async (req) => {
       });
     }
 
-    const { data: profile } = await supabaseAdmin
-      .from("user_profiles_compat")
-      .select("plan, questions_used, questions_limit, trial_ends_at")
-      .eq("id", user.id)
-      .single();
-
-    if (!profile) {
-      await supabaseAdmin.from("user_profiles_compat").insert({
-        id: user.id, plan: "trial", questions_used: 0, questions_limit: 20,
-        trial_ends_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-      });
-    }
-
-    const currentProfile = profile || { plan: "trial", questions_used: 0, questions_limit: 20 };
-
-    if (currentProfile.questions_used >= currentProfile.questions_limit) {
-      return new Response(JSON.stringify({ error: "Quota atteint.", code: "QUOTA_EXCEEDED" }), {
-        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
+    // L'ancien quota « 20 questions par utilisateur » (user_profiles_compat)
+    // est supprimé : la consommation est régie par le quota v2 en crédits
+    // d'ORGANISATION (checkOrgQuota/logQuotaUsage), vérifié par mode.
     const body = await req.json();
     const { question, contract_to_analyze, mode, history, document_context, conversation_context } = body;
     const conversationHistory: any[] = history || [];
@@ -132,13 +114,6 @@ serve(async (req) => {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const incrementQuota = async () => {
-      await supabaseAdmin
-        .from("user_profiles_compat")
-        .update({ questions_used: currentProfile.questions_used + 1 })
-        .eq("id", user.id);
-    };
 
     // Get organization ID for quota system v2 (lien via organization_users)
     let orgId: string | null = null;
@@ -251,7 +226,6 @@ serve(async (req) => {
     if (isConversation) {
       const chatSystem = "Tu es Juria, un assistant juridique marocain sympathique. Réponds naturellement et chaleureusement. Si on te demande qui tu es, présente-toi comme Juria, l'assistant juridique marocain. Retourne UNIQUEMENT un JSON: {\"answer\": \"ta réponse\", \"used_indices\": [], \"based_on_articles\": false}";
       const result = await callOpenAI(chatSystem, question, 300);
-      await incrementQuota();
       return new Response(JSON.stringify({ answer: result.answer || "", citations: [], is_contract: false }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -292,7 +266,6 @@ serve(async (req) => {
       });
 
       const docResult = await callOpenAIMessages(docMessages, 1000);
-      await incrementQuota();
 
       // Log quota usage asynchronously
       if (orgId) {
@@ -442,7 +415,6 @@ serve(async (req) => {
         }
       }
 
-      await incrementQuota();
 
       // Log quota usage asynchronously (facturé au nombre de paires comparées)
       if (orgId) {
@@ -553,7 +525,6 @@ serve(async (req) => {
         );
       }
 
-      await incrementQuota();
 
       // Log quota usage asynchronously (facture au nombre de fenetres analysees)
       if (orgId) {
@@ -567,33 +538,6 @@ serve(async (req) => {
       });
     }
 
-    // ---- MODE GENERATION DE CONTRAT ----
-    const contractKeywords = ["rédige moi", "rédiger un contrat", "génère un contrat", "créer un contrat", "faire un contrat", "écris un contrat", "modèle de contrat"];
-    const isContract = contractKeywords.some(kw => question.toLowerCase().includes(kw));
-
-    if (isContract) {
-      if (orgId) {
-        const quotaCheck = await checkOrgQuota(orgId, "chat", 1);
-        if (!quotaCheck.allowed) {
-          return new Response(JSON.stringify({
-            error: quotaCheck.reason || "Quota organisation atteint",
-            code: "QUOTA_EXCEEDED",
-            remaining_credits: quotaCheck.remaining_credits,
-          }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        }
-      }
-      const articles = await vectorSearch(question, 5);
-      const articlesContext = articles.map((a: any) => a.numero_article + " : " + a.contenu).join(" === ");
-      const contractSystem = "Tu es Juria, expert juridique marocain. Rédige un contrat complet conforme au droit marocain. Utilise [INFORMATION À COMPLÉTER] pour les champs variables. Structure: EN-TÊTE, PARTIES, PRÉAMBULE, OBJET, DURÉE, CONDITIONS FINANCIÈRES, OBLIGATIONS, RÉSILIATION, LITIGES, SIGNATURES. Articles: " + articlesContext + ". Retourne UNIQUEMENT un JSON: {\"answer\": \"contrat complet\", \"used_indices\": [], \"based_on_articles\": false}";
-      const result = await callOpenAI(contractSystem, "Demande: " + question, 2000);
-      await incrementQuota();
-      if (orgId) {
-        logQuotaUsage(orgId, "chat", 1).catch(e => console.warn("[smart-endpoint] Quota log failed:", e));
-      }
-      return new Response(JSON.stringify({ answer: result.answer || "", citations: [], is_contract: true }), {
-        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
     // ---- MODE LIVRABLE (génération de document) ----
     if (mode === "deliverable") {
@@ -622,7 +566,6 @@ serve(async (req) => {
       ];
 
       const delivResult = await callOpenAIMessages(deliverableMessages, 2000);
-      await incrementQuota();
       if (orgId) {
         logQuotaUsage(orgId, "chat", 1).catch(e => console.warn("[smart-endpoint] Quota log failed:", e));
       }
@@ -702,7 +645,6 @@ serve(async (req) => {
 
     if (!candidateArticles || candidateArticles.length === 0) {
       const noSourceMsg = "Je n'ai trouve aucun article pertinent dans ma base documentaire pour repondre de maniere fiable a cette question. Cela peut signifier que ce texte de loi specifique n'est pas encore indexe dans Juria. Je vous recommande de consulter un avocat ou verifier directement aupres de l'AMMC / Bulletin Officiel pour les details exacts. Consultez un avocat pour tout acte juridique.";
-      await incrementQuota();
       return new Response(JSON.stringify({ answer: noSourceMsg, citations: [], is_contract: false, deliverables: getDeliverables("default") }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -770,7 +712,6 @@ serve(async (req) => {
       "Tu reçois des articles officiels avec leurs IDs. Utilise UNIQUEMENT les articles réellement pertinents.",
       "RÈGLE CITATIONS: Dans used_article_ids, ne mets QUE les IDs des articles que tu as réellement utilisés pour répondre. Si un article n'est pas pertinent, ne le cite pas.",
       "Réponds en 2-4 paragraphes clairs.",
-      "REGLE OBLIGATOIRE LIVRABLES: Le champ answer doit TOUJOURS se terminer par une ligne vide puis: 'Si vous souhaitez, je peux vous preparer : 1. [livrable concret] 2. [livrable concret] 3. [livrable concret]'. Adapte les 3 livrables au sujet specifique de la question. Ne jamais oublier cette section finale.",
       "Termine par: Consultez un avocat pour tout acte juridique.",
       "Articles disponibles: [" + articlesList + "]",
       "Retourne UNIQUEMENT un JSON: {\"answer\": \"réponse experte\", \"used_article_ids\": [123, 456], \"needs_clarification\": false, \"legal_topic\": \"courtier_assurance\"} ou autre topic parmi: courtier_assurance, assurance, travail, contrat_travail, sarl, sa, bail_commercial, bail_habitation, fonds_commerce, cheque, societe, licenciement, conge, salaire, faillite, immobilier, opci, opcvm, bourse, titrisation, capital_risque, financement_collaboratif",
@@ -793,7 +734,6 @@ serve(async (req) => {
     if (validatedCitations.length === 0 && result.used_indices) {
       const fallbackIndices: number[] = result.used_indices || [];
       const fallbackCitations = fallbackIndices.map((i: number) => articles[i]).filter(Boolean);
-      await incrementQuota();
       if (orgId) {
         logQuotaUsage(orgId, "chat", 1).catch(e => console.warn("[smart-endpoint] Quota log failed:", e));
       }
@@ -805,7 +745,6 @@ serve(async (req) => {
 
     const legalTopic = result.legal_topic || "default";
     const deliverables = getDeliverables(legalTopic + " " + standaloneQuestion);
-    await incrementQuota();
     if (orgId) {
       logQuotaUsage(orgId, "chat", 1).catch(e => console.warn("[smart-endpoint] Quota log failed:", e));
     }
