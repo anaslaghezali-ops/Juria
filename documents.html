@@ -3138,7 +3138,7 @@ async function saveDeadline() {
       source: 'manual',
       created_by: currentUser?.id || null,
     })
-    .select('id')
+    .select('id, created_at')
     .single();
 
   if (error) { showToast('Erreur : ' + error.message, 'error'); return; }
@@ -3148,6 +3148,7 @@ async function saveDeadline() {
     id: data.id,
     document_id: documentId,
     source: 'manual',
+    created_at: data.created_at,
     date: dueDate,
     event: description,
     doc: doc?.name || '',
@@ -4274,29 +4275,80 @@ function renderCounterpartiesWithScore() {
 // ══════════════════════════════════════════════
 let activeTimelineFilter = 'all';
 
-function getDemoTimeline() {
-  const now = new Date();
-  const t = (offset, unit='day') => {
-    const ms = unit === 'hour' ? offset * 3600000 : offset * 86400000;
-    return new Date(now - ms);
-  };
-  return [
-    { type:'analyse', icon:'⚡', date:t(2,'hour'),  event:'SHA Fertinagro analysé',           detail:'5 risques identifiés · Score 6/10', tag:'OCP - JV Fertinagro', doc:'SHA Fertinagro - OCP.pdf' },
-    { type:'risk',    icon:'⚠️', date:t(3,'hour'),  event:'Risque ÉLEVÉ détecté',              detail:'EVENT_OF_DEFAULT · Clause 15.8',    tag:'SHA Fertinagro', doc:'SHA Fertinagro - OCP.pdf' },
-    { type:'risk',    icon:'⚠️', date:t(3,'hour'),  event:'Risque ÉLEVÉ détecté',              detail:'TERMINATION · Clause 2.5',          tag:'SHA Fertinagro', doc:'SHA Fertinagro - OCP.pdf' },
-    { type:'import',  icon:'📄', date:t(5,'hour'),  event:'SHA Fertinagro importé',            detail:'560 KB · PDF',                      tag:'OCP - JV Fertinagro', doc:'SHA Fertinagro - OCP.pdf' },
-    { type:'folder',  icon:'📁', date:t(1),         event:'Dossier créé',                      detail:'OCP - JV Fertinagro',               tag:'Client: OCP', doc:null },
-    { type:'analyse', icon:'⚡', date:t(3),         event:'Amendement SHA n°1 analysé',        detail:'2 risques identifiés · Score 7/10', tag:'OCP - JV Fertinagro', doc:'Amendement SHA n°1.pdf' },
-    { type:'import',  icon:'📄', date:t(3),         event:'Amendement SHA n°1 importé',        detail:'245 KB · PDF',                      tag:'OCP - JV Fertinagro', doc:'Amendement SHA n°1.pdf' },
-    { type:'analyse', icon:'⚡', date:t(5),         event:'NDA TotalEnergies analysé',         detail:'0 risque élevé · Score 8/10',       tag:'Client ABC - Acquisition', doc:'NDA bilatéral - TotalEnergies.pdf' },
-    { type:'import',  icon:'📄', date:t(5),         event:'NDA TotalEnergies importé',         detail:'128 KB · PDF',                      tag:'Client ABC - Acquisition', doc:'NDA bilatéral - TotalEnergies.pdf' },
-    { type:'folder',  icon:'📁', date:t(6),         event:'Dossier créé',                      detail:'Client ABC - Acquisition',          tag:'Client: Client ABC', doc:null },
-    { type:'deadline',icon:'📅', date:t(7),         event:'Échéance ajoutée',                  detail:'Préavis renouvellement — J-7',      tag:'SHA Fertinagro', doc:'SHA Fertinagro - OCP.pdf' },
-    { type:'import',  icon:'📄', date:t(7),         event:'SPA Acquisition Ciment Atlas importé','detail':'820 KB · PDF',                  tag:'Client ABC - Acquisition', doc:'SPA - Acquisition Ciment Atlas.pdf' },
-    { type:'import',  icon:'📄', date:t(10),        event:'Contrat EPC Projet solaire importé','detail':'310 KB · DOCX',                  tag:'Sans dossier', doc:'Contrat EPC - Projet solaire.docx' },
-    { type:'analyse', icon:'⚡', date:t(14),        event:'Contrat SaaS Oracle analysé',       detail:'1 risque moyen · Score 5/10',       tag:'Oracle', doc:'Contrat SaaS - Oracle.pdf' },
-    { type:'import',  icon:'📄', date:t(14),        event:'Contrat SaaS Oracle importé',       detail:'195 KB · PDF',                      tag:'Oracle', doc:'Contrat SaaS - Oracle.pdf' },
-  ].sort((a,b) => b.date - a.date);
+/**
+ * Timeline dérivée des données réelles déjà chargées dans le Store
+ * (aucune requête supplémentaire). Événements couverts :
+ * import/analyse de documents, risques élevés+, échéances, dossiers.
+ */
+function buildTimelineFromStore() {
+  if (typeof Store === 'undefined') return [];
+  const { documents = [], risks = [], deadlines = [], folders = [] } = Store.state;
+  const foldersById = Store.indexes.foldersById || {};
+  const risksByDocument = Store.indexes.risksByDocument || {};
+  const folderName = (id) => (id && foldersById[id]?.name) || null;
+  const items = [];
+
+  documents.forEach(d => {
+    if (d.created_at) {
+      items.push({
+        type:'import', icon:'📄', date:new Date(d.created_at),
+        event:`${d.name} importé`,
+        detail:[formatSize(d.file_size), (d.file_type || '').toUpperCase()].filter(Boolean).join(' · '),
+        tag:folderName(d.folder_id), doc:d.name,
+      });
+    }
+    const analyzed = d.status === 'analyzed' || d.status === 'analysé' || d.latest_analysis_id;
+    if (analyzed) {
+      // Approximation : updated_at est rafraîchi en fin d'analyse.
+      const when = d.updated_at || d.created_at;
+      const nbRisks = (risksByDocument[d.id] || []).length;
+      const score = d.compliance_score ?? d.score;
+      if (when) items.push({
+        type:'analyse', icon:'⚡', date:new Date(when),
+        event:`${d.name} analysé`,
+        detail:[
+          nbRisks ? `${nbRisks} risque${nbRisks > 1 ? 's' : ''} identifié${nbRisks > 1 ? 's' : ''}` : 'Aucun risque identifié',
+          score != null ? `Score ${score}/10` : null,
+        ].filter(Boolean).join(' · '),
+        tag:folderName(d.folder_id), doc:d.name,
+      });
+    }
+  });
+
+  // Seuls les risques élevés/critiques ont leur propre événement
+  // (le total par document figure déjà dans l'événement « analysé »).
+  risks.forEach(r => {
+    if (!r.created_at || !['critical', 'high'].includes(r.severity)) return;
+    items.push({
+      type:'risk', icon:'⚠️', date:new Date(r.created_at),
+      event:r.severity === 'critical' ? 'Risque CRITIQUE détecté' : 'Risque ÉLEVÉ détecté',
+      detail:[r.risk_type, r.clause_reference].filter(v => v && v !== '—').join(' · '),
+      tag:r.folderName !== '—' ? r.folderName : null,
+      doc:r.docName !== '—' ? r.docName : null,
+    });
+  });
+
+  deadlines.forEach(dl => {
+    if (!dl.created_at) return;
+    items.push({
+      type:'deadline', icon:'📅', date:new Date(dl.created_at),
+      event:dl.source === 'manual' ? 'Échéance ajoutée' : 'Échéance extraite à l\'analyse',
+      detail:dl.event, tag:dl.folder || null, doc:dl.doc || null,
+    });
+  });
+
+  folders.forEach(f => {
+    if (!f.created_at) return;
+    items.push({
+      type:'folder', icon:'📁', date:new Date(f.created_at),
+      event:'Dossier créé', detail:f.name, tag:null, doc:null,
+    });
+  });
+
+  return items
+    .filter(i => !isNaN(i.date))
+    .sort((a, b) => b.date - a.date)
+    .slice(0, 150);
 }
 
 function renderTimeline(filter) {
@@ -4304,7 +4356,7 @@ function renderTimeline(filter) {
   const list = document.getElementById('timelineList');
   const empty = document.getElementById('emptyTimeline');
 
-  let items = getDemoTimeline();
+  let items = buildTimelineFromStore();
   if (filter !== 'all') items = items.filter(i => i.type === filter);
 
   if (!items.length) {

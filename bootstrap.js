@@ -188,7 +188,7 @@ async function _loadDeadlines(orgId) {
   try {
     const { data, error } = await window._sb
       .from('document_obligations')
-      .select('id, description, due_date, is_critical, source, document_id, documents(name, folder_id)')
+      .select('id, description, due_date, is_critical, source, document_id, created_at, documents(name, folder_id)')
       .eq('organization_id', orgId)
       .order('due_date', { ascending: true, nullsFirst: false });
 
@@ -201,6 +201,7 @@ async function _loadDeadlines(orgId) {
       id:          o.id,
       document_id: o.document_id || null,
       source:      o.source || 'analysis',
+      created_at:  o.created_at || null,
       date:        o.due_date,
       event:       o.description || '—',
       doc:         o.documents?.name || '',
