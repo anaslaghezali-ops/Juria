@@ -73,8 +73,8 @@ class SynthesisService extends BaseService {
   }
 
   /**
-   * Quota de génération de l'organisation (par mois civil).
-   * @returns {Promise<{plan, limit, used, remaining}|null>} null si indisponible
+   * Quota de l'organisation (système v2: crédits globaux)
+   * @returns {Promise<{total_quota, used_credits, remaining_credits, is_unlimited}|null>}
    */
   async getQuota() {
     try {
@@ -86,7 +86,7 @@ class SynthesisService extends BaseService {
       });
       if (!res.ok) return null;
       const data = await res.json();
-      return data.quota || null;
+      return data.quotaCheck || null;
     } catch { return null; }
   }
 
@@ -117,8 +117,8 @@ class SynthesisService extends BaseService {
     // Quota : refus propre AVANT tout travail (l'edge function re-vérifie
     // de toute façon côté serveur à chaque appel facturable)
     const quota = await this.getQuota();
-    if (quota && quota.limit !== -1 && quota.used >= quota.limit) {
-      const err = new Error(`Quota de synthèses atteint (${quota.used}/${quota.limit} ce mois-ci). Passez à un plan supérieur pour continuer.`);
+    if (quota && !quota.is_unlimited && quota.remaining_credits <= 0) {
+      const err = new Error(`Quota organisation atteint (${quota.used_credits}/${quota.total_quota} crédits). Renouvelez votre abonnement pour continuer.`);
       err.code = 'QUOTA_EXCEEDED';
       err.quota = quota;
       throw err;
@@ -288,6 +288,18 @@ class SynthesisService extends BaseService {
       .single();
 
     if (error) { this._handleError('generate/persist', error); throw new Error(error.message); }
+
+    // Log quota usage asynchronously (non-blocking)
+    try {
+      const token = await this._getToken();
+      fetch(JURIA_CONFIG.SYNTHESIS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ mode: 'log-usage', operation_type: 'synthesis', quantity: 1 }),
+      }).catch(e => console.warn('[SynthesisService] Quota log failed:', e));
+    } catch (e) {
+      console.warn('[SynthesisService] Quota log fetch error:', e);
+    }
 
     progress('save', { done: 1, total: 1, label: 'Note enregistrée' });
     return row;

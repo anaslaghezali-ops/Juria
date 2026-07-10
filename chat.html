@@ -151,49 +151,44 @@
   </div>
   <nav class="sidebar-nav">
     <div class="nav-section">Principal</div>
-    <a href="documents.html" class="nav-item">
+    <a href="documents.html?page=dashboard" class="nav-item">
       <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span> Dashboard
     </a>
-    <a href="documents.html" class="nav-item">
-      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 9h1M9 12h1M9 15h1M14 9h1M14 12h1M14 15h1"/></svg></span> Contreparties
-      <span class="nav-count" id="navCpCount">—</span>
-    </a>
-    <a href="documents.html" class="nav-item">
-      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span> Dossiers
-      <span class="nav-count" id="navFolderCount">—</span>
-    </a>
-    <a href="documents.html" class="nav-item">
+    <a href="documents.html?page=documents" class="nav-item">
       <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span> Documents
-      <span class="nav-count" id="navTotalCount">—</span>
     </a>
-
+    <a href="documents.html?page=dossiers" class="nav-item">
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span> Dossiers
+    </a>
+    <a href="documents.html?page=contreparties" class="nav-item">
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 9h1M9 12h1M9 15h1M14 9h1M14 12h1M14 15h1"/></svg></span> Contreparties
+    </a>
     <div class="nav-section">Analyse</div>
-    <a href="documents.html" class="nav-item">
+    <a href="documents.html?page=risques" class="nav-item">
       <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span> Risques
-      <span class="nav-count nav-badge-red" id="navRisksCount">—</span>
     </a>
-    <a href="documents.html" class="nav-item">
+    <a href="documents.html?page=echeances" class="nav-item">
       <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> Échéances
     </a>
-    <a href="documents.html" class="nav-item">
+    <a href="documents.html?page=timeline" class="nav-item">
       <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> Timeline
     </a>
-    <a href="documents.html" class="nav-item">
+    <a href="documents.html?page=tasks" class="nav-item">
       <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span> Tâches
-      <span class="nav-count nav-badge-red" id="navTasksCount">—</span>
     </a>
-
     <div class="nav-section">Outils</div>
+    <a href="analyse-contrat.html" class="nav-item">
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><circle cx="11.5" cy="14.5" r="2.5"/><path d="M13.25 16.25L15 18"/></svg></span> Analyse de contrat
+    </a>
+    <a href="comparaison-contrats.html" class="nav-item">
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Comparaison
+    </a>
     <a href="chat.html" class="nav-item active">
       <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span> Assistant IA
     </a>
     <a href="base-juridique.html" class="nav-item">
       <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span> Base juridique
     </a>
-    <a href="comparaison-contrats.html" class="nav-item">
-      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Comparaison
-    </a>
-
     <div class="nav-section">Organisation</div>
     <a href="administration.html" class="nav-item">
       <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span> Administration
@@ -204,7 +199,7 @@
       <div class="user-avatar" id="sidebarAvatar">?</div>
       <div>
         <div class="user-name" id="sidebarName">…</div>
-        <div class="user-plan" id="sidebarPlan">Essai gratuit</div>
+        <div class="user-plan" id="sidebarPlan"></div>
       </div>
       <button class="btn-logout" id="btnLogout" title="Déconnexion">🚪 Déconnexion</button>
     </div>
@@ -233,7 +228,7 @@
 
   <div class="quota-warning" id="quotaWarning">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-    Vous approchez de votre limite. <a href="dashboard.html" style="color:var(--amber-text);font-weight:600;margin-left:4px;">Passer au Pro →</a>
+    Votre organisation approche de son quota mensuel de crédits. Contactez votre administrateur pour l'augmenter.
   </div>
 
   <div class="chat-area" id="chatArea">
@@ -283,6 +278,7 @@
 <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
 <script src="config.js"></script>
 <script src="init-common.js"></script>
+<script src="services/chunk-utils.js"></script>
 <script src="fetch-safe.js"></script>
 <script src="auth-guard.js"></script>
 <script src="rate-limit.js"></script>
@@ -295,7 +291,7 @@
 // JURIA_CONFIG loaded from config.js with CHAT_DOC_URL pre-configured
 
 let currentUser = null;
-let userProfile = null;
+
 let isLoading   = false;
 let currentConversationId = null;
 let allConversations = []; // Cache local
@@ -327,7 +323,10 @@ const ConversationManager = {
 
   // Créer une nouvelle conversation
   createNew: function() {
-    const id = 'conv_' + Date.now();
+    // UUID natif : chat_conversations.id est de type uuid en base — les
+    // anciens ids 'conv_<timestamp>' faisaient échouer CHAQUE upsert de
+    // persistance avec 400 « invalid input syntax for type uuid ».
+    const id = (crypto.randomUUID) ? crypto.randomUUID() : 'conv_' + Date.now();
     const conversation = {
       id: id,
       title: 'Nouvelle discussion',
@@ -527,7 +526,10 @@ const ConversationManager = {
 };
 
 // ---- MODE RAG (chat sur un document spécifique) ----
-const ragDocId = new URLSearchParams(window.location.search).get('id');
+// `let` : un document uploadé dans le chat est désormais ingéré comme
+// document de l'organisation, puis interrogé via le même pipeline RAG
+// que les documents analysés (ragDocId est alors défini après ingestion).
+let ragDocId = new URLSearchParams(window.location.search).get('id');
 let ragMode = !!ragDocId; // true si on arrive avec ?id=UUID
 var conversationHistory = []; // Mémoire des 3 derniers échanges
 
@@ -572,27 +574,32 @@ async function init() {
   document.getElementById('sidebarAvatar').textContent = initials;
   document.getElementById('sidebarName').textContent   = name;
 
+  // Quota v2 : crédits de l'ORGANISATION (l'ancien quota « 20 questions »
+  // par utilisateur est supprimé — la consommation est mutualisée par org
+  // et appliquée côté serveur).
   try {
-    const { data: profile, error } = await _sb.from('user_profiles_compat').select('*').eq('id', currentUser.id).single();
-    if (error) {
-      // Gracefully fall back to default profile
-      console.warn('user_profiles_compat query:', error?.message);
-      userProfile = { plan: 'trial', questions_used: 0, questions_limit: 20 };
+    const { data: membership } = await _sb.from('organization_users')
+      .select('organization_id').eq('user_id', currentUser.id)
+      .eq('is_active', true).limit(1).maybeSingle();
+    if (membership?.organization_id) {
+      const monthStart = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1))
+        .toISOString().split('T')[0];
+      const [orgRes, usageRes] = await Promise.all([
+        _sb.from('organizations').select('name, monthly_quota').eq('id', membership.organization_id).single(),
+        _sb.from('organization_usage').select('total_cost').eq('org_id', membership.organization_id).eq('month', monthStart),
+      ]);
+      const used = Math.round(((usageRes.data || []).reduce((s, u) => s + (u.total_cost || 0), 0)) * 10) / 10;
+      const quota = orgRes.data?.monthly_quota;
+      document.getElementById('topbarQuota').textContent =
+        quota === -1 ? used + ' crédits ce mois-ci' : used + ' / ' + (quota || 0) + ' crédits';
+      document.getElementById('sidebarPlan').textContent = orgRes.data?.name || '';
+      if (quota > 0 && used >= quota * 0.8) document.getElementById('quotaWarning').classList.add('show');
     } else {
-      userProfile = profile;
-    }
-
-    if (userProfile) {
-      const used  = userProfile.questions_used  || 0;
-      const limit = userProfile.questions_limit || 20;
-      document.getElementById('topbarQuota').textContent = used + ' / ' + limit + ' questions';
-      const planMap = { trial:'Essai gratuit', essential:'Essentiel', pro:'Pro', cabinet:'Cabinet' };
-      document.getElementById('sidebarPlan').textContent = planMap[userProfile.plan] || 'Essai gratuit';
-      if (used >= limit * 0.8) document.getElementById('quotaWarning').classList.add('show');
+      document.getElementById('topbarQuota').textContent = '';
     }
   } catch (e) {
-    console.warn('Failed to load user profile:', e);
-    userProfile = { plan: 'trial', questions_used: 0, questions_limit: 20 };
+    console.warn('Quota organisation indisponible:', e);
+    document.getElementById('topbarQuota').textContent = '';
   }
 
   // Synchroniser avec Supabase en arrière-plan
@@ -668,6 +675,10 @@ async function syncConversationsWithSupabase() {
 // Sauvegarder une conversation dans Supabase (async)
 async function persistConversationToSupabase(conversation) {
   if (!currentUser || !_sb) return;
+  // Conversations héritées ('conv_<timestamp>') : id non-uuid, la base les
+  // refuse (400). Elles restent en localStorage uniquement.
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(conversation.id);
+  if (!isUuid) return;
   try {
     const convData = {
       id: conversation.id,
@@ -766,11 +777,8 @@ async function sendMessage() {
   const question = userInput.value.trim();
   if (!question || isLoading) return;
 
-  if (userProfile && userProfile.questions_used >= userProfile.questions_limit) {
-    appendSpecialMsg('Vous avez atteint votre limite. <a href="dashboard.html" style="color:var(--indigo);font-weight:500;">Passer au Pro →</a>');
-    return;
-  }
-
+  // Le quota est appliqué côté serveur (crédits d'organisation) : en cas de
+  // dépassement, la réponse 429 remonte son message dans le fil.
   document.getElementById('welcomeState') && document.getElementById('welcomeState').remove();
 
   // Créer une conversation si ce n'est pas le cas
@@ -791,9 +799,7 @@ async function sendMessage() {
   if (conversationHistory.length > 6) conversationHistory = conversationHistory.slice(-6);
 
   // Détecter mode
-  var contractKeywords = ['rédige moi', 'rédiger un contrat', 'génère un contrat', 'créer un contrat', 'faire un contrat', 'écris un contrat', 'modèle de contrat', 'template de contrat'];
   var analyseKeywords = ['analyse', 'analyser', 'score', 'risque', 'problème', 'clause manquante', 'vérif'];
-  var isContractRequest = !uploadedContractText && contractKeywords.some(function(kw) { return question.toLowerCase().includes(kw); });
   
   // Si un document est uploadé : deux modes
   // 1. L'utilisateur demande une analyse formelle → score + rapport
@@ -828,13 +834,6 @@ async function sendMessage() {
       addAndDisplayMsg('assistant', result.answer, citations, false, deliverables);
       conversationHistory.push({ role: 'assistant', content: result.answer });
       if (conversationHistory.length > 6) conversationHistory = conversationHistory.slice(-6);
-      await saveConversation(question, result.answer, []);
-
-    } else if (isContractRequest) {
-      // GÉNÉRATION DE CONTRAT
-      var result = await askAI(question);
-      appendContractReady(result.answer);
-      ConversationManager.addMessage('assistant', result.answer, [], []);
       await saveConversation(question, result.answer, []);
 
     } else {
@@ -901,19 +900,26 @@ async function askAI(question, documentContext) {
   
   var body = { question: question, history: history };
   if (documentContext) {
-    body.document_context = documentContext.slice(0, 12000);
+    // 48k caractères ≈ 12k tokens : gpt-4o-mini (128k) encaisse sans problème.
+    // L'ancienne coupe à 12k rendait invisible tout ce qui suivait ~4 pages.
+    body.document_context = documentContext.slice(0, 48000);
     body.mode = 'document_question';
   }
   
   var res = await fetch(JURIA_CONFIG.EDGE_FUNCTION_URL, {
     method: 'POST',
-    headers: { 
-      'Content-Type': 'application/json', 
+    headers: {
+      'Content-Type': 'application/json',
       'Authorization': 'Bearer ' + token
     },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error('Edge Function: ' + res.status);
+  if (!res.ok) {
+    // Remonter le message serveur (ex. quota organisation atteint) plutôt
+    // qu'un code HTTP brut.
+    var errBody = await res.json().catch(function() { return {}; });
+    throw new Error(errBody.error || ('Edge Function: ' + res.status));
+  }
   return await res.json();
 }
 
@@ -928,14 +934,6 @@ async function saveConversation(question, answer, articles) {
       answer: answer,
       articles_cited: articles.map(function(a){ return { id: a.id, numero: a.numero_article }; })
     });
-    if (userProfile) {
-      userProfile.questions_used = (userProfile.questions_used || 0) + 1;
-      await _sb.from('user_profiles_compat').update({ questions_used: userProfile.questions_used }).eq('id', currentUser.id);
-      var used  = userProfile.questions_used;
-      var limit = userProfile.questions_limit || 20;
-      document.getElementById('topbarQuota').textContent = used + ' / ' + limit + ' questions';
-      if (used >= limit * 0.8) document.getElementById('quotaWarning').classList.add('show');
-    }
   } catch(e) {
     console.warn('saveConversation silenced:', e);
   }
@@ -1453,6 +1451,14 @@ document.getElementById('contractFile').addEventListener('change', async functio
     }
     userInput.value = 'Analyse ce contrat et identifie les problèmes.';
     userInput.dispatchEvent(new Event('input'));
+
+    // Ingestion : le document devient un document de l'organisation
+    // (chunké + indexé), et les questions passent par le pipeline RAG —
+    // plus de troncature. En cas d'échec (pas d'organisation, quota de
+    // stockage atteint…), on garde l'ancien chemin en mémoire.
+    ingestChatDocument(file, uploadedContractText).catch(function(e) {
+      console.warn('[chat] Ingestion RAG impossible, mode mémoire conservé:', e.message || e);
+    });
   } catch(e) {
     console.error('File error:', e);
     alert('Erreur lors de la lecture du fichier. Réessayez.');
@@ -1460,9 +1466,80 @@ document.getElementById('contractFile').addEventListener('change', async functio
   }
 });
 
+// ── INGESTION : document du chat → document d'organisation + chunks RAG ──
+async function ingestChatDocument(file, extractedText) {
+  if (!extractedText || extractedText.trim().length === 0) return;
+  if (!currentUser) return;
+
+  var membership = await _sb
+    .from('organization_users')
+    .select('organization_id')
+    .eq('user_id', currentUser.id)
+    .eq('is_active', true)
+    .limit(1)
+    .maybeSingle();
+  if (!membership.data?.organization_id) throw new Error('Aucune organisation active');
+  var orgId = membership.data.organization_id;
+
+  // 1. Le document (mêmes champs que l'upload documents.html ; le trigger
+  //    de quota de stockage s'applique ici aussi)
+  var docRes = await _sb.from('documents').insert({
+    organization_id: orgId, uploaded_by: currentUser.id,
+    name: file.name, file_type: file.name.split('.').pop().toLowerCase(),
+    file_size: file.size, document_type: 'autre', language: 'fr',
+    governing_law: 'Droit marocain', storage_bucket: 'juria-documents',
+    currency: 'MAD', chunk_version: 1, status: 'imported',
+    is_starred: false, is_archived: false,
+    created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+  }).select().single();
+  if (docRes.error) throw new Error(docRes.error.message);
+  var doc = docRes.data;
+
+  // 2. Le texte extrait
+  await _sb.from('document_content').upsert({
+    document_id: doc.id,
+    extracted_text: extractedText,
+    updated_at: new Date().toISOString(),
+  });
+
+  // 3. Les chunks (embeddings calculés par process-chunks, en lots)
+  var chunkRows = juriaPrepareChunks(extractedText).map(function(c) {
+    c.document_id = doc.id;
+    c.chunk_version = 1;
+    delete c.embedding;
+    return c;
+  });
+  if (chunkRows.length > 0) {
+    var chunksRes = await _sb.from('document_chunks').insert(chunkRows);
+    if (chunksRes.error) throw new Error(chunksRes.error.message);
+
+    // Indexation en arrière-plan : si une question arrive avant la fin,
+    // handleRagQuestion relance process-chunks et réessaie tout seul.
+    var session = await _sb.auth.getSession();
+    fetch(JURIA_CONFIG.SUPABASE_URL + '/functions/v1/process-chunks', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + session.data.session.access_token,
+      },
+      body: JSON.stringify({ document_id: doc.id, chunk_version: 1 }),
+    }).catch(function(e) { console.warn('[chat] process-chunks:', e); });
+  }
+
+  // 4. Basculer les questions vers le pipeline RAG
+  ragDocId = doc.id;
+  ragMode = true;
+  console.log('[chat] Document ingéré pour RAG:', doc.id, '(' + chunkRows.length + ' chunks)');
+}
+
 function clearFile() {
   uploadedContractText = null;
   uploadedFileName = null;
+  // Revenir au contexte d'origine : si le RAG venait de l'ingestion du
+  // fichier (et non de l'URL ?id=), les questions redeviennent générales.
+  var urlDocId = new URLSearchParams(window.location.search).get('id');
+  ragDocId = urlDocId;
+  ragMode = !!urlDocId;
   document.getElementById('contractFile').value = '';
   document.getElementById('userInput').placeholder = 'Posez votre question juridique…';
   document.getElementById('filePreview').style.display = 'none';
@@ -1810,7 +1887,32 @@ async function handleRagQuestion(question, token) {
   if (result.error) throw new Error('Erreur recherche: ' + result.error.message);
 
   if (!result.data || result.data.length === 0) {
-    return '❌ Aucun passage pertinent trouvé. Le document est peut-être en cours d\'indexation.';
+    // Aucun passage : les embeddings du document manquent peut-être
+    // (indexation initiale échouée). On relance process-chunks (traite
+    // tous les chunks pending/failed) puis on réessaie UNE fois.
+    console.warn('[RAG] 0 passage — tentative de réindexation du document', ragDocId);
+    try {
+      var reindex = await fetch(JURIA_CONFIG.SUPABASE_URL + '/functions/v1/process-chunks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ document_id: ragDocId })
+      });
+      var reindexData = await reindex.json().catch(function() { return {}; });
+      console.log('[RAG] process-chunks:', reindex.status, reindexData);
+      if (reindex.ok && reindexData.processed > 0) {
+        result = await _sb.rpc('match_document_chunks', {
+          document_id: ragDocId,
+          query_embedding: embedding,
+          match_count: 10
+        });
+      }
+    } catch (e) {
+      console.warn('[RAG] Réindexation impossible:', e);
+    }
+  }
+
+  if (!result.data || result.data.length === 0) {
+    return '❌ Aucun passage pertinent trouvé. Le document est peut-être en cours d\'indexation — réessayez dans une minute, ou relancez l\'analyse du document.';
   }
 
   var context = result.data
@@ -1820,7 +1922,14 @@ async function handleRagQuestion(question, token) {
   var res = await fetch(JURIA_CONFIG.CHAT_DOC_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-    body: JSON.stringify({ mode: 'rag', question: question, context: context })
+    body: JSON.stringify({
+      mode: 'rag',
+      question: question,
+      context: context,
+      // Historique (sans la question courante) : permet les relances du type
+      // « non mais il y a une date ! » sans repartir de zero.
+      history: conversationHistory.slice(0, -1)
+    })
   });
   var data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Erreur Edge Function');

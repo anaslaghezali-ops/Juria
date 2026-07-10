@@ -1,6 +1,6 @@
 import { getCorsHeaders, handleCorsPreFlight } from "../_shared/cors.ts";
 import { authenticateRequest, errorResponse } from "../_shared/auth.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkOrgQuota, logQuotaUsage, getOrgIdForUser } from "../_shared/quota-utils.ts";
 
 /**
  * JURIA — generate-synthesis
@@ -22,62 +22,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
 
-// ── Quotas de génération par plan (par organisation, par mois civil) ─────
-// -1 = illimité. Appliqué sur extract ET compose : la protection est
-// serveur, un client modifié ne peut pas la contourner.
-const SYNTHESIS_QUOTAS: Record<string, number> = {
-  trial: 3,
-  essential: 20,
-  pro: 100,
-  cabinet: 300,
-  enterprise: -1,
-  bank: -1,
-};
-
-interface QuotaInfo {
-  plan: string;
-  limit: number;
-  used: number;
-  remaining: number;   // -1 = illimité
-}
-
-async function getSynthesisQuota(userId: string): Promise<QuotaInfo> {
-  const admin = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-  );
-
-  const { data: membership } = await admin
-    .from("organization_users")
-    .select("organization_id")
-    .eq("user_id", userId)
-    .eq("is_active", true)
-    .limit(1)
-    .maybeSingle();
-
-  if (!membership) throw { status: 403, message: "Aucune organisation active" };
-
-  const { data: org } = await admin
-    .from("organizations")
-    .select("plan")
-    .eq("id", membership.organization_id)
-    .single();
-
-  const plan = org?.plan || "trial";
-  const limit = SYNTHESIS_QUOTAS[plan] ?? SYNTHESIS_QUOTAS.trial;
-
-  const now = new Date();
-  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
-  const { count } = await admin
-    .from("document_analyses")
-    .select("id", { count: "exact", head: true })
-    .eq("organization_id", membership.organization_id)
-    .eq("kind", "synthesis")
-    .gte("created_at", monthStart);
-
-  const used = count ?? 0;
-  return { plan, limit, used, remaining: limit === -1 ? -1 : Math.max(0, limit - used) };
-}
+// ── Quotas système v2 : global par organisation + crédits ──────────────────
+// Chaque org a un monthly_quota (en crédits).
+// Chaque opération consomme un nombre de crédits (cf. operation_costs).
+// -1 = illimité. Protection serveur, non contournable par client.
+// checkOrgQuota / logQuotaUsage / getOrgIdForUser : cf. _shared/quota-utils.ts
 
 // ── Appel OpenAI non-streamé ─────────────────────────────────────────────
 async function callGPT(
@@ -328,25 +277,35 @@ Deno.serve(async (req) => {
 
     // ── MODE QUOTA (lecture seule, pour l'UI) ────────────────────────
     if (mode === "quota") {
-      const quota = await getSynthesisQuota(userId);
-      return new Response(JSON.stringify({ quota }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      try {
+        const orgId = await getOrgIdForUser(userId);
+        const quotaCheck = await checkOrgQuota(orgId, "synthesis", 0);
+        return new Response(JSON.stringify({ quotaCheck }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (err) {
+        return errorResponse(500, `Erreur quota: ${err.message}`, corsHeaders);
+      }
     }
 
     // ── QUOTA : appliqué avant tout appel IA facturable ──────────────
     if (mode === "extract" || mode === "compose") {
-      const quota = await getSynthesisQuota(userId);
-      if (quota.limit !== -1 && quota.used >= quota.limit) {
-        return new Response(JSON.stringify({
-          error: `Quota de synthèses atteint (${quota.used}/${quota.limit} ce mois-ci, plan ${quota.plan}). Passez à un plan supérieur pour continuer.`,
-          code: "QUOTA_EXCEEDED",
-          quota,
-        }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      try {
+        const orgId = await getOrgIdForUser(userId);
+        const quotaCheck = await checkOrgQuota(orgId, "synthesis", 1);
+        if (!quotaCheck.allowed) {
+          return new Response(JSON.stringify({
+            error: quotaCheck.reason || "Quota organisation atteint",
+            code: "QUOTA_EXCEEDED",
+            remaining_credits: quotaCheck.remaining_credits,
+          }), {
+            status: 429,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      } catch (err) {
+        return errorResponse(500, `Erreur quota: ${err.message}`, corsHeaders);
       }
     }
 
@@ -419,7 +378,28 @@ Deno.serve(async (req) => {
       ], 6000, corsHeaders);
     }
 
-    return errorResponse(400, "mode invalide (extract | consolidate | compose)", corsHeaders);
+    // ── MODE LOG-USAGE (enregistre la consommation de crédits) ────────
+    if (mode === "log-usage") {
+      try {
+        const { operation_type, quantity = 1 } = body;
+        if (!operation_type) {
+          return errorResponse(400, "operation_type requis", corsHeaders);
+        }
+        const orgId = await getOrgIdForUser(userId);
+        const logged = await logQuotaUsage(orgId, operation_type, quantity);
+        if (!logged) {
+          return errorResponse(500, "Erreur lors du log de quota", corsHeaders);
+        }
+        return new Response(JSON.stringify({ success: true }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (err) {
+        return errorResponse(500, `Erreur log-usage: ${err.message}`, corsHeaders);
+      }
+    }
+
+    return errorResponse(400, "mode invalide (extract | consolidate | compose | log-usage | quota)", corsHeaders);
   } catch (error) {
     const status = (error as { status?: number })?.status || 500;
     const message = (error as { message?: string })?.message || "Erreur interne";
