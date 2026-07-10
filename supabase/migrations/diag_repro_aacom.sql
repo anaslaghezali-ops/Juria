@@ -61,7 +61,7 @@ RESET ROLE;
 
 -- Triggers en place sur documents/folders
 INSERT INTO public.zz_repro2_results
-SELECT 6, 'trigger ' || c.relname || '.' || t.tgname, 'enabled=' || t.tgenabled
+SELECT 6, 'trigger ' || c.relname || '.' || t.tgname, 'enabled=' || t.tgenabled::text
 FROM pg_trigger t
 JOIN pg_class c ON c.oid = t.tgrelid
 WHERE NOT t.tgisinternal AND c.relname IN ('documents', 'folders');
