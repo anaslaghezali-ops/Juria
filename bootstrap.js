@@ -186,25 +186,11 @@ function _loadDemoData() {
  */
 async function _loadDeadlines(orgId) {
   try {
-    // 1. Récupérer les IDs des documents de cette organisation
-    const { data: docsData, error: docsError } = await window._sb
-      .from('documents')
-      .select('id')
-      .eq('organization_id', orgId);
-
-    if (docsError || !docsData || docsData.length === 0) {
-      console.log('[Bootstrap] Pas de documents, pas d\'obligations');
-      return;
-    }
-
-    const docIds = docsData.map(d => d.id);
-
-    // 2. Récupérer les obligations de ces documents
     const { data, error } = await window._sb
       .from('document_obligations')
-      .select('id, description, due_date, is_critical, document_id, documents(name, folder_id)')
-      .in('document_id', docIds)
-      .order('due_date', { ascending: true });
+      .select('id, description, due_date, is_critical, source, document_id, documents(name, folder_id)')
+      .eq('organization_id', orgId)
+      .order('due_date', { ascending: true, nullsFirst: false });
 
     if (error || !data) {
       console.warn('[Bootstrap] deadlines query error:', error?.message);
@@ -212,18 +198,21 @@ async function _loadDeadlines(orgId) {
     }
 
     const deadlines = (data || []).map(o => ({
-      date:   o.due_date,
-      event:  o.description || '—',
-      doc:    o.documents?.name || '—',
+      id:          o.id,
+      document_id: o.document_id || null,
+      source:      o.source || 'analysis',
+      date:        o.due_date,
+      event:       o.description || '—',
+      doc:         o.documents?.name || '',
       folder: o.documents?.folder_id
-        ? (Store.indexes.foldersById[o.documents.folder_id]?.name || '—')
-        : '—',
+        ? (Store.indexes.foldersById[o.documents.folder_id]?.name || '')
+        : '',
       priority: o.is_critical ? 'high' : 'medium',
     }));
 
     Store.setDeadlines(deadlines);
     console.log('[Bootstrap] Deadlines chargées:', deadlines.length);
-  } catch (err) { 
+  } catch (err) {
     console.warn('[Bootstrap] deadlines exception:', err?.message);
   }
 }

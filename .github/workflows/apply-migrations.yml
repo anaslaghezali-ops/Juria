@@ -23,7 +23,7 @@ on:
       - '.github/workflows/apply-migrations.yml'
 
 env:
-  PENDING_MIGRATIONS: "11_match_threshold.sql"
+  PENDING_MIGRATIONS: "12_document_obligations.sql"
 
 jobs:
   apply:

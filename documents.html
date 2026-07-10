@@ -470,8 +470,7 @@
     .top-risk-count { font-size: 12px; font-weight: 700; color: var(--slate-500); }
 
     /* ── DASHBOARD ENRICHI ── */
-    .dash-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 20px; }
-    @media (max-width: 1100px) { .dash-grid-3 { grid-template-columns: 1fr 1fr; } }
+    .dash-grid-3 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 20px; }
     @media (max-width: 700px) { .dash-grid-3 { grid-template-columns: 1fr; } }
     .deadline-mini { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
     .deadline-mini:last-child { border-bottom: none; }
@@ -842,6 +841,13 @@
           <div id="dashCp"></div>
           <button class="btn-secondary" onclick="showPage('contreparties')" style="font-size:12px;margin-top:12px;width:100%">Voir toutes les contreparties →</button>
         </div>
+
+        <!-- Prochaines échéances -->
+        <div class="dash-card">
+          <div class="dash-card-title">Prochaines échéances</div>
+          <div id="dashDeadlines"></div>
+          <button class="btn-secondary" onclick="showPage('echeances')" style="font-size:12px;margin-top:12px;width:100%">Voir toutes les échéances →</button>
+        </div>
       </div>
 
       <!-- Résolution risques + Répartition -->
@@ -1200,6 +1206,7 @@
           <div class="page-title">Échéances</div>
           <div class="page-sub">Obligations et dates clés extraites de vos contrats</div>
         </div>
+        <button class="btn-primary" onclick="openDeadlineModal()">+ Ajouter une échéance</button>
       </div>
       <div class="deadlines-list" id="deadlinesList">
         <!-- Rendu dynamiquement -->
@@ -1207,7 +1214,7 @@
       <div class="empty-state" id="emptyDeadlines" style="display:none">
         <div class="empty-icon">📅</div>
         <div class="empty-title">Aucune échéance</div>
-        <div class="empty-sub">Les échéances seront extraites automatiquement de vos contrats analysés.</div>
+        <div class="empty-sub">Les échéances sont extraites automatiquement lors de l'analyse de vos contrats.<br>Vous pouvez aussi en ajouter manuellement.</div>
       </div>
     </div>
 
@@ -1399,6 +1406,39 @@
       <button class="btn-confirm" id="btnConfirmUpload" onclick="confirmUpload()" disabled>
         <span id="btnUploadText">Importer</span>
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: NOUVELLE ÉCHÉANCE -->
+<div class="modal-overlay" id="deadlineModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeDeadlineModal()">×</button>
+    <div class="modal-title">Ajouter une échéance</div>
+    <div class="modal-sub">Date butoir, préavis, obligation périodique…</div>
+    <div class="form-group">
+      <label class="form-label">Description *</label>
+      <input type="text" class="form-input" id="deadlineDesc" placeholder="Ex : Préavis de renouvellement du bail commercial"/>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Date</label>
+        <input type="date" class="form-input" id="deadlineDate"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Criticité</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:9px 0;font-size:13px;color:var(--slate-700);cursor:pointer">
+          <input type="checkbox" id="deadlineCritical"/> Critique (résiliation, pénalité…)
+        </label>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Document lié (facultatif)</label>
+      <select class="form-input" id="deadlineDoc"></select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeDeadlineModal()">Annuler</button>
+      <button class="btn-confirm" onclick="saveDeadline()">Ajouter</button>
     </div>
   </div>
 </div>
@@ -1868,10 +1908,8 @@ function renderDashboard() {
     : '—';
   const now = new Date();
   const in30 = new Date(now.getTime() + 30 * 86400000);
-  const _deadlines = (typeof Store !== 'undefined' && Store.state.deadlines.length)
-    ? Store.state.deadlines
-    : (typeof getDemoDeadlines !== 'undefined' ? getDemoDeadlines() : []);
-  const deadlines30 = _deadlines.filter(d => new Date(d.date) <= in30).length;
+  const _deadlines = (typeof Store !== 'undefined') ? Store.state.deadlines : [];
+  const deadlines30 = _deadlines.filter(d => d.date && new Date(d.date) >= now && new Date(d.date) <= in30).length;
 
   _safeSet('kpiTotal', 'textContent', total);
   _safeSet('kpiAnalysed', 'textContent', analysed);
@@ -1906,8 +1944,8 @@ function renderDashboard() {
     : '<div style="font-size:13px;color:var(--slate-400);padding:8px 0">Aucun risque élevé détecté.</div>';
 
   // Échéances dans dashboard
-  const dl = getDemoDeadlines().slice(0, 4);
-  ((document.getElementById('dashDeadlines') || {})['innerHTML']) = dl.map(d => {
+  const dl = _deadlines.filter(d => d.date && new Date(d.date) >= now).slice(0, 4);
+  ((document.getElementById('dashDeadlines') || {})['innerHTML']) = dl.length ? dl.map(d => {
     const date = new Date(d.date);
     const diff = Math.round((date - now) / 86400000);
     const label = diff <= 7 ? `<span style="color:var(--red);font-weight:700">J-${diff}</span>` : `J-${diff}`;
@@ -1915,7 +1953,7 @@ function renderDashboard() {
       <div class="deadline-mini-date">${label}</div>
       <div class="deadline-mini-text">${escHtml(d.event)}<br><span style="font-size:11px;color:var(--slate-400)">${escHtml(d.doc)}</span></div>
     </div>`;
-  }).join('');
+  }).join('') : '<div style="font-size:13px;color:var(--slate-400);padding:8px 0">Aucune échéance à venir.</div>';
 
   // Contreparties critiques
   const critCp = allCounterparties.filter(cp => cp.risk_level === 'high').slice(0, 4);
@@ -3027,32 +3065,108 @@ function renderRiskTabReporting() {
 function renderDeadlines() {
   const list = document.getElementById('deadlinesList');
   const empty = document.getElementById('emptyDeadlines');
-  const demos = getDemoDeadlines();
-  if (!demos.length) {
+  const deadlines = (typeof Store !== 'undefined') ? Store.state.deadlines : [];
+  if (!deadlines.length) {
     list.innerHTML = '';
     empty.style.display = 'block';
     return;
   }
   empty.style.display = 'none';
-  list.innerHTML = demos.map(d => {
-    const date = new Date(d.date);
-    const day = date.getDate();
-    const month = date.toLocaleDateString('fr-MA', { month: 'short' }).replace('.','');
-    const prioMap = { high: ['priority-high','Urgent'], medium: ['priority-med','Important'], low: ['priority-low','Normal'] };
+  // Datées d'abord (par date croissante), puis les échéances sans date
+  const sorted = [...deadlines].sort((a, b) => {
+    if (!a.date && !b.date) return 0;
+    if (!a.date) return 1;
+    if (!b.date) return -1;
+    return new Date(a.date) - new Date(b.date);
+  });
+  list.innerHTML = sorted.map(d => {
+    const date = d.date ? new Date(d.date) : null;
+    const isPast = date && date < new Date(new Date().toDateString());
+    const prioMap = { high: ['priority-high','Critique'], medium: ['priority-med','Important'], low: ['priority-low','Normal'] };
     const [prioCls, prioLabel] = prioMap[d.priority] || ['priority-low','Normal'];
-    return `<div class="deadline-card">
+    const meta = [d.doc, d.folder].filter(Boolean).join(' · ');
+    return `<div class="deadline-card" style="${isPast ? 'opacity:0.55' : ''}">
       <div class="deadline-date">
-        <div class="deadline-day">${day}</div>
-        <div class="deadline-month">${month}</div>
+        <div class="deadline-day">${date ? date.getDate() : '—'}</div>
+        <div class="deadline-month">${date ? date.toLocaleDateString('fr-MA', { month: 'short', year: '2-digit' }).replace('.','') : 'sans date'}</div>
       </div>
       <div class="deadline-sep"></div>
       <div class="deadline-body">
-        <div class="deadline-event">${escHtml(d.event)}</div>
-        <div class="deadline-doc">${escHtml(d.doc)} ${d.folder ? '· ' + escHtml(d.folder) : ''}</div>
+        <div class="deadline-event">${escHtml(d.event)} ${d.source === 'manual' ? '<span class="tag" style="margin-left:4px">manuel</span>' : ''}</div>
+        <div class="deadline-doc">${escHtml(meta || 'Échéance libre')}${isPast ? ' · passée' : ''}</div>
       </div>
       <span class="deadline-priority ${prioCls}">${prioLabel}</span>
+      <button class="action-btn danger" title="Supprimer l'échéance" onclick="deleteDeadline('${d.id}')">🗑</button>
     </div>`;
   }).join('');
+}
+
+// ── ÉCHÉANCES : AJOUT / SUPPRESSION ──────────
+function openDeadlineModal() {
+  // Peuple le select des documents (facultatif)
+  const sel = document.getElementById('deadlineDoc');
+  if (sel) {
+    sel.innerHTML = '<option value="">Aucun (échéance libre)</option>' +
+      allDocs.map(doc => `<option value="${doc.id}">${escHtml(doc.name)}</option>`).join('');
+  }
+  document.getElementById('deadlineDesc').value = '';
+  document.getElementById('deadlineDate').value = '';
+  document.getElementById('deadlineCritical').checked = false;
+  document.getElementById('deadlineModal').classList.add('show');
+}
+
+function closeDeadlineModal() {
+  document.getElementById('deadlineModal').classList.remove('show');
+}
+
+async function saveDeadline() {
+  const description = document.getElementById('deadlineDesc').value.trim();
+  const dueDate = document.getElementById('deadlineDate').value || null;
+  const isCritical = document.getElementById('deadlineCritical').checked;
+  const documentId = document.getElementById('deadlineDoc').value || null;
+  if (!description) { showToast('Décrivez l\'échéance.', 'error'); return; }
+  if (!currentOrgId) { showToast('Aucune organisation active.', 'error'); return; }
+
+  const { data, error } = await _sb
+    .from('document_obligations')
+    .insert({
+      organization_id: currentOrgId,
+      document_id: documentId,
+      description,
+      due_date: dueDate,
+      is_critical: isCritical,
+      source: 'manual',
+      created_by: currentUser?.id || null,
+    })
+    .select('id')
+    .single();
+
+  if (error) { showToast('Erreur : ' + error.message, 'error'); return; }
+
+  const doc = documentId ? allDocs.find(d => d.id === documentId) : null;
+  Store.setDeadlines([...Store.state.deadlines, {
+    id: data.id,
+    document_id: documentId,
+    source: 'manual',
+    date: dueDate,
+    event: description,
+    doc: doc?.name || '',
+    folder: doc?.folder_id ? (Store.indexes.foldersById[doc.folder_id]?.name || '') : '',
+    priority: isCritical ? 'high' : 'medium',
+  }]);
+  closeDeadlineModal();
+  renderDeadlines();
+  if (typeof renderDashboard === 'function' && document.getElementById('page-dashboard').classList.contains('active')) renderDashboard();
+  showToast('Échéance ajoutée.', 'success');
+}
+
+async function deleteDeadline(id) {
+  if (!confirm('Supprimer cette échéance ?')) return;
+  const { error } = await _sb.from('document_obligations').delete().eq('id', id);
+  if (error) { showToast('Erreur : ' + error.message, 'error'); return; }
+  Store.setDeadlines(Store.state.deadlines.filter(d => d.id !== id));
+  renderDeadlines();
+  showToast('Échéance supprimée.', 'success');
 }
 
 // ── DOSSIER MODAL ─────────────────────────────
@@ -3667,19 +3781,6 @@ function getDemoRisks() {
     { id:'r5', document_id:'6', severity:'medium', risk_type:'CHANGE_OF_CONTROL', title:'Résiliation automatique en cas de changement de contrôle', clause_reference:'Clause 12.3', docName:'Contrat SaaS - Oracle.pdf', folderName:'—', status:'open', assignee:null, extract:'"In the event of a Change of Control of either Party, the other Party may terminate this Agreement upon written notice..."', created_at: new Date(Date.now()-10*86400000).toISOString() },
   ];
 }
-function getDemoDeadlines() {
-  const now = new Date();
-  const d = (offset) => new Date(now.getTime() + offset * 86400000).toISOString();
-  return [
-    { date: d(7), event: 'Préavis de renouvellement — SHA Fertinagro', doc: 'SHA Fertinagro - OCP.pdf', folder: 'OCP - JV Fertinagro', priority: 'high' },
-    { date: d(15), event: 'Date butoir satisfaction conditions (Long Stop Date)', doc: 'SHA Fertinagro - OCP.pdf', folder: 'OCP - JV Fertinagro', priority: 'high' },
-    { date: d(30), event: 'Approbation plan d\'affaires annuel', doc: 'SHA Fertinagro - OCP.pdf', folder: 'OCP - JV Fertinagro', priority: 'medium' },
-    { date: d(45), event: 'Rapport financier trimestriel à soumettre', doc: 'Contrat SaaS - Oracle.pdf', folder: '—', priority: 'low' },
-    { date: d(90), event: 'Expiration NDA bilatéral', doc: 'NDA bilatéral - TotalEnergies.pdf', folder: 'Client ABC - Acquisition', priority: 'medium' },
-  ];
-}
-
-
 // ══════════════════════════════════════════════
 //  CONTREPARTIES
 // ══════════════════════════════════════════════
@@ -3729,7 +3830,8 @@ function openCpDetail(cpId) {
   const cpRisks = allRisks.filter(r => cpDocs.find(d => d.id === r.document_id));
   const cpFoldersList = allFolders.filter(f => f.counterparty === cp.name || f.counterparty_id === cp.id);
   const highR = cpRisks.filter(r => r.severity === 'high' || r.severity === 'critical').length;
-  const cpDeadlines = getDemoDeadlines().filter(d => cpDocs.find(doc => doc.name === d.doc)).length;
+  const cpDeadlines = ((typeof Store !== 'undefined') ? Store.state.deadlines : [])
+    .filter(d => d.document_id && cpDocs.find(doc => doc.id === d.document_id)).length;
   const { score } = computeRiskScore(cpRisks);
   const scoreCls = getRiskScoreClass(score);
 

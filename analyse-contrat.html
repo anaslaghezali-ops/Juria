@@ -1526,7 +1526,7 @@ async function saveAnalysisToDatabase(analysisResult, selectedFile, extractedTex
         risks_count_high: risksCountHigh,
         risks_count_medium: risksCountMedium,
         risks_count_low: risksCountLow,
-        obligations_count: 0,  // TODO : enrichir si données disponibles
+        obligations_count: (analysisResult.obligations || []).length,
         clauses_present: 0,    // TODO : enrichir si données disponibles
         clauses_missing: clausesMissing,
         tokens_used: null,
@@ -1609,8 +1609,47 @@ async function saveAnalysisToDatabase(analysisResult, selectedFile, extractedTex
       if (clausesError) throw clausesError;
       console.log(`✓ ${clausesData.length} clauses manquantes créées`);
     }
-    
-    
+
+
+    // ─────────────────────────────────────────────────────
+    // ÉTAPE 9bis : Persister les obligations/échéances (document_obligations)
+    // ─────────────────────────────────────────────────────
+    // Non bloquant : une échéance ratée ne doit pas faire échouer l'analyse.
+
+    try {
+      // Une ré-analyse remplace les échéances extraites précédemment,
+      // sans toucher aux échéances ajoutées manuellement.
+      await _sb
+        .from('document_obligations')
+        .delete()
+        .eq('document_id', docId)
+        .eq('source', 'analysis');
+
+      const obligations = (analysisResult.obligations || [])
+        .filter(o => o && o.description)
+        .map(o => ({
+          document_id: docId,
+          organization_id: orgId,
+          description: String(o.description).slice(0, 500),
+          due_date: /^\d{4}-\d{2}-\d{2}$/.test(o.due_date || '') ? o.due_date : null,
+          is_critical: !!o.is_critical,
+          source: 'analysis',
+          created_by: uid,
+          created_at: new Date().toISOString()
+        }));
+
+      if (obligations.length) {
+        const { error: obligError } = await _sb
+          .from('document_obligations')
+          .insert(obligations);
+        if (obligError) console.warn('⚠️ Erreur persistance obligations:', obligError.message);
+        else console.log(`✓ ${obligations.length} obligations/échéances créées`);
+      }
+    } catch (obligErr) {
+      console.warn('⚠️ Obligations non persistées:', obligErr?.message);
+    }
+
+
     // ─────────────────────────────────────────────────────
     // ÉTAPE 10 : Mettre à jour le document avec latest_analysis_id
     // ─────────────────────────────────────────────────────

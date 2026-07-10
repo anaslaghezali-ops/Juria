@@ -485,8 +485,9 @@ serve(async (req) => {
         "3. Pour chaque probleme, donne une suggestion CONCRETE avec le texte exact a ajouter ou modifier.",
         "4. Pour les clauses manquantes, cite l'article de loi applicable et donne un exemple de formulation.",
         "5. Score: 10=parfaitement conforme, 1=illegal selon le droit marocain applicable.",
+        "6. Extrais aussi les OBLIGATIONS ET ECHEANCES du contrat : toute date butoir, delai de preavis, date de renouvellement, obligation periodique (rapport, paiement, declaration) ou condition a satisfaire avant une date. due_date au format YYYY-MM-DD si la date est determinable (calcule-la a partir des dates du contrat si necessaire), sinon null. is_critical=true si le non-respect entraine resiliation, penalite ou perte de droit.",
         "Articles de reference: " + articlesContext,
-        "Retourne UNIQUEMENT un JSON: {contract_type: string, score: number, summary: string, issues: [{paragraph_id: number, severity: string, clause: string, problem: string, suggestion: string}], missing_clauses: [string]}. paragraph_id = le numero entre crochets [N] du paragraphe concerne dans le contrat fourni.",
+        "Retourne UNIQUEMENT un JSON: {contract_type: string, score: number, summary: string, issues: [{paragraph_id: number, severity: string, clause: string, problem: string, suggestion: string}], missing_clauses: [string], obligations: [{description: string, due_date: string|null, is_critical: boolean}]}. paragraph_id = le numero entre crochets [N] du paragraphe concerne dans le contrat fourni.",
       ].filter(Boolean).join(" ");
 
       // MAP : analyse de chaque fenetre, 4 appels OpenAI en parallele maximum
@@ -514,9 +515,10 @@ serve(async (req) => {
           "- contract_type : le type identifie par la majorite des parties.",
           "- issues : rassemble toutes les issues ; DEDOUBLONNE celles qui decrivent la meme clause (le chevauchement fait qu'une clause peut apparaitre dans deux parties) ; conserve le paragraph_id d'origine et la severity la plus haute en cas de doublon.",
           "- missing_clauses : une clause n'est manquante que si AUCUNE partie ne la contient. Retire toute clause signalee manquante par une partie mais presente ou traitee dans une autre.",
+          "- obligations : rassemble toutes les obligations/echeances ; dedoublonne celles qui decrivent la meme obligation (garde is_critical=true et la due_date la plus precise en cas de doublon).",
           "- score : score global 1-10 du contrat ENTIER (10 = parfaitement conforme), coherent avec la gravite cumulee des issues retenues.",
           "- summary : synthese globale en 2-4 phrases.",
-          "Retourne UNIQUEMENT un JSON: {contract_type: string, score: number, summary: string, issues: [{paragraph_id: number, severity: string, clause: string, problem: string, suggestion: string}], missing_clauses: [string]}",
+          "Retourne UNIQUEMENT un JSON: {contract_type: string, score: number, summary: string, issues: [{paragraph_id: number, severity: string, clause: string, problem: string, suggestion: string}], missing_clauses: [string], obligations: [{description: string, due_date: string|null, is_critical: boolean}]}",
         ].join(" ");
         analysis = await callOpenAI(
           mergeSystem,
