@@ -2636,13 +2636,62 @@ function renderTree(searchFilter) {
     }
   }
 
-  // Dossiers que des collègues m'ont partagés
+  // Dossiers que des collègues m'ont partagés.
+  // Hiérarchie à 3 niveaux : Partagé par <personne> → Contrepartie → Dossier.
   if (sharedWithMe.length) {
     const filtered = sharedWithMe.filter(f => !q || f.name.toLowerCase().includes(q) ||
       getSubFoldersFast(f.id).some(s => s.name.toLowerCase().includes(q)));
     if (filtered.length) {
       html += `<div class="tree-section-label">Partagés avec moi</div>`;
-      filtered.forEach(f => { html += renderTreeFolder(f, 0, q, folderStats, memberLabel(f.created_by)); });
+
+      // Niveau 1 : regrouper par personne qui a partagé (le propriétaire du dossier)
+      const bySharer = {};
+      filtered.forEach(f => { (bySharer[f.created_by] = bySharer[f.created_by] || []).push(f); });
+
+      Object.entries(bySharer).forEach(([sharerId, sharerFolders]) => {
+        const sharerNodeId = 'shared-by-' + sharerId;
+        const sharerOpen = wsExpandedNodes.has(sharerNodeId);
+        html += `
+          <div class="tree-node" data-level="0">
+            <div class="tree-row" onclick="toggleTreeNode('${sharerNodeId}')">
+              <span class="tree-caret ${sharerOpen ? 'expanded' : ''}">▶</span>
+              <span class="tree-icon">👤</span>
+              <span class="tree-name">${escHtml(memberLabel(sharerId))}</span>
+              <span class="tree-badge">${sharerFolders.length}</span>
+            </div>
+            <div class="tree-children ${sharerOpen ? '' : 'collapsed'}">`;
+
+        // Niveau 2 : regrouper les dossiers de cette personne par contrepartie
+        const byCp = {};
+        const noCpFolders = [];
+        sharerFolders.forEach(f => {
+          if (f.counterparty_id) (byCp[f.counterparty_id] = byCp[f.counterparty_id] || []).push(f);
+          else noCpFolders.push(f);
+        });
+
+        Object.entries(byCp).forEach(([cpId, cpFolders]) => {
+          const cp = allCounterparties.find(c => c.id === cpId);
+          const cpNodeId = sharerNodeId + '-cp-' + cpId;
+          const cpOpen = wsExpandedNodes.has(cpNodeId);
+          html += `
+            <div class="tree-node" data-level="1">
+              <div class="tree-row" onclick="toggleTreeNode('${cpNodeId}')">
+                <span class="tree-caret ${cpOpen ? 'expanded' : ''}">▶</span>
+                <span class="tree-icon">🏢</span>
+                <span class="tree-name">${escHtml(cp?.name || 'Contrepartie')}</span>
+                <span class="tree-badge">${cpFolders.length}</span>
+              </div>
+              <div class="tree-children ${cpOpen ? '' : 'collapsed'}">
+                ${cpFolders.map(f => renderTreeFolder(f, 2, q, folderStats)).join('')}
+              </div>
+            </div>`;
+        });
+
+        // Dossiers partagés sans contrepartie : directement sous la personne
+        noCpFolders.forEach(f => { html += renderTreeFolder(f, 1, q, folderStats); });
+
+        html += `</div></div>`;
+      });
     }
   }
 
@@ -4516,7 +4565,7 @@ async function createCounterparty() {
   try {
     // ✅ Sauvegarder en base via le service
     if (Services?.counterparties) {
-      const saved = await Services.counterparties.saveCounterparty(payload, currentOrgId);
+      const saved = await Services.counterparties.saveCounterparty(payload, currentOrgId, currentUser?.id);
       if (!saved) throw new Error('Sauvegarde échouée');
       
       // Le service appelle déjà upsertCounterparty, mais on force une sync
