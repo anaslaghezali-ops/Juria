@@ -4564,16 +4564,22 @@ async function deleteDoc(id) {
   const doc = allDocs.find(d => d.id === id);
   if (!doc || !confirm('Supprimer « ' + doc.name + ' » ?')) return;
 
+  let ok = false;
   if (Services?.documents) {
-    const ok = await Services.documents.archiveDocument(id, currentOrgId, true);
+    ok = await Services.documents.archiveDocument(id, currentOrgId, true);
     if (ok) allDocs = Store.state.documents;
   } else {
-    try { await _sb.from('documents').delete().eq('id', id).eq('organization_id', currentOrgId); } catch(e) {}
-    allDocs = allDocs.filter(d => d.id !== id);
+    try {
+      const { error } = await _sb.from('documents').delete().eq('id', id).eq('organization_id', currentOrgId);
+      ok = !error;
+    } catch(e) { ok = false; }
+    if (ok) allDocs = allDocs.filter(d => d.id !== id);
   }
+
+  if (!ok) { showToast('Suppression impossible. Réessayez.', 'error'); return; }
   updateNavCounts();
   filterDocs();
-  showToast('Document supprimé.', '');
+  showToast('Document supprimé.', 'success');
 }
 
 // ── BADGES & HELPERS ──────────────────────────
