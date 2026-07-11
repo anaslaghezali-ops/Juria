@@ -5,10 +5,10 @@
 -- CASCADE. Ce test valide donc précisément ce que la migration 21 change.
 --
 -- A crée : CP, dossier F, un document D dans F, une tâche T sur D, un
--- commentaire C sur D. Puis supprime D. Attendu :
+-- commentaire C sur D. Puis supprime D. Attendu (choix CASCADE) :
 --   - la suppression réussit (plus bloquée) ;
---   - la tâche T survit, détachée (document_id NULL) ;
---   - le commentaire C survit, détaché (document_id NULL).
+--   - la tâche T est supprimée avec le document ;
+--   - le commentaire C est supprimé avec le document.
 
 RESET ROLE;
 DROP TABLE IF EXISTS public.zz_docdel_results;
@@ -51,17 +51,17 @@ EXCEPTION WHEN OTHERS THEN
   INSERT INTO public.zz_docdel_results VALUES ('01_suppr_document','succès','BLOQUÉ: '||SQLERRM,'FAIL');
 END $$;
 
--- La tâche survit, détachée
+-- La tâche est supprimée en cascade
 INSERT INTO public.zz_docdel_results
-SELECT '02_tache_survit', 'existe, document_id NULL',
-       CASE WHEN EXISTS(SELECT 1 FROM public.tasks WHERE id='9b000000-0000-4000-a000-0000000000a1' AND document_id IS NULL) THEN 'existe, document_id NULL' ELSE 'PERDUE ou rattachée' END,
-       CASE WHEN EXISTS(SELECT 1 FROM public.tasks WHERE id='9b000000-0000-4000-a000-0000000000a1' AND document_id IS NULL) THEN 'PASS' ELSE 'FAIL' END;
+SELECT '02_tache_supprimee', 'supprimée',
+       CASE WHEN EXISTS(SELECT 1 FROM public.tasks WHERE id='9b000000-0000-4000-a000-0000000000a1') THEN 'encore là' ELSE 'supprimée' END,
+       CASE WHEN EXISTS(SELECT 1 FROM public.tasks WHERE id='9b000000-0000-4000-a000-0000000000a1') THEN 'FAIL' ELSE 'PASS' END;
 
--- Le commentaire survit, détaché
+-- Le commentaire est supprimé en cascade
 INSERT INTO public.zz_docdel_results
-SELECT '03_commentaire_survit', 'existe, document_id NULL',
-       CASE WHEN EXISTS(SELECT 1 FROM public.comments WHERE id='9b000000-0000-4000-a000-0000000000b1' AND document_id IS NULL) THEN 'existe, document_id NULL' ELSE 'PERDU ou rattaché' END,
-       CASE WHEN EXISTS(SELECT 1 FROM public.comments WHERE id='9b000000-0000-4000-a000-0000000000b1' AND document_id IS NULL) THEN 'PASS' ELSE 'FAIL' END;
+SELECT '03_commentaire_supprime', 'supprimé',
+       CASE WHEN EXISTS(SELECT 1 FROM public.comments WHERE id='9b000000-0000-4000-a000-0000000000b1') THEN 'encore là' ELSE 'supprimé' END,
+       CASE WHEN EXISTS(SELECT 1 FROM public.comments WHERE id='9b000000-0000-4000-a000-0000000000b1') THEN 'FAIL' ELSE 'PASS' END;
 
 RESET ROLE;
 
