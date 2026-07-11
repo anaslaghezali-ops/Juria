@@ -437,6 +437,8 @@
     .btn-cancel { padding: 8px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--slate-600); background: var(--white); cursor: pointer; font-family: var(--font); }
     .btn-cancel:hover { background: var(--slate-100); }
     .btn-confirm { padding: 8px 20px; background: var(--indigo); color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--font); }
+    .btn-danger { padding: 8px 20px; background: #fff; color: #dc2626; border: 1px solid #fecaca; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--font); margin-right: auto; }
+    .btn-danger:hover { background: #fef2f2; border-color: #dc2626; }
     .btn-confirm:hover { background: var(--indigo-light); }
     .drop-zone { border: 2px dashed var(--border); border-radius: 12px; padding: 32px; text-align: center; cursor: pointer; transition: all 0.15s; margin-bottom: 16px; }
     .drop-zone:hover, .drop-zone.drag-over { border-color: var(--indigo); background: var(--indigo-bg); }
@@ -1594,6 +1596,7 @@
 
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeFolderModal()">Annuler</button>
+      <button class="btn-danger" id="folderDeleteBtn" style="display:none" onclick="deleteFolder(editingFolderId)">🗑 Supprimer</button>
       <button class="btn-confirm" onclick="createFolder()">Créer le dossier</button>
     </div>
   </div>
@@ -2412,6 +2415,42 @@ function openCpShareModal(cpId) {
   document.getElementById('cpShareModal').classList.add('show');
 }
 
+/**
+ * Supprime une contrepartie (non destructif) : ses dossiers et documents sont
+ * conservés mais détachés (deviennent « sans contrepartie »). RLS : créateur/admin.
+ */
+async function deleteCounterparty(cpId) {
+  const cp = allCounterparties.find(c => c.id === cpId);
+  if (!cp) return;
+  if (!cpIsManager(cpId)) { showToast('Seul le propriétaire de la contrepartie peut la supprimer.', 'error'); return; }
+
+  const nbFolders = allFolders.filter(f => f.counterparty_id === cpId).length;
+  const nbDocs = allDocs.filter(d => d.counterparty_id === cpId).length;
+  const parts = [];
+  if (nbFolders) parts.push(`${nbFolders} dossier${nbFolders > 1 ? 's' : ''}`);
+  if (nbDocs) parts.push(`${nbDocs} document${nbDocs > 1 ? 's' : ''}`);
+  const detail = parts.length
+    ? `\n\n${parts.join(' et ')} seront conservés mais détachés (deviennent « sans contrepartie »).`
+    : '';
+  if (!confirm(`Supprimer la contrepartie « ${cp.name} » ?${detail}`)) return;
+
+  const { error } = await _sb.from('counterparties').delete().eq('id', cpId).eq('organization_id', currentOrgId);
+  if (error) { showToast('Erreur : ' + error.message, 'error'); return; }
+
+  // Reflet local : retirer la CP, détacher ses dossiers/documents
+  allCounterparties = allCounterparties.filter(c => c.id !== cpId);
+  if (typeof Store !== 'undefined') Store.setCounterparties(allCounterparties);
+  allFolders.forEach(f => { if (f.counterparty_id === cpId) f.counterparty_id = null; });
+  if (typeof Store !== 'undefined') Store.setFolders(allFolders);
+  allDocs.forEach(d => { if (d.counterparty_id === cpId) d.counterparty_id = null; });
+  delete cpMembersByCp[cpId];
+
+  renderTree();
+  if (typeof renderCounterparties === 'function') renderCounterparties();
+  updateNavCounts();
+  showToast('Contrepartie supprimée.', 'success');
+}
+
 function closeCpShareModal() {
   document.getElementById('cpShareModal').classList.remove('show');
   shareCpId = null;
@@ -2766,7 +2805,10 @@ function renderTree(searchFilter) {
     const cpShareCount = (cpMembersByCp[cpId] || []).length;
     const cpShareBadge = cpShareCount ? `<span class="tree-share" title="Contrepartie partagée avec ${cpShareCount} personne${cpShareCount > 1 ? 's' : ''}">👥</span>` : '';
     const cpShareAction = cpIsManager(cpId)
-      ? `<span class="tree-actions"><button class="tree-action" onclick="event.stopPropagation();openCpShareModal('${cpId}')" title="Partager toute la contrepartie">👥</button></span>`
+      ? `<span class="tree-actions">
+           <button class="tree-action" onclick="event.stopPropagation();openCpShareModal('${cpId}')" title="Partager toute la contrepartie">👥</button>
+           <button class="tree-action" onclick="event.stopPropagation();deleteCounterparty('${cpId}')" title="Supprimer la contrepartie">🗑</button>
+         </span>`
       : '';
     html += `
       <div class="tree-node" data-level="0">
@@ -3985,6 +4027,8 @@ function openFolderModal() {
   document.getElementById('folderName').value = '';
   document.getElementById('folderDesc').value = '';
   document.getElementById('folderCounterparty').value = '';
+  const delBtn = document.getElementById('folderDeleteBtn');
+  if (delBtn) delBtn.style.display = 'none'; // pas de suppression en création
   document.getElementById('folderModal').classList.add('show');
 }
 function closeFolderModal() {
@@ -3997,6 +4041,39 @@ function closeFolderModal() {
  * - Dossier principal : nom, description, contrepartie modifiables
  * - Sous-dossier : nom, description seulement (contrepartie héritée, non modifiable)
  */
+/**
+ * Supprime un dossier (non destructif) : documents conservés (déplacés en
+ * « sans dossier »), sous-dossiers supprimés, tâches détachées. RLS : owner.
+ */
+async function deleteFolder(folderId) {
+  const folder = allFolders.find(f => f.id === folderId);
+  if (!folder) return;
+  const subs = getSubFoldersFast(folderId);
+  const subIds = [folderId, ...subs.map(s => s.id)];
+  const docCount = allDocs.filter(d => subIds.includes(d.folder_id)).length;
+
+  const parts = [];
+  if (docCount) parts.push(`${docCount} document${docCount > 1 ? 's' : ''} sera conservé${docCount > 1 ? 's' : ''} et déplacé${docCount > 1 ? 's' : ''} en « sans dossier »`);
+  if (subs.length) parts.push(`${subs.length} sous-dossier${subs.length > 1 ? 's' : ''} sera supprimé${subs.length > 1 ? 's' : ''}`);
+  const detail = parts.length ? '\n\n' + parts.join('.\n') + '.' : '';
+  if (!confirm(`Supprimer le dossier « ${folder.name} » ?${detail}`)) return;
+
+  const { error } = await _sb.from('folders').delete().eq('id', folderId).eq('organization_id', currentOrgId);
+  if (error) { showToast('Erreur : ' + error.message, 'error'); return; }
+
+  // Reflet local : retirer le dossier + ses sous-dossiers, détacher leurs docs
+  allFolders = allFolders.filter(f => !subIds.includes(f.id));
+  if (typeof Store !== 'undefined') Store.setFolders(allFolders);
+  allDocs.forEach(d => { if (subIds.includes(d.folder_id)) { d.folder_id = null; d.folder = '—'; } });
+  if (wsSelectedFolderId === folderId || subIds.includes(wsSelectedFolderId)) wsSelectedFolderId = '__all__';
+
+  closeFolderModal();
+  renderTree();
+  if (typeof selectAllFolders === 'function') selectAllFolders();
+  updateNavCounts();
+  showToast('Dossier supprimé.', 'success');
+}
+
 function editFolder(folderId) {
   const folder = allFolders.find(f => f.id === folderId);
   if (!folder) return;
@@ -4014,6 +4091,10 @@ function editFolder(folderId) {
 
   document.getElementById('folderName').value = folder.name || '';
   document.getElementById('folderDesc').value = folder.description || '';
+
+  // Suppression réservée au propriétaire du dossier (la RLS l'exige aussi)
+  const delBtn = document.getElementById('folderDeleteBtn');
+  if (delBtn) delBtn.style.display = (folderAccess(folderId) === 'owner') ? '' : 'none';
 
   const cpGroup = document.getElementById('counterpartyGroup');
   if (isSubFolder) {
