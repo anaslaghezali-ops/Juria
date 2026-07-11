@@ -3156,7 +3156,10 @@ function wsSwitchTab(tabName) {
   }
 
   if (tabName === 'docs') {
-    document.getElementById('wsTab-docs').innerHTML = renderWsDocsTable(docsInScope, subs);
+    const canEditScope = (wsSelectedFolderId === '__all__')
+      ? true
+      : !!(folder && ['owner', 'editor'].includes(folderAccess(folder.id)));
+    document.getElementById('wsTab-docs').innerHTML = renderWsDocsTable(docsInScope, subs, canEditScope);
   } else if (tabName === 'subs') {
     document.getElementById('wsTab-subs').innerHTML = renderWsSubfolders(folder, subs);
   } else if (tabName === 'risks') {
@@ -3176,7 +3179,7 @@ function wsSwitchTab(tabName) {
 /**
  * Table de documents moderne (style NetDocuments / iManage).
  */
-function renderWsDocsTable(docs, subs) {
+function renderWsDocsTable(docs, subs, canEdit = false) {
   subs = subs || [];
   if (!docs.length && !subs.length) {
     return wsEmptyTab('📄', 'Aucun document', 'Importez des documents ou créez des sous-dossiers pour organiser ce dossier.');
@@ -3243,7 +3246,10 @@ function renderWsDocsTable(docs, subs) {
       <td>${fileBadge(d.file_type)}</td>
       <td style="color:var(--slate-500)">${fmtDate(d.created_at)}</td>
       <td style="color:var(--slate-500)">${fmtSize(d.file_size)}</td>
-      <td style="text-align:right"><button class="tree-action" onclick="event.stopPropagation();openDoc('${d.id}')" title="Ouvrir">⋯</button></td>
+      <td style="text-align:right;white-space:nowrap">
+        <button class="tree-action" onclick="event.stopPropagation();openDoc('${d.id}')" title="Ouvrir">⋯</button>
+        ${canEdit ? `<button class="tree-action" onclick="event.stopPropagation();deleteDoc('${d.id}')" title="Supprimer">🗑</button>` : ''}
+      </td>
     </tr>`).join('');
 
   return `<table class="ws-doctable">
@@ -3466,8 +3472,10 @@ function filterDocs() {
 
 function renderDocsTable(docs) {
   return `<table class="docs-table">
-    <thead><tr><th>Document</th><th>Date</th><th>Score</th><th>Statut</th></tr></thead>
-    <tbody>${docs.map(doc => `
+    <thead><tr><th>Document</th><th>Date</th><th>Score</th><th>Statut</th><th></th></tr></thead>
+    <tbody>${docs.map(doc => {
+      const canDel = ['owner', 'editor'].includes(folderAccess(doc.folder_id));
+      return `
     <tr onclick="openDoc('${doc.id}')">
       <td><div class="doc-cell">
         <div class="doc-icon ${doc.file_type === 'pdf' ? 'pdf' : 'docx'}">${doc.file_type === 'pdf' ? '📕' : '📘'}</div>
@@ -3476,7 +3484,12 @@ function renderDocsTable(docs) {
       <td style="font-size:13px;color:var(--slate-400)">${new Date(doc.created_at).toLocaleDateString('fr-MA',{day:'numeric',month:'short'})}</td>
       <td>${getScoreChip(doc.score)}</td>
       <td>${getStatusBadge(doc.status)}</td>
-    </tr>`).join('')}
+      <td style="text-align:right;white-space:nowrap">
+        <button class="tree-action" onclick="event.stopPropagation();openDoc('${doc.id}')" title="Ouvrir">⋯</button>
+        ${canDel ? `<button class="tree-action" onclick="event.stopPropagation();deleteDoc('${doc.id}')" title="Supprimer">🗑</button>` : ''}
+      </td>
+    </tr>`;
+    }).join('')}
     </tbody></table>`;
 }
 
@@ -4581,6 +4594,12 @@ async function deleteDoc(id) {
   if (!ok) { showToast('Suppression impossible. Réessayez.', 'error'); return; }
   updateNavCounts();
   filterDocs();
+  // Rafraîchir aussi les vues « Dossiers » et « Contrepartie » si ouvertes.
+  try {
+    if (wsSelectedFolderId === '__all__') wsSwitchTab(wsActiveTab);
+    else if (wsSelectedFolderId) renderFolderDetail(wsSelectedFolderId);
+  } catch (e) {}
+  try { if (currentDetailCpId) openCpDetail(currentDetailCpId); } catch (e) {}
   showToast('Document supprimé.', 'success');
 }
 
