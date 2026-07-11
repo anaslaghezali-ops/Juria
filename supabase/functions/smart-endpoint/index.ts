@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders, handleCorsPreFlight } from "../_shared/cors.ts";
+import { checkOrgQuota, logQuotaUsage } from "../_shared/quota-utils.ts";
 
 // Catalogue de livrables par domaine juridique
 const DELIVERABLES: Record<string, string[]> = {
@@ -94,27 +95,9 @@ serve(async (req) => {
       });
     }
 
-    const { data: profile } = await supabaseAdmin
-      .from("user_profiles_compat")
-      .select("plan, questions_used, questions_limit, trial_ends_at")
-      .eq("id", user.id)
-      .single();
-
-    if (!profile) {
-      await supabaseAdmin.from("user_profiles_compat").insert({
-        id: user.id, plan: "trial", questions_used: 0, questions_limit: 20,
-        trial_ends_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-      });
-    }
-
-    const currentProfile = profile || { plan: "trial", questions_used: 0, questions_limit: 20 };
-
-    if (currentProfile.questions_used >= currentProfile.questions_limit) {
-      return new Response(JSON.stringify({ error: "Quota atteint.", code: "QUOTA_EXCEEDED" }), {
-        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
+    // L'ancien quota « 20 questions par utilisateur » (user_profiles_compat)
+    // est supprimé : la consommation est régie par le quota v2 en crédits
+    // d'ORGANISATION (checkOrgQuota/logQuotaUsage), vérifié par mode.
     const body = await req.json();
     const { question, contract_to_analyze, mode, history, document_context, conversation_context } = body;
     const conversationHistory: any[] = history || [];
@@ -132,12 +115,20 @@ serve(async (req) => {
       });
     }
 
-    const incrementQuota = async () => {
-      await supabaseAdmin
-        .from("user_profiles_compat")
-        .update({ questions_used: currentProfile.questions_used + 1 })
-        .eq("id", user.id);
-    };
+    // Get organization ID for quota system v2 (lien via organization_users)
+    let orgId: string | null = null;
+    try {
+      const { data: membership } = await supabaseAdmin
+        .from("organization_users")
+        .select("organization_id")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .limit(1)
+        .maybeSingle();
+      orgId = membership?.organization_id || null;
+    } catch (e) {
+      console.warn("[smart-endpoint] Failed to get org_id:", e);
+    }
 
     const callOpenAI = async (systemPrompt: string, userContent: string, maxTokens: number, jsonMode = true) => {
       const res = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -235,7 +226,6 @@ serve(async (req) => {
     if (isConversation) {
       const chatSystem = "Tu es Juria, un assistant juridique marocain sympathique. Réponds naturellement et chaleureusement. Si on te demande qui tu es, présente-toi comme Juria, l'assistant juridique marocain. Retourne UNIQUEMENT un JSON: {\"answer\": \"ta réponse\", \"used_indices\": [], \"based_on_articles\": false}";
       const result = await callOpenAI(chatSystem, question, 300);
-      await incrementQuota();
       return new Response(JSON.stringify({ answer: result.answer || "", citations: [], is_contract: false }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -243,6 +233,20 @@ serve(async (req) => {
 
     // ---- MODE QUESTION SUR DOCUMENT ----
     if (mode === "document_question" && document_context) {
+      // Check quota v2 if organization is available (chat = 0.1 credit per message, rounded to 1 for simplicity)
+      if (orgId) {
+        const quotaCheck = await checkOrgQuota(orgId, "chat", 1);
+        if (!quotaCheck.allowed) {
+          return new Response(JSON.stringify({
+            error: quotaCheck.reason || "Quota organisation atteint pour les chats",
+            code: "QUOTA_EXCEEDED",
+            remaining_credits: quotaCheck.remaining,
+          }), {
+            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
       const docSystem = [
         "Tu es Juria, expert juridique marocain.",
         "L'utilisateur a uploadé un document et pose une question dessus.",
@@ -262,27 +266,84 @@ serve(async (req) => {
       });
 
       const docResult = await callOpenAIMessages(docMessages, 1000);
-      await incrementQuota();
+
+      // Log quota usage asynchronously
+      if (orgId) {
+        logQuotaUsage(orgId, "chat", 1).catch(e =>
+          console.warn("[smart-endpoint] Quota log failed:", e)
+        );
+      }
+
       return new Response(
         JSON.stringify({ answer: docResult.answer || "", citations: [], is_contract: false, needs_clarification: false }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // ---- MODE COMPARAISON DE CONTRATS ----
-    if (mode === "compare" && document_context) {
-      const parts = document_context.split("---");
-      const v1 = parts[0] ? parts[0].replace("CONTRAT V1:", "").trim() : "";
-      const v2 = parts[1] ? parts[1].replace("CONTRAT V2:", "").trim() : "";
+    // ---- MODE COMPARAISON DE CONTRATS (diff aligné, lit tout) ----
+    if (mode === "compare" && (body.contract_v1 || body.contract_v2 || document_context)) {
+      // Transport robuste : contract_v1 / contract_v2 en champs séparés.
+      // (L'ancien transport concaténait "CONTRAT V1 --- CONTRAT V2" puis
+      // splittait sur "---" : un contrat contenant "---" cassait le découpage.)
+      // Compat conservée pour les fronts en cache.
+      let v1 = typeof body.contract_v1 === "string" ? body.contract_v1 : "";
+      let v2 = typeof body.contract_v2 === "string" ? body.contract_v2 : "";
+      if (!v1 && !v2 && document_context) {
+        const parts = document_context.split("---");
+        v1 = parts[0] ? parts[0].replace("CONTRAT V1:", "").trim() : "";
+        v2 = parts[1] ? parts[1].replace("CONTRAT V2:", "").trim() : "";
+      }
 
-      const compareSystem = [
+      // Fenêtres V1 contiguës ; V2 est partitionné par ANCRAGE : le début de
+      // chaque fenêtre V1 est recherché textuellement dans V2 (les intitulés
+      // de clauses inchangés servent d'ancres). À défaut, prorata positionnel.
+      // Chaque paire couvre ainsi TOUT V1 et TOUT V2 : une clause supprimée
+      // manque dans la zone V2 de sa paire, une clause ajoutée apparaît dans
+      // la zone V2 entre deux ancres.
+      const WINDOW = 14000;
+      const MAX_WINDOWS = 8;   // ~110k caractères par version (~40 pages)
+      const V2_MARGIN = 800;   // chevauchement : une clause en bordure reste visible entière
+      const starts: number[] = [];
+      for (let p = 0; p < Math.max(1, v1.length) && starts.length < MAX_WINDOWS; p += WINDOW) {
+        starts.push(p);
+      }
+      const anchors: number[] = [0];
+      for (let i = 1; i < starts.length; i++) {
+        const probe = v1.slice(starts[i], starts[i] + 140).trim();
+        let pos = probe.length >= 40 ? v2.indexOf(probe, anchors[i - 1]) : -1;
+        if (pos === -1) {
+          const probe2 = v1.slice(starts[i] + 200, starts[i] + 320).trim();
+          pos = probe2.length >= 40 ? v2.indexOf(probe2, anchors[i - 1]) : -1;
+        }
+        if (pos === -1) pos = Math.round((starts[i] / Math.max(1, v1.length)) * v2.length);
+        anchors.push(Math.max(pos, anchors[i - 1]));
+      }
+      anchors.push(v2.length);
+
+      // Quota v2 : facturé au volume réellement comparé (1 unité par paire)
+      if (orgId) {
+        const quotaCheck = await checkOrgQuota(orgId, "doc_comparison", starts.length);
+        if (!quotaCheck.allowed) {
+          return new Response(JSON.stringify({
+            error: quotaCheck.reason || "Quota organisation atteint pour les comparaisons",
+            code: "QUOTA_EXCEEDED",
+            remaining_credits: quotaCheck.remaining_credits,
+          }), {
+            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
+      const compareSystemFor = (part: number, total: number) => [
         "Tu es expert juridique marocain. Compare LIGNE PAR LIGNE ces deux versions de contrat.",
+        total > 1
+          ? `\n⚠️ Tu reçois la PARTIE ${part}/${total} de chaque version, alignées approximativement. Les bords peuvent couper une clause en deux : une clause TRONQUÉE en début ou fin de partie ne doit PAS être signalée comme supprimée ou ajoutée.\n`
+          : "",
         "",
         "🔴 PRIORITÉ ABSOLUE - DÉTECTER LES SUPPRESSIONS:",
         "- Identifie CHAQUE clause, paragraphe ou section présent en V1 mais ABSENT en V2",
         "- Les suppressions incluent: clauses de confidentialité, délais de préavis, congés payés, assurances, responsabilités, durée du contrat, salaire, conditions de résiliation, garanties, conditions d'emploi",
         "- Si V1 contient une clause et V2 ne la contient pas (même reformulée), c'est une SUPPRESSION",
-        "- Cherche: 'ABSENT en V2', 'NON MENTIONNÉ dans V2', 'RETIRÉ', 'NE FIGURE PLUS'",
         "",
         "📝 FORMAT REQUIS - Retourne UNIQUEMENT JSON valide:",
         '{"summary": "résumé global", "changes": [',
@@ -298,40 +359,119 @@ serve(async (req) => {
         "Si aucune différence trouvée: {\"summary\": \"Aucune différence\", \"changes\": []}",
       ].join("\n");
 
-      const compareMessages: any[] = [
-        { role: "system", content: compareSystem },
-        { role: "user", content: "CONTRAT V1 (original):\n" + v1.slice(0, 8000) + "\n\n---SÉPARATEUR---\n\nCONTRAT V2 (modifié):\n" + v2.slice(0, 8000) }
-      ];
+      const parseCompare = (rawResult: any) => {
+        try {
+          const answer = rawResult.answer || JSON.stringify(rawResult);
+          const clean = answer.replace(/```json/g, "").replace(/```/g, "").trim();
+          const start = clean.indexOf("{");
+          const end = clean.lastIndexOf("}");
+          if (start !== -1 && end !== -1) return JSON.parse(clean.slice(start, end + 1));
+        } catch (_e) { /* ignore */ }
+        return { summary: rawResult?.answer || "Erreur parsing", changes: [] };
+      };
 
-      const rawResult = await callOpenAIMessages(compareMessages, 4000);
-      let compareData = { summary: "", changes: [] };
-      try {
-        const answer = rawResult.answer || JSON.stringify(rawResult);
-        const clean = answer.replace(/```json/g, "").replace(/```/g, "").trim();
-        const start = clean.indexOf("{");
-        const end = clean.lastIndexOf("}");
-        if (start !== -1 && end !== -1) {
-          compareData = JSON.parse(clean.slice(start, end + 1));
+      // MAP : diff de chaque paire alignée, 3 appels en parallèle maximum
+      const pairResults: any[] = new Array(starts.length);
+      let nextPair = 0;
+      await Promise.all(
+        Array.from({ length: Math.min(3, starts.length) }, async () => {
+          while (nextPair < starts.length) {
+            const i = nextPair++;
+            const v1Slice = v1.slice(starts[i], starts[i] + WINDOW);
+            const v2Slice = v2.slice(Math.max(0, anchors[i] - V2_MARGIN), Math.min(v2.length, anchors[i + 1] + V2_MARGIN));
+            const raw = await callOpenAIMessages([
+              { role: "system", content: compareSystemFor(i + 1, starts.length) },
+              { role: "user", content: "CONTRAT V1 (original)" + (starts.length > 1 ? ` — partie ${i + 1}/${starts.length}` : "") + ":\n" + v1Slice + "\n\n=====\n\nCONTRAT V2 (modifié), zone correspondante:\n" + v2Slice },
+            ], 3000);
+            pairResults[i] = parseCompare(raw);
+          }
+        }),
+      );
+
+      // REDUCE : fusion + dédoublonnage (les marges V2 peuvent faire voir un
+      // même ajout dans deux paires voisines)
+      let compareData = pairResults[0] || { summary: "", changes: [] };
+      if (starts.length > 1) {
+        const allChanges = pairResults.flatMap((r) => Array.isArray(r?.changes) ? r.changes : []);
+        const partSummaries = pairResults.map((r, i) => `Partie ${i + 1}: ${r?.summary || "—"}`).join(" | ");
+        const mergeRaw = await callOpenAIMessages([
+          {
+            role: "system",
+            content: [
+              "Tu es expert juridique marocain. On te donne les changements détectés sur les parties successives d'une comparaison de deux versions d'un MEME contrat.",
+              "Fusionne en un résultat global : DÉDOUBLONNE les changements qui décrivent la même clause (les zones se chevauchent aux bords), en conservant la version la plus complète.",
+              "Écris un summary global (2-4 phrases) hiérarchisant les changements majeurs.",
+              "Types UNIQUEMENT: ajout, suppression, modification. Impact: majeur, mineur, neutre.",
+              'Retourne UNIQUEMENT un JSON: {"summary": "...", "changes": [{"type","clause","v1","v2","impact","description"}]}',
+              "Conserve les textes v1/v2 INTÉGRAUX tels que fournis, ne les résume pas.",
+            ].join("\n"),
+          },
+          { role: "user", content: "Résumés partiels: " + partSummaries + "\n\nChangements détectés: " + JSON.stringify(allChanges).slice(0, 90000) },
+        ], 6000);
+        compareData = parseCompare(mergeRaw);
+        if (!Array.isArray(compareData.changes) || (compareData.changes.length === 0 && allChanges.length > 0)) {
+          // Filet de sécurité : si la fusion échoue, renvoyer la concaténation brute
+          compareData = { summary: partSummaries, changes: allChanges };
         }
-      } catch(e) {
-        compareData = { summary: rawResult.answer || "Erreur parsing", changes: [] };
       }
 
-      await incrementQuota();
+
+      // Log quota usage asynchronously (facturé au nombre de paires comparées)
+      if (orgId) {
+        logQuotaUsage(orgId, "doc_comparison", starts.length).catch(e =>
+          console.warn("[smart-endpoint] Quota log failed:", e)
+        );
+      }
+
       return new Response(
         JSON.stringify(compareData),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // ---- MODE ANALYSE DE CONTRAT ----
+    // ---- MODE ANALYSE DE CONTRAT (map-reduce : lit TOUT le contrat) ----
     if (mode === "analyze" && contract_to_analyze) {
+      // L'ancienne version tronquait a 8 000 caracteres : tout ce qui se
+      // trouvait au-dela de ~3 pages n'etait JAMAIS analyse. Le contrat est
+      // desormais decoupe en fenetres avec chevauchement : chaque fenetre est
+      // analysee (map), puis les analyses partielles sont fusionnees (reduce).
+      const WINDOW_CHARS = 9000;   // ~2 250 tokens par fenetre
+      const OVERLAP_CHARS = 600;   // une clause a cheval sur deux fenetres est vue en entier au moins une fois
+      const MAX_WINDOWS = 12;      // plafond ~100k caracteres (~40 pages)
+      const fullText = String(contract_to_analyze);
+      const windows: string[] = [];
+      let cursor = 0;
+      while (cursor < fullText.length && windows.length < MAX_WINDOWS) {
+        windows.push(fullText.slice(cursor, cursor + WINDOW_CHARS));
+        if (cursor + WINDOW_CHARS >= fullText.length) break;
+        cursor += WINDOW_CHARS - OVERLAP_CHARS;
+      }
+      if (windows.length === 0) windows.push(fullText);
+
+      // Quota v2 : facture au volume reellement analyse (1 unite par fenetre).
+      // Un contrat court coute comme avant ; 40 pages coutent 12 unites.
+      if (orgId) {
+        const quotaCheck = await checkOrgQuota(orgId, "risk_analysis", windows.length);
+        if (!quotaCheck.allowed) {
+          return new Response(JSON.stringify({
+            error: quotaCheck.reason || "Quota organisation atteint pour les analyses de risques",
+            code: "QUOTA_EXCEEDED",
+            remaining_credits: quotaCheck.remaining,
+          }), {
+            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
       const articles = await vectorSearch(question, 6);
       const articlesContext = articles.length > 0
         ? articles.map((a: any) => a.numero_article + " : " + a.contenu).join(" === ")
         : "";
-      const analyzeSystem = [
+      const analyzeSystemFor = (part: number, total: number) => [
         "Tu es Juria, expert juridique marocain senior specialise en droit des contrats.",
+        total > 1
+          ? `Tu recois la PARTIE ${part}/${total} d'un contrat plus long (decoupage avec chevauchement). Analyse UNIQUEMENT ce qui figure dans cette partie ; les clauses manquantes seront recoupees avec les autres parties.`
+          : "",
         "ETAPE 1: Identifie le type de contrat (contrat de travail, bail commercial, bail habitation, promesse de bail, contrat de vente, contrat de societe, ou autre).",
         "ETAPE 2: Applique UNIQUEMENT les regles juridiques du domaine concerne.",
         "Si CONTRAT DE TRAVAIL: Code du Travail Loi 65-99. SMIG=3111 MAD, periode essai cadres=3 mois renouvelable, conges=18 jours/an Art.231.",
@@ -345,34 +485,74 @@ serve(async (req) => {
         "3. Pour chaque probleme, donne une suggestion CONCRETE avec le texte exact a ajouter ou modifier.",
         "4. Pour les clauses manquantes, cite l'article de loi applicable et donne un exemple de formulation.",
         "5. Score: 10=parfaitement conforme, 1=illegal selon le droit marocain applicable.",
+        "6. Extrais aussi les OBLIGATIONS ET ECHEANCES du contrat : toute date butoir, delai de preavis, date de renouvellement, obligation periodique (rapport, paiement, declaration) ou condition a satisfaire avant une date. due_date au format YYYY-MM-DD si la date est determinable (calcule-la a partir des dates du contrat si necessaire), sinon null. is_critical=true si le non-respect entraine resiliation, penalite ou perte de droit.",
         "Articles de reference: " + articlesContext,
-        "Retourne UNIQUEMENT un JSON: {contract_type: string, score: number, summary: string, issues: [{paragraph_id: number, severity: string, clause: string, problem: string, suggestion: string}], missing_clauses: [string]}. paragraph_id = le numero entre crochets [N] du paragraphe concerne dans le contrat fourni.",
-      ].join(" ");
-      const contractText = "Contrat: " + contract_to_analyze.slice(0, 8000);
-      const analysis = await callOpenAI(analyzeSystem, contractText, 1500);
-      await incrementQuota();
+        "Retourne UNIQUEMENT un JSON: {contract_type: string, score: number, summary: string, issues: [{paragraph_id: number, severity: string, clause: string, problem: string, suggestion: string}], missing_clauses: [string], obligations: [{description: string, due_date: string|null, is_critical: boolean}]}. paragraph_id = le numero entre crochets [N] du paragraphe concerne dans le contrat fourni.",
+      ].filter(Boolean).join(" ");
+
+      // MAP : analyse de chaque fenetre, 4 appels OpenAI en parallele maximum
+      const partResults: any[] = new Array(windows.length);
+      let nextWindow = 0;
+      await Promise.all(
+        Array.from({ length: Math.min(4, windows.length) }, async () => {
+          while (nextWindow < windows.length) {
+            const i = nextWindow++;
+            partResults[i] = await callOpenAI(
+              analyzeSystemFor(i + 1, windows.length),
+              "Contrat" + (windows.length > 1 ? ` (partie ${i + 1}/${windows.length})` : "") + ": " + windows[i],
+              1500,
+            );
+          }
+        }),
+      );
+
+      // REDUCE : fusion des analyses partielles en une analyse globale
+      let analysis = partResults[0];
+      if (windows.length > 1) {
+        const mergeSystem = [
+          "Tu es Juria, expert juridique marocain senior. On te donne les analyses partielles d'un MEME contrat, decoupe en parties avec chevauchement.",
+          "Fusionne-les en UNE analyse globale coherente :",
+          "- contract_type : le type identifie par la majorite des parties.",
+          "- issues : rassemble toutes les issues ; DEDOUBLONNE celles qui decrivent la meme clause (le chevauchement fait qu'une clause peut apparaitre dans deux parties) ; conserve le paragraph_id d'origine et la severity la plus haute en cas de doublon.",
+          "- missing_clauses : une clause n'est manquante que si AUCUNE partie ne la contient. Retire toute clause signalee manquante par une partie mais presente ou traitee dans une autre.",
+          "- obligations : rassemble toutes les obligations/echeances ; dedoublonne celles qui decrivent la meme obligation (garde is_critical=true et la due_date la plus precise en cas de doublon).",
+          "- score : score global 1-10 du contrat ENTIER (10 = parfaitement conforme), coherent avec la gravite cumulee des issues retenues.",
+          "- summary : synthese globale en 2-4 phrases.",
+          "Retourne UNIQUEMENT un JSON: {contract_type: string, score: number, summary: string, issues: [{paragraph_id: number, severity: string, clause: string, problem: string, suggestion: string}], missing_clauses: [string], obligations: [{description: string, due_date: string|null, is_critical: boolean}]}",
+        ].join(" ");
+        analysis = await callOpenAI(
+          mergeSystem,
+          "Analyses partielles (dans l'ordre du contrat) : " + JSON.stringify(partResults).slice(0, 90000),
+          3000,
+        );
+      }
+
+
+      // Log quota usage asynchronously (facture au nombre de fenetres analysees)
+      if (orgId) {
+        logQuotaUsage(orgId, "risk_analysis", windows.length).catch(e =>
+          console.warn("[smart-endpoint] Quota log failed:", e)
+        );
+      }
+
       return new Response(JSON.stringify(analysis), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // ---- MODE GENERATION DE CONTRAT ----
-    const contractKeywords = ["rédige moi", "rédiger un contrat", "génère un contrat", "créer un contrat", "faire un contrat", "écris un contrat", "modèle de contrat"];
-    const isContract = contractKeywords.some(kw => question.toLowerCase().includes(kw));
-
-    if (isContract) {
-      const articles = await vectorSearch(question, 5);
-      const articlesContext = articles.map((a: any) => a.numero_article + " : " + a.contenu).join(" === ");
-      const contractSystem = "Tu es Juria, expert juridique marocain. Rédige un contrat complet conforme au droit marocain. Utilise [INFORMATION À COMPLÉTER] pour les champs variables. Structure: EN-TÊTE, PARTIES, PRÉAMBULE, OBJET, DURÉE, CONDITIONS FINANCIÈRES, OBLIGATIONS, RÉSILIATION, LITIGES, SIGNATURES. Articles: " + articlesContext + ". Retourne UNIQUEMENT un JSON: {\"answer\": \"contrat complet\", \"used_indices\": [], \"based_on_articles\": false}";
-      const result = await callOpenAI(contractSystem, "Demande: " + question, 2000);
-      await incrementQuota();
-      return new Response(JSON.stringify({ answer: result.answer || "", citations: [], is_contract: true }), {
-        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
     // ---- MODE LIVRABLE (génération de document) ----
     if (mode === "deliverable") {
+      if (orgId) {
+        const quotaCheck = await checkOrgQuota(orgId, "chat", 1);
+        if (!quotaCheck.allowed) {
+          return new Response(JSON.stringify({
+            error: quotaCheck.reason || "Quota organisation atteint",
+            code: "QUOTA_EXCEEDED",
+            remaining_credits: quotaCheck.remaining_credits,
+          }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+      }
       const deliverableSystem = [
         "Tu es Juria, expert juridique marocain senior. Tu génères des documents professionnels structurés pour des praticiens du droit.",
         "Le document doit être complet, précis, directement utilisable et basé sur le droit marocain.",
@@ -388,7 +568,9 @@ serve(async (req) => {
       ];
 
       const delivResult = await callOpenAIMessages(deliverableMessages, 2000);
-      await incrementQuota();
+      if (orgId) {
+        logQuotaUsage(orgId, "chat", 1).catch(e => console.warn("[smart-endpoint] Quota log failed:", e));
+      }
       return new Response(
         JSON.stringify({ answer: delivResult.answer || "", citations: [], is_contract: false, needs_clarification: false }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -396,6 +578,21 @@ serve(async (req) => {
     }
 
     // ---- MODE QUESTION JURIDIQUE ----
+    // Quota v2 : les questions juridiques générales consomment des crédits
+    // "chat" comme les questions sur document (trou de facturation corrigé).
+    if (orgId) {
+      const quotaCheck = await checkOrgQuota(orgId, "chat", 1);
+      if (!quotaCheck.allowed) {
+        return new Response(JSON.stringify({
+          error: quotaCheck.reason || "Quota organisation atteint",
+          code: "QUOTA_EXCEEDED",
+          remaining_credits: quotaCheck.remaining_credits,
+        }), {
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     // ETAPE 1 : Reconstruire la question comme une question autonome (remplace l'ancienne extraction de "topic")
     let searchQuery = question;
     let standaloneQuestion = question;
@@ -436,24 +633,13 @@ serve(async (req) => {
       console.warn("Reformulation failed:", e);
     }
 
-    // ETAPE 2 : Classifier juridique — identifier les codes pertinents
-    let codeFilter: string[] = [];
-    try {
-      const classifierResult = await callOpenAI(
-        "Tu es expert juridique marocain. Identifie les codes juridiques pertinents pour la question. Retourne UNIQUEMENT un JSON avec: codes (noms des codes parmi: Code des Assurances Loi 17-99 / Code de Commerce / Code du Travail Loi 65-99 / Code des Obligations et Contrats / Legislation commerciale) et confidence (0 a 1). Si general ou multi-codes, confidence < 0.7.",
-        "Question: " + standaloneQuestion + " | Recherche: " + searchQuery,
-        100
-      );
+    // ETAPE 2 (supprimée) : le classifier de codes était désactivé depuis le
+    // 21/06 (il excluait à tort les lois spécialisées type OPCI absentes de sa
+    // liste) mais l'appel GPT restait exécuté à CHAQUE question, pour rien.
+    // La recherche hybride BM25+vecteur couvre tous les codes sans filtre.
+    const codeFilter: string[] = [];
 
-      if (classifierResult.confidence >= 0.7 && classifierResult.codes && classifierResult.codes.length > 0) {
-        console.log("Classifier (DESACTIVE temporairement):", classifierResult.codes, "confidence:", classifierResult.confidence);
-        // codeFilter = classifierResult.codes; // DESACTIVE le 2026-06-21 pour diagnostiquer pourquoi certains articles (ex: Loi 70-14 OPCI) ne remontent pas. Le classifier ne connait que les codes traditionnels (Commerce, Travail, Assurances...) et exclut a tort des lois specialisees (OPCI, marche des capitaux, etc.) absentes de sa liste.
-      }
-    } catch(e) {
-      console.warn("Classifier failed, searching all codes:", e);
-    }
-
-    // ETAPE 3 : Recherche hybride — Top 30 candidats (filtrée par code si classifier confiant)
+    // ETAPE 3 : Recherche hybride — Top 30 candidats
     const candidateArticles = await vectorSearch(searchQuery, 30, codeFilter);
 
     // DEBUG: logguer le TOP30 brut avant reranking pour diagnostiquer si le retrieval trouve les bons articles
@@ -461,7 +647,6 @@ serve(async (req) => {
 
     if (!candidateArticles || candidateArticles.length === 0) {
       const noSourceMsg = "Je n'ai trouve aucun article pertinent dans ma base documentaire pour repondre de maniere fiable a cette question. Cela peut signifier que ce texte de loi specifique n'est pas encore indexe dans Juria. Je vous recommande de consulter un avocat ou verifier directement aupres de l'AMMC / Bulletin Officiel pour les details exacts. Consultez un avocat pour tout acte juridique.";
-      await incrementQuota();
       return new Response(JSON.stringify({ answer: noSourceMsg, citations: [], is_contract: false, deliverables: getDeliverables("default") }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -529,7 +714,6 @@ serve(async (req) => {
       "Tu reçois des articles officiels avec leurs IDs. Utilise UNIQUEMENT les articles réellement pertinents.",
       "RÈGLE CITATIONS: Dans used_article_ids, ne mets QUE les IDs des articles que tu as réellement utilisés pour répondre. Si un article n'est pas pertinent, ne le cite pas.",
       "Réponds en 2-4 paragraphes clairs.",
-      "REGLE OBLIGATOIRE LIVRABLES: Le champ answer doit TOUJOURS se terminer par une ligne vide puis: 'Si vous souhaitez, je peux vous preparer : 1. [livrable concret] 2. [livrable concret] 3. [livrable concret]'. Adapte les 3 livrables au sujet specifique de la question. Ne jamais oublier cette section finale.",
       "Termine par: Consultez un avocat pour tout acte juridique.",
       "Articles disponibles: [" + articlesList + "]",
       "Retourne UNIQUEMENT un JSON: {\"answer\": \"réponse experte\", \"used_article_ids\": [123, 456], \"needs_clarification\": false, \"legal_topic\": \"courtier_assurance\"} ou autre topic parmi: courtier_assurance, assurance, travail, contrat_travail, sarl, sa, bail_commercial, bail_habitation, fonds_commerce, cheque, societe, licenciement, conge, salaire, faillite, immobilier, opci, opcvm, bourse, titrisation, capital_risque, financement_collaboratif",
@@ -552,7 +736,9 @@ serve(async (req) => {
     if (validatedCitations.length === 0 && result.used_indices) {
       const fallbackIndices: number[] = result.used_indices || [];
       const fallbackCitations = fallbackIndices.map((i: number) => articles[i]).filter(Boolean);
-      await incrementQuota();
+      if (orgId) {
+        logQuotaUsage(orgId, "chat", 1).catch(e => console.warn("[smart-endpoint] Quota log failed:", e));
+      }
       return new Response(
         JSON.stringify({ answer: result.answer || "", citations: fallbackCitations, is_contract: false, needs_clarification: result.needs_clarification || false }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -561,7 +747,9 @@ serve(async (req) => {
 
     const legalTopic = result.legal_topic || "default";
     const deliverables = getDeliverables(legalTopic + " " + standaloneQuestion);
-    await incrementQuota();
+    if (orgId) {
+      logQuotaUsage(orgId, "chat", 1).catch(e => console.warn("[smart-endpoint] Quota log failed:", e));
+    }
     return new Response(
       JSON.stringify({ answer: result.answer || "", citations: validatedCitations, is_contract: false, needs_clarification: result.needs_clarification || false, deliverables: deliverables, legal_topic: legalTopic }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }

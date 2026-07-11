@@ -72,6 +72,24 @@ class SynthesisService extends BaseService {
       synthesis.chunk_version_at_analysis === doc.chunk_version;
   }
 
+  /**
+   * Quota de l'organisation (système v2: crédits globaux)
+   * @returns {Promise<{total_quota, used_credits, remaining_credits, is_unlimited}|null>}
+   */
+  async getQuota() {
+    try {
+      const token = await this._getToken();
+      const res = await fetch(JURIA_CONFIG.SYNTHESIS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ mode: 'quota' }),
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data.quotaCheck || null;
+    } catch { return null; }
+  }
+
   // ══════════════════════════════════════════════════════════════════════
   //  GÉNÉRATION — pipeline complet
   // ══════════════════════════════════════════════════════════════════════
@@ -95,6 +113,16 @@ class SynthesisService extends BaseService {
 
     // ── PHASE 0 : PRÉPARATION ──────────────────────────────────────────
     progress('read', { label: 'Chargement du document…' });
+
+    // Quota : refus propre AVANT tout travail (l'edge function re-vérifie
+    // de toute façon côté serveur à chaque appel facturable)
+    const quota = await this.getQuota();
+    if (quota && !quota.is_unlimited && quota.remaining_credits <= 0) {
+      const err = new Error(`Quota organisation atteint (${quota.used_credits}/${quota.total_quota} crédits). Renouvelez votre abonnement pour continuer.`);
+      err.code = 'QUOTA_EXCEEDED';
+      err.quota = quota;
+      throw err;
+    }
 
     const fullText = await this._loadFullText(doc.id);
     if (!fullText || fullText.length < 200) {
@@ -179,14 +207,30 @@ class SynthesisService extends BaseService {
     progress('save', { label: 'Contrôle de cohérence…' });
 
     // Filet de sécurité : du texte a été rédigé mais aucun marqueur de
-    // section reconnu → on garde tout dans une section unique plutôt que
-    // de perdre la rédaction.
+    // section reconnu. Repli n°1 : reconstruire les sections à partir des
+    // titres markdown (#/##) que le modèle a inventés — on garde ainsi le
+    // sommaire navigable. Repli n°2 : section unique.
     if (!sectionsOut.length && totalStreamed.trim().length > 200) {
-      console.warn('[SynthesisService] Marqueurs de section non reconnus — repli en section unique.');
-      sectionsOut.push({
-        id: 'memo', title: 'Note de synthèse',
-        markdown: totalStreamed.replace(/<<<[^>]*>>>/g, '').trim(),
-      });
+      console.warn('[SynthesisService] Marqueurs non reconnus — reconstruction depuis les titres.');
+      const clean = totalStreamed.replace(/<<<[^>]*>>>/g, '').trim();
+      const parts = clean.split(/^#{1,3}\s+(.+)$/m);   // [avant, titre1, corps1, titre2, …]
+      if (parts.length >= 3) {
+        if (parts[0].trim().length > 100) {
+          sectionsOut.push({ id: 'intro', title: 'Executive Summary', markdown: parts[0].trim() });
+        }
+        for (let i = 1; i + 1 < parts.length; i += 2) {
+          const title = parts[i].trim();
+          const body = (parts[i + 1] || '').trim();
+          if (!body) continue;
+          const id = 's' + sectionsOut.length + '_' +
+            title.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+              .replace(/[^a-z0-9]+/g, '_').slice(0, 30);
+          sectionsOut.push({ id, title, markdown: body });
+        }
+      }
+      if (!sectionsOut.length) {
+        sectionsOut.push({ id: 'memo', title: 'Note de synthèse', markdown: clean });
+      }
     }
     if (!sectionsOut.length) {
       const err = new Error("La rédaction n'a produit aucun contenu. Rien n'a été enregistré — régénérez.");
@@ -244,6 +288,18 @@ class SynthesisService extends BaseService {
       .single();
 
     if (error) { this._handleError('generate/persist', error); throw new Error(error.message); }
+
+    // Log quota usage asynchronously (non-blocking)
+    try {
+      const token = await this._getToken();
+      fetch(JURIA_CONFIG.SYNTHESIS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ mode: 'log-usage', operation_type: 'synthesis', quantity: 1 }),
+      }).catch(e => console.warn('[SynthesisService] Quota log failed:', e));
+    } catch (e) {
+      console.warn('[SynthesisService] Quota log fetch error:', e);
+    }
 
     progress('save', { done: 1, total: 1, label: 'Note enregistrée' });
     return row;
@@ -326,9 +382,18 @@ class SynthesisService extends BaseService {
         body: JSON.stringify({ mode: 'extract', context: section.text, doc_name: docName }),
       });
       const data = await res.json();
+      if (res.status === 429) {
+        // Quota atteint : erreur FATALE, jamais avalée (sinon extraction
+        // vide silencieuse → mémo dégénéré)
+        const err = new Error(data.error || 'Quota de synthèses atteint.');
+        err.code = 'QUOTA_EXCEEDED';
+        err.fatal = true;
+        throw err;
+      }
       if (!res.ok) throw new Error(data.error || 'Erreur extraction');
       return data.extract || {};
     } catch (e) {
+      if (e.fatal) throw e;
       if (attempt < 1) return this._extractSection(section, docName, token, attempt + 1);
       console.warn('[SynthesisService] Section non extraite (ignorée) :', e.message);
       return {};  // une section en échec n'annule pas la note entière
@@ -352,9 +417,22 @@ class SynthesisService extends BaseService {
     const quotes = {};
     let qCounter = 0;
 
+    // Retire les champs null / vides d'un item : le rédacteur ne doit jamais
+    // voir "null" (il le recopiait dans les tableaux du mémo).
+    const compact = (obj) => {
+      const out = {};
+      Object.keys(obj).forEach(k => {
+        const v = obj[k];
+        if (v === null || v === undefined) return;
+        if (typeof v === 'string' && (!v.trim() || v.trim().toLowerCase() === 'null')) return;
+        out[k] = v;
+      });
+      return out;
+    };
+
     const anchor = (item, sectionIndex) => {
       if (!item || typeof item !== 'object') return item;
-      if (!item.quote) return item;
+      if (!item.quote) return compact(item);
       const qid = 'q' + (++qCounter);
       const section = sections[sectionIndex];
       const pos = this._findQuote(section ? section.text : '', item.quote);
@@ -367,7 +445,7 @@ class SynthesisService extends BaseService {
         page: pos ? this._pageForOffset(section.start + pos.start, pageMap) : null,
       };
       const { quote, ...rest } = item;
-      return { ...rest, qid };
+      return { ...compact(rest), qid };
     };
 
     extracts.forEach((ex, i) => {

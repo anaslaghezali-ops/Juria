@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="robots" content="noindex, nofollow"/>
+  <title>Juria — Back-office</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --indigo: #4f46e5; --indigo-light: #6366f1; --indigo-bg: #eef2ff; --indigo-text: #3730a3;
+      --slate-900: #0f1117; --slate-700: #374151; --slate-500: #6b7280; --slate-400: #9ca3af;
+      --slate-300: #d1d5db; --slate-100: #f3f4f6; --border: #e5e7eb; --white: #ffffff;
+      --green: #10b981; --green-bg: #ecfdf5; --green-text: #065f46;
+      --amber: #f59e0b; --amber-bg: #fffbeb; --amber-text: #92400e;
+      --red: #ef4444; --red-bg: #fef2f2; --red-text: #991b1b;
+      --font: 'Inter', sans-serif; --serif: 'DM Serif Display', Georgia, serif;
+    }
+    html { font-size: 15px; }
+    body { font-family: var(--font); color: var(--slate-900); background: #f8f9fb; min-height: 100vh; }
+
+    .topbar { height: 56px; background: var(--white); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; padding: 0 22px; position: sticky; top: 0; z-index: 10; }
+    .logo-mark { width: 28px; height: 28px; background: var(--indigo); color: #fff; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-family: var(--serif); font-size: 16px; }
+    .topbar-title { font-family: var(--serif); font-size: 18px; }
+    .topbar-badge { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--indigo-text); background: var(--indigo-bg); padding: 3px 9px; border-radius: 99px; }
+    .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--slate-500); }
+    .topbar-right a { color: var(--slate-500); text-decoration: none; }
+    .topbar-right a:hover { color: var(--slate-900); }
+
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 28px 22px 60px; }
+    .page-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 22px; flex-wrap: wrap; }
+    .page-title { font-family: var(--serif); font-size: 24px; letter-spacing: -0.01em; }
+    .page-sub { font-size: 13px; color: var(--slate-500); margin-top: 3px; }
+
+    .btn { font-family: var(--font); font-size: 13.5px; font-weight: 500; border-radius: 9px; padding: 9px 16px; cursor: pointer; border: 1px solid var(--border); background: var(--white); color: var(--slate-700); transition: all 0.15s; }
+    .btn:hover { border-color: var(--slate-300); }
+    .btn-primary { background: var(--indigo); border-color: var(--indigo); color: #fff; }
+    .btn-primary:hover { background: var(--indigo-light); box-shadow: 0 4px 14px rgba(79,70,229,0.28); }
+    .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+    .btn-sm { padding: 5px 11px; font-size: 12.5px; }
+
+    /* KPIs */
+    .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 22px; }
+    .kpi { background: var(--white); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; box-shadow: 0 1px 2px rgba(15,17,23,0.04); }
+    .kpi-label { font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--slate-400); }
+    .kpi-value { font-size: 24px; font-weight: 600; margin-top: 5px; }
+
+    /* Cards */
+    .card { background: var(--white); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 1px 2px rgba(15,17,23,0.04); margin-bottom: 22px; overflow: hidden; }
+    .card-head { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .card-title { font-size: 15px; font-weight: 600; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    th { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: #8b90a0; font-weight: 600; text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--border); background: #fafbfc; white-space: nowrap; }
+    td { padding: 13px 14px; border-bottom: 1px solid var(--slate-100); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tbody tr { transition: background 0.12s; }
+    tbody tr:hover { background: #f8f9fb; }
+    .table-scroll { overflow-x: auto; }
+
+    .org-name { font-weight: 600; }
+    .org-slug { font-size: 11.5px; color: var(--slate-400); margin-top: 1px; }
+    .plan-pill { display: inline-block; font-size: 11.5px; font-weight: 600; padding: 3px 10px; border-radius: 99px; background: var(--slate-100); color: var(--slate-700); text-transform: capitalize; }
+    .plan-pill.pro, .plan-pill.cabinet { background: var(--indigo-bg); color: var(--indigo-text); }
+    .plan-pill.enterprise, .plan-pill.bank { background: #0f1117; color: #fff; }
+
+    .quota-cell { min-width: 170px; }
+    .quota-nums { font-size: 12.5px; color: var(--slate-500); margin-bottom: 5px; white-space: nowrap; }
+    .quota-nums b { color: var(--slate-900); font-weight: 600; }
+    .quota-bar { height: 6px; border-radius: 99px; background: var(--slate-100); overflow: hidden; }
+    .quota-fill { height: 100%; border-radius: 99px; background: var(--green); transition: width 0.3s; }
+    .quota-fill.warn { background: var(--amber); }
+    .quota-fill.full { background: var(--red); }
+    .quota-inf { font-size: 12.5px; color: var(--slate-500); }
+
+    .members-cell { white-space: nowrap; font-size: 13px; }
+    .members-pending { font-size: 11.5px; color: var(--amber-text); }
+
+    /* Coûts unitaires */
+    .costs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 0; }
+    .cost-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 20px; border-bottom: 1px solid var(--slate-100); }
+    .cost-label { font-size: 13.5px; color: var(--slate-700); }
+    .cost-desc { font-size: 11.5px; color: var(--slate-400); margin-top: 1px; }
+    .cost-input { width: 74px; padding: 6px 9px; border: 1px solid var(--border); border-radius: 8px; font-family: var(--font); font-size: 13.5px; text-align: right; }
+    .cost-input:focus { outline: none; border-color: var(--indigo); box-shadow: 0 0 0 3px rgba(79,70,229,0.15); }
+
+    /* Modales */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(15,17,23,0.45); display: none; align-items: center; justify-content: center; padding: 20px; z-index: 100; }
+    .modal-overlay.show { display: flex; animation: fade-in 0.18s ease; backdrop-filter: blur(2px); }
+    .modal { background: var(--white); border-radius: 14px; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; box-shadow: 0 24px 64px rgba(15,17,23,0.25); }
+    .modal-overlay.show .modal { animation: modal-in 0.22s cubic-bezier(0.25,0.8,0.35,1); }
+    @keyframes modal-in { from { opacity: 0; transform: translateY(10px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+    .modal-head { padding: 18px 22px 0; }
+    .modal-title { font-size: 17px; font-weight: 600; }
+    .modal-body { padding: 16px 22px 22px; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 18px; }
+
+    .field { margin-bottom: 13px; }
+    .field label { display: block; font-size: 12.5px; font-weight: 500; color: var(--slate-700); margin-bottom: 5px; }
+    .field input, .field select { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 9px; font-family: var(--font); font-size: 13.5px; background: var(--white); }
+    .field input:focus, .field select:focus { outline: none; border-color: var(--indigo); box-shadow: 0 0 0 3px rgba(79,70,229,0.15); }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .field-hint { font-size: 11.5px; color: var(--slate-400); margin-top: 4px; }
+    .fieldset-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--slate-400); margin: 18px 0 10px; }
+
+    .checkline { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--slate-700); margin-top: 7px; }
+    .checkline input { width: auto; }
+
+    /* Détail usage */
+    .usage-detail { background: #fafbfc; border-top: 1px solid var(--border); padding: 14px 20px; }
+    .usage-detail h4 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--slate-400); margin-bottom: 9px; }
+    .usage-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .usage-chip { background: var(--white); border: 1px solid var(--border); border-radius: 9px; padding: 7px 12px; font-size: 12.5px; color: var(--slate-700); }
+    .usage-chip b { font-weight: 600; }
+    .usage-history { margin-top: 12px; font-size: 12.5px; color: var(--slate-500); display: flex; flex-wrap: wrap; gap: 6px 16px; }
+
+    /* États */
+    .state { text-align: center; padding: 70px 20px; }
+    .state-icon { font-size: 34px; margin-bottom: 12px; }
+    .state h2 { font-family: var(--serif); font-size: 21px; margin-bottom: 7px; }
+    .state p { font-size: 13.5px; color: var(--slate-500); max-width: 400px; margin: 0 auto; line-height: 1.6; }
+    .empty-row td { color: var(--slate-400); text-align: center; padding: 32px 14px; }
+
+    /* Toast */
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--slate-900); color: #fff; padding: 11px 20px; border-radius: 11px; font-size: 13.5px; opacity: 0; transition: all 0.25s; z-index: 200; box-shadow: 0 8px 32px rgba(15,17,23,0.22); max-width: 90vw; }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .toast.error { background: var(--red); }
+    .toast.success { background: var(--green); }
+
+    .invite-box { background: var(--indigo-bg); border: 1px solid #dfe3fb; border-radius: 10px; padding: 12px 14px; margin-top: 14px; }
+    .invite-box p { font-size: 12.5px; color: var(--indigo-text); margin-bottom: 7px; }
+    .invite-link { display: flex; gap: 7px; }
+    .invite-link input { flex: 1; font-size: 12.5px; padding: 7px 10px; border: 1px solid #dfe3fb; border-radius: 8px; background: var(--white); color: var(--slate-700); }
+
+    @media (max-width: 640px) {
+      .field-row { grid-template-columns: 1fr; }
+      .wrap { padding: 18px 14px 50px; }
+    }
+  </style>
+  <link rel="stylesheet" href="assets/juria-ui.css"/>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo-mark">J</div>
+  <span class="topbar-title">Juria</span>
+  <span class="topbar-badge">Back-office</span>
+  <div class="topbar-right">
+    <a href="dashboard.html">← Retour à l'application</a>
+  </div>
+</div>
+
+<!-- État : vérification d'accès -->
+<div class="state" id="stateLoading">
+  <div class="state-icon">⏳</div>
+  <h2>Vérification de l'accès…</h2>
+</div>
+
+<!-- État : accès refusé -->
+<div class="state" id="stateDenied" style="display:none">
+  <div class="state-icon">🔒</div>
+  <h2>Accès réservé</h2>
+  <p>Cette page est le back-office plateforme de Juria. Votre compte n'y est pas autorisé.</p>
+  <p style="margin-top:14px"><a href="dashboard.html" style="color:var(--indigo)">Retour au tableau de bord</a></p>
+</div>
+
+<!-- Contenu principal -->
+<div class="wrap" id="mainContent" style="display:none">
+
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">Organisations clientes</h1>
+      <div class="page-sub" id="pageSub">Consommation du mois en cours</div>
+    </div>
+    <button class="btn btn-primary" onclick="openCreateModal()">+ Nouvelle organisation</button>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="kpi-label">Organisations</div><div class="kpi-value" id="kpiOrgs">—</div></div>
+    <div class="kpi"><div class="kpi-label">Membres actifs</div><div class="kpi-value" id="kpiMembers">—</div></div>
+    <div class="kpi"><div class="kpi-label">Crédits consommés ce mois</div><div class="kpi-value" id="kpiCredits">—</div></div>
+    <div class="kpi"><div class="kpi-label">Invitations en attente</div><div class="kpi-value" id="kpiPending">—</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">Toutes les organisations</span>
+      <button class="btn btn-sm" onclick="loadOrgs()">Actualiser</button>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Organisation</th>
+            <th>Plan</th>
+            <th>Membres</th>
+            <th>Quota mensuel</th>
+            <th>Stockage</th>
+            <th>Créée le</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="orgsBody">
+          <tr class="empty-row"><td colspan="7">Chargement…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">Coûts unitaires (crédits par opération)</span>
+    </div>
+    <div id="costsBody"></div>
+  </div>
+
+</div>
+
+<!-- Modal : créer une organisation -->
+<div class="modal-overlay" id="createModal">
+  <div class="modal">
+    <div class="modal-head"><h3 class="modal-title">Nouvelle organisation cliente</h3></div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Nom de l'organisation</label>
+        <input type="text" id="cName" placeholder="Cabinet Alaoui &amp; Associés"/>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Plan</label>
+          <select id="cPlan">
+            <option value="trial">Trial</option>
+            <option value="essential">Essential</option>
+            <option value="pro" selected>Pro</option>
+            <option value="cabinet">Cabinet</option>
+            <option value="enterprise">Enterprise</option>
+            <option value="bank">Bank</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Utilisateurs max</label>
+          <input type="number" id="cMaxUsers" value="5" min="1"/>
+        </div>
+      </div>
+      <div class="field">
+        <label>Quota mensuel (crédits)</label>
+        <input type="number" id="cQuota" value="1000" min="-1"/>
+        <div class="checkline"><input type="checkbox" id="cUnlimited" onchange="document.getElementById('cQuota').disabled=this.checked"/><label for="cUnlimited" style="margin:0;font-weight:400">Illimité</label></div>
+      </div>
+      <div class="field">
+        <label>Stockage maximal (Mo)</label>
+        <input type="number" id="cStorage" value="500" min="-1"/>
+        <div class="checkline"><input type="checkbox" id="cStorageUnlimited" onchange="document.getElementById('cStorage').disabled=this.checked"/><label for="cStorageUnlimited" style="margin:0;font-weight:400">Illimité</label></div>
+      </div>
+
+      <div class="fieldset-label">Premier administrateur</div>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="cAdminEmail" placeholder="contact@cabinet.ma"/>
+        <div class="field-hint">Le compte est créé immédiatement (rôle « owner »), prêt à se connecter.</div>
+      </div>
+      <div class="field">
+        <label>Mot de passe</label>
+        <div style="display:flex;gap:7px">
+          <input type="text" id="cAdminPassword" placeholder="8 caractères minimum" autocomplete="off" style="flex:1"/>
+          <button class="btn btn-sm" type="button" onclick="genPassword()">Générer</button>
+        </div>
+        <div class="field-hint">À transmettre au client avec son email — il pourra le changer ensuite.</div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Prénom</label><input type="text" id="cAdminFirst"/></div>
+        <div class="field"><label>Nom</label><input type="text" id="cAdminLast"/></div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn" onclick="closeModal('createModal')">Fermer</button>
+        <button class="btn btn-primary" id="cSubmit" onclick="createOrg()">Créer l'organisation</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal : modifier une organisation -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <div class="modal-head"><h3 class="modal-title" id="eTitle">Modifier</h3></div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Nom</label>
+        <input type="text" id="eName"/>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Plan</label>
+          <select id="ePlan">
+            <option value="trial">Trial</option>
+            <option value="essential">Essential</option>
+            <option value="pro">Pro</option>
+            <option value="cabinet">Cabinet</option>
+            <option value="enterprise">Enterprise</option>
+            <option value="bank">Bank</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Utilisateurs max</label>
+          <input type="number" id="eMaxUsers" min="1"/>
+        </div>
+      </div>
+      <div class="field">
+        <label>Quota mensuel (crédits)</label>
+        <input type="number" id="eQuota" min="-1"/>
+        <div class="checkline"><input type="checkbox" id="eUnlimited" onchange="document.getElementById('eQuota').disabled=this.checked"/><label for="eUnlimited" style="margin:0;font-weight:400">Illimité</label></div>
+      </div>
+      <div class="field">
+        <label>Stockage maximal (Mo)</label>
+        <input type="number" id="eStorage" min="-1"/>
+        <div class="checkline"><input type="checkbox" id="eStorageUnlimited" onchange="document.getElementById('eStorage').disabled=this.checked"/><label for="eStorageUnlimited" style="margin:0;font-weight:400">Illimité</label></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeModal('editModal')">Annuler</button>
+        <button class="btn btn-primary" id="eSubmit" onclick="saveOrg()">Enregistrer</button>
+      </div>
+
+      <div style="margin-top:22px;padding-top:16px;border-top:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--red);margin-bottom:8px">Zone danger</div>
+        <p style="font-size:12.5px;color:var(--slate-500);margin-bottom:10px;line-height:1.5">
+          Supprime définitivement l'organisation, toutes ses données (documents,
+          analyses, synthèses, conversations) et les comptes de ses membres.
+        </p>
+        <button class="btn btn-sm" style="color:var(--red);border-color:#fecaca" onclick="deleteOrg()">Supprimer l'organisation…</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="init-common.js"></script>
+<script>
+'use strict';
+
+const OP_LABELS = {
+  synthesis:      'Synthèses',
+  risk_analysis:  'Analyses de risques',
+  doc_comparison: 'Comparaisons',
+  chat:           'Messages IA',
+};
+
+let session = null;
+let orgsCache = [];
+let editingOrgId = null;
+let expandedOrgId = null;
+
+// ── Appel edge superadmin ────────────────────────────────────────────────
+async function api(payload) {
+  const res = await fetch(JURIA_CONFIG.SUPERADMIN_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + session.access_token,
+    },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const err = new Error(data.error || ('Erreur ' + res.status));
+    err.status = res.status;
+    throw err;
+  }
+  return data;
+}
+
+// ── Init : auth + contrôle d'accès (le serveur fait foi) ─────────────────
+(async function init() {
+  const { data } = await _sb.auth.getSession();
+  if (!data.session) { window.location.href = 'auth.html'; return; }
+  session = data.session;
+
+  try {
+    await loadOrgs();
+    document.getElementById('stateLoading').style.display = 'none';
+    document.getElementById('mainContent').style.display = 'block';
+  } catch (e) {
+    document.getElementById('stateLoading').style.display = 'none';
+    if (e.status === 403) {
+      document.getElementById('stateDenied').style.display = 'block';
+    } else {
+      document.getElementById('stateDenied').style.display = 'block';
+      document.querySelector('#stateDenied p').textContent = 'Erreur : ' + e.message;
+    }
+  }
+})();
+
+// ── Liste des organisations ──────────────────────────────────────────────
+async function loadOrgs() {
+  const data = await api({ action: 'list_orgs' });
+  orgsCache = data.orgs || [];
+
+  const monthLabel = new Date(data.month + 'T00:00:00Z')
+    .toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+  document.getElementById('pageSub').textContent = 'Consommation de ' + monthLabel;
+
+  // KPIs
+  let members = 0, pending = 0, credits = 0;
+  for (const o of orgsCache) {
+    members += o.members.active;
+    pending += o.members.pending;
+    credits += o.used_credits;
+  }
+  document.getElementById('kpiOrgs').textContent = orgsCache.length;
+  document.getElementById('kpiMembers').textContent = members;
+  document.getElementById('kpiCredits').textContent = Math.round(credits * 10) / 10;
+  document.getElementById('kpiPending').textContent = pending;
+
+  renderOrgs();
+  renderCosts(data.costs || []);
+}
+
+function renderOrgs() {
+  const body = document.getElementById('orgsBody');
+  if (!orgsCache.length) {
+    body.innerHTML = '<tr class="empty-row"><td colspan="7">Aucune organisation. Créez la première avec « + Nouvelle organisation ».</td></tr>';
+    return;
+  }
+
+  body.innerHTML = orgsCache.map(o => {
+    const created = new Date(o.created_at).toLocaleDateString('fr-FR');
+    const pendingStr = o.members.pending
+      ? ` <span class="members-pending">(+${o.members.pending} en attente)</span>` : '';
+
+    let quotaCell;
+    if (o.monthly_quota === -1) {
+      quotaCell = `<span class="quota-inf"><b>${fmt(o.used_credits)}</b> crédits — illimité</span>`;
+    } else {
+      const pct = o.monthly_quota > 0 ? Math.min(100, (o.used_credits / o.monthly_quota) * 100) : 100;
+      const cls = pct >= 100 ? 'full' : pct >= 75 ? 'warn' : '';
+      quotaCell = `
+        <div class="quota-nums"><b>${fmt(o.used_credits)}</b> / ${o.monthly_quota} crédits</div>
+        <div class="quota-bar"><div class="quota-fill ${cls}" style="width:${pct}%"></div></div>`;
+    }
+
+    let storageCell;
+    if (o.max_storage_mb === -1) {
+      storageCell = `<span class="quota-inf"><b>${fmtBytes(o.storage_bytes)}</b> — illimité</span>`;
+    } else {
+      const maxBytes = (o.max_storage_mb || 0) * 1024 * 1024;
+      const spct = maxBytes > 0 ? Math.min(100, (o.storage_bytes / maxBytes) * 100) : 100;
+      const scls = spct >= 100 ? 'full' : spct >= 75 ? 'warn' : '';
+      storageCell = `
+        <div class="quota-nums"><b>${fmtBytes(o.storage_bytes)}</b> / ${o.max_storage_mb ?? '—'} Mo</div>
+        <div class="quota-bar"><div class="quota-fill ${scls}" style="width:${spct}%"></div></div>`;
+    }
+
+    const detail = expandedOrgId === o.id ? renderDetailRow(o) : '';
+
+    return `
+      <tr>
+        <td><div class="org-name">${esc(o.name)}</div><div class="org-slug">${esc(o.slug || '')}</div></td>
+        <td><span class="plan-pill ${esc(o.plan || '')}">${esc(o.plan || '—')}</span></td>
+        <td class="members-cell">${o.members.active} / ${o.max_users || '—'}${pendingStr}</td>
+        <td class="quota-cell">${quotaCell}</td>
+        <td class="quota-cell">${storageCell}</td>
+        <td style="white-space:nowrap">${created}</td>
+        <td style="white-space:nowrap;text-align:right">
+          <button class="btn btn-sm" onclick="toggleDetail('${o.id}')">${expandedOrgId === o.id ? 'Fermer' : 'Détail'}</button>
+          <button class="btn btn-sm" onclick="openEditModal('${o.id}')">Modifier</button>
+        </td>
+      </tr>${detail}`;
+  }).join('');
+}
+
+function renderDetailRow(o) {
+  const chips = Object.entries(o.breakdown || {});
+  const chipsHtml = chips.length
+    ? chips.map(([type, v]) =>
+        `<span class="usage-chip">${esc(OP_LABELS[type] || type)} : <b>${v.count}</b> (${fmt(v.cost)} cr.)</span>`
+      ).join('')
+    : '<span class="usage-chip">Aucune consommation ce mois-ci</span>';
+
+  return `
+    <tr><td colspan="7" style="padding:0">
+      <div class="usage-detail">
+        <h4>Consommation du mois par opération</h4>
+        <div class="usage-chips">${chipsHtml}</div>
+        <div class="usage-history" id="history-${o.id}">Chargement de l'historique…</div>
+      </div>
+    </td></tr>`;
+}
+
+async function toggleDetail(orgId) {
+  expandedOrgId = expandedOrgId === orgId ? null : orgId;
+  renderOrgs();
+  if (!expandedOrgId) return;
+
+  try {
+    const data = await api({ action: 'org_usage', org_id: orgId });
+    const el = document.getElementById('history-' + orgId);
+    if (!el) return;
+    const byMonth = {};
+    for (const row of data.usage || []) {
+      byMonth[row.month] = (byMonth[row.month] || 0) + row.total_cost;
+    }
+    const months = Object.entries(byMonth);
+    el.innerHTML = months.length
+      ? '<b style="color:var(--slate-700)">Historique :</b> ' + months.map(([m, c]) => {
+          const label = new Date(m + 'T00:00:00Z').toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' });
+          return `${label} — ${fmt(c)} cr.`;
+        }).join(' · ')
+      : 'Aucun historique.';
+  } catch (e) {
+    const el = document.getElementById('history-' + orgId);
+    if (el) el.textContent = 'Historique indisponible : ' + e.message;
+  }
+}
+
+// ── Coûts unitaires ──────────────────────────────────────────────────────
+function renderCosts(costs) {
+  const body = document.getElementById('costsBody');
+  body.innerHTML = costs.map(c => `
+    <div class="cost-row">
+      <div>
+        <div class="cost-label">${esc(OP_LABELS[c.operation_type] || c.operation_type)}</div>
+        <div class="cost-desc">${esc(c.description || '')}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:7px">
+        <input class="cost-input" type="number" step="0.1" min="0" value="${c.base_cost}" id="cost-${esc(c.operation_type)}"/>
+        <button class="btn btn-sm" onclick="saveCost('${esc(c.operation_type)}')">OK</button>
+      </div>
+    </div>`).join('');
+}
+
+async function saveCost(type) {
+  const input = document.getElementById('cost-' + type);
+  try {
+    await api({ action: 'update_cost', operation_type: type, base_cost: parseFloat(input.value) });
+    toast('Coût mis à jour ✓', 'success');
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// ── Création ─────────────────────────────────────────────────────────────
+function openCreateModal() {
+  document.getElementById('cSubmit').disabled = false;
+  document.getElementById('createModal').classList.add('show');
+}
+
+function genPassword() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  const buf = new Uint32Array(14);
+  crypto.getRandomValues(buf);
+  document.getElementById('cAdminPassword').value =
+    Array.from(buf, n => chars[n % chars.length]).join('');
+}
+
+async function createOrg() {
+  const btn = document.getElementById('cSubmit');
+  const unlimited = document.getElementById('cUnlimited').checked;
+  const password = document.getElementById('cAdminPassword').value;
+  if (!password || password.length < 8) {
+    toast('Mot de passe requis (8 caractères minimum)', 'error');
+    return;
+  }
+  btn.disabled = true;
+  try {
+    const data = await api({
+      action: 'create_org',
+      name: document.getElementById('cName').value,
+      plan: document.getElementById('cPlan').value,
+      max_users: parseInt(document.getElementById('cMaxUsers').value, 10),
+      monthly_quota: unlimited ? -1 : parseInt(document.getElementById('cQuota').value, 10),
+      max_storage_mb: document.getElementById('cStorageUnlimited').checked
+        ? -1 : parseInt(document.getElementById('cStorage').value, 10),
+      admin_email: document.getElementById('cAdminEmail').value,
+      admin_password: password,
+      admin_first_name: document.getElementById('cAdminFirst').value,
+      admin_last_name: document.getElementById('cAdminLast').value,
+    });
+    toast(`Organisation créée ✓ — ${data.admin_email} peut se connecter`, 'success');
+    closeModal('createModal');
+    ['cName', 'cAdminEmail', 'cAdminPassword', 'cAdminFirst', 'cAdminLast'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    await loadOrgs();
+  } catch (e) {
+    toast(e.message, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ── Édition ──────────────────────────────────────────────────────────────
+function openEditModal(orgId) {
+  const o = orgsCache.find(x => x.id === orgId);
+  if (!o) return;
+  editingOrgId = orgId;
+  document.getElementById('eTitle').textContent = 'Modifier — ' + o.name;
+  document.getElementById('eName').value = o.name;
+  document.getElementById('ePlan').value = o.plan || 'trial';
+  document.getElementById('eMaxUsers').value = o.max_users || 5;
+  const unlimited = o.monthly_quota === -1;
+  document.getElementById('eUnlimited').checked = unlimited;
+  document.getElementById('eQuota').disabled = unlimited;
+  document.getElementById('eQuota').value = unlimited ? 1000 : o.monthly_quota;
+  const storageUnlimited = o.max_storage_mb === -1;
+  document.getElementById('eStorageUnlimited').checked = storageUnlimited;
+  document.getElementById('eStorage').disabled = storageUnlimited;
+  document.getElementById('eStorage').value = storageUnlimited ? 500 : (o.max_storage_mb ?? 500);
+  document.getElementById('editModal').classList.add('show');
+}
+
+async function saveOrg() {
+  const btn = document.getElementById('eSubmit');
+  const unlimited = document.getElementById('eUnlimited').checked;
+  btn.disabled = true;
+  try {
+    await api({
+      action: 'update_org',
+      org_id: editingOrgId,
+      updates: {
+        name: document.getElementById('eName').value,
+        plan: document.getElementById('ePlan').value,
+        max_users: parseInt(document.getElementById('eMaxUsers').value, 10),
+        monthly_quota: unlimited ? -1 : parseInt(document.getElementById('eQuota').value, 10),
+        max_storage_mb: document.getElementById('eStorageUnlimited').checked
+          ? -1 : parseInt(document.getElementById('eStorage').value, 10),
+      },
+    });
+    toast('Organisation mise à jour ✓', 'success');
+    closeModal('editModal');
+    await loadOrgs();
+  } catch (e) {
+    toast(e.message, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function deleteOrg() {
+  const o = orgsCache.find(x => x.id === editingOrgId);
+  if (!o) return;
+  const typed = prompt(
+    `SUPPRESSION DÉFINITIVE de « ${o.name} »\n\n` +
+    `Toutes ses données et les comptes de ses membres seront supprimés.\n\n` +
+    `Pour confirmer, tapez le nom exact de l'organisation :`
+  );
+  if (typed === null) return;
+  if (typed !== o.name) { toast('Nom incorrect — suppression annulée', 'error'); return; }
+
+  try {
+    const data = await api({ action: 'delete_org', org_id: o.id, confirm_name: typed });
+    toast(data.message || 'Organisation supprimée ✓', 'success');
+    closeModal('editModal');
+    await loadOrgs();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+
+// ── Utilitaires ──────────────────────────────────────────────────────────
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('show'); });
+});
+
+function fmt(n) { return Math.round((n || 0) * 10) / 10; }
+function fmtBytes(b) {
+  b = b || 0;
+  if (b >= 1024 * 1024 * 1024) return (b / (1024 * 1024 * 1024)).toFixed(2) + ' Go';
+  if (b >= 1024 * 1024) return (b / (1024 * 1024)).toFixed(1) + ' Mo';
+  if (b >= 1024) return Math.round(b / 1024) + ' Ko';
+  return b + ' o';
+}
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+let toastTimer = null;
+function toast(msg, type) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show ' + (type || '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
+}
+</script>
+</body>
+</html>

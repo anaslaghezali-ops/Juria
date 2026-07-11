@@ -159,6 +159,7 @@
     ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-thumb { background: var(--slate-300); border-radius: 10px; }
   </style>
+  <link rel="stylesheet" href="assets/juria-ui.css"/>
 </head>
 <body>
 
@@ -175,50 +176,47 @@
   </div>
   <nav class="sidebar-nav">
     <div class="nav-section">Principal</div>
-    <a href="documents.html" class="nav-item">
-      <span class="nav-icon">📊</span> Dashboard
+    <a href="documents.html?page=dashboard" class="nav-item">
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span> Dashboard
     </a>
-    <a href="documents.html" class="nav-item">
-      <span class="nav-icon">🏢</span> Contreparties
-      <span style="margin-left:auto;font-size:11px;background:var(--slate-100);color:var(--slate-500);padding:1px 7px;border-radius:99px;font-weight:600;">—</span>
+    <a href="documents.html?page=documents" class="nav-item">
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span> Documents
     </a>
-    <a href="documents.html" class="nav-item">
-      <span class="nav-icon">📁</span> Dossiers
-      <span style="margin-left:auto;font-size:11px;background:var(--slate-100);color:var(--slate-500);padding:1px 7px;border-radius:99px;font-weight:600;">—</span>
+    <a href="documents.html?page=dossiers" class="nav-item">
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span> Dossiers
     </a>
-    <a href="documents.html" class="nav-item">
-      <span class="nav-icon">📄</span> Documents
-      <span style="margin-left:auto;font-size:11px;background:var(--slate-100);color:var(--slate-500);padding:1px 7px;border-radius:99px;font-weight:600;">—</span>
+    <a href="documents.html?page=contreparties" class="nav-item">
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 9h1M9 12h1M9 15h1M14 9h1M14 12h1M14 15h1"/></svg></span> Contreparties
     </a>
-
     <div class="nav-section">Analyse</div>
-    <a href="documents.html" class="nav-item">
-      <span class="nav-icon">⚠️</span> Risques
+    <a href="documents.html?page=risques" class="nav-item">
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span> Risques
     </a>
-    <a href="documents.html" class="nav-item">
-      <span class="nav-icon">📅</span> Échéances
+    <a href="documents.html?page=echeances" class="nav-item">
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> Échéances
     </a>
-    <a href="documents.html" class="nav-item">
-      <span class="nav-icon">🕐</span> Timeline
+    <a href="documents.html?page=timeline" class="nav-item">
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> Timeline
     </a>
-    <a href="documents.html" class="nav-item">
-      <span class="nav-icon">✅</span> Tâches
+    <a href="documents.html?page=tasks" class="nav-item">
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span> Tâches
     </a>
-
     <div class="nav-section">Outils</div>
-    <a href="chat.html" class="nav-item">
-      <span class="nav-icon">💬</span> Assistant IA
-    </a>
-    <a href="base-juridique.html" class="nav-item">
-      <span class="nav-icon">📚</span> Base juridique
+    <a href="analyse-contrat.html" class="nav-item">
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><circle cx="11.5" cy="14.5" r="2.5"/><path d="M13.25 16.25L15 18"/></svg></span> Analyse de contrat
     </a>
     <a href="comparaison-contrats.html" class="nav-item">
-      <span class="nav-icon">🔍</span> Comparaison
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Comparaison
     </a>
-
+    <a href="chat.html" class="nav-item">
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span> Assistant IA
+    </a>
+    <a href="base-juridique.html" class="nav-item">
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span> Base juridique
+    </a>
     <div class="nav-section">Organisation</div>
     <a href="administration.html" class="nav-item active">
-      <span class="nav-icon">⚙️</span> Administration
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span> Administration
     </a>
   </nav>
   <div class="sidebar-footer">
@@ -226,7 +224,7 @@
       <div class="user-avatar" id="sidebarAvatar">?</div>
       <div class="user-info">
         <div class="user-name" id="sidebarName">…</div>
-        <div class="user-plan" id="sidebarPlan">Essai gratuit</div>
+        <div class="user-plan" id="sidebarPlan"></div>
       </div>
       <button class="btn-logout" id="btnLogout" title="Déconnexion">🚪</button>
     </div>
@@ -273,6 +271,40 @@
         <div class="license-bar-text">
           <span>Utilisation</span>
           <span id="licensePercent">0%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Consommation : crédits IA + stockage -->
+    <div class="license-banner" id="usageBanner" style="display:none;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:28px;">
+        <div>
+          <div class="license-info" style="margin-bottom:10px;">
+            <div class="license-icon">⚡</div>
+            <div>
+              <div class="license-text"><strong>Crédits IA</strong> — <span id="creditsMonthLabel">ce mois-ci</span></div>
+              <div style="font-size:12px;color:var(--slate-400);margin-top:2px;" id="creditsDetail">Chargement…</div>
+            </div>
+          </div>
+          <div class="license-bar-bg"><div class="license-bar-fill" id="creditsBar" style="width:0%"></div></div>
+          <div class="license-bar-text" style="margin-top:6px;">
+            <span>Synthèses, analyses, comparaisons, chat</span>
+            <span id="creditsPercent">—</span>
+          </div>
+        </div>
+        <div>
+          <div class="license-info" style="margin-bottom:10px;">
+            <div class="license-icon">🗄️</div>
+            <div>
+              <div class="license-text"><strong>Stockage documents</strong></div>
+              <div style="font-size:12px;color:var(--slate-400);margin-top:2px;" id="storageDetail">Chargement…</div>
+            </div>
+          </div>
+          <div class="license-bar-bg"><div class="license-bar-fill" id="storageBar" style="width:0%"></div></div>
+          <div class="license-bar-text" style="margin-top:6px;">
+            <span>Espace utilisé</span>
+            <span id="storagePercent">—</span>
+          </div>
         </div>
       </div>
     </div>
@@ -332,20 +364,28 @@
         <input type="email" class="form-input" id="inviteEmail" placeholder="Ex: jean@example.com" />
       </div>
       <div class="form-group">
+        <label class="form-label">Mot de passe</label>
+        <div style="display:flex;gap:8px;">
+          <input type="text" class="form-input" id="invitePassword" placeholder="8 caractères minimum" autocomplete="off" style="flex:1;" />
+          <button type="button" class="btn-cancel" id="btnGenPassword" style="white-space:nowrap;">Générer</button>
+        </div>
+      </div>
+      <div class="form-group">
         <label class="form-label">Rôle</label>
         <select class="form-select" id="inviteRole">
           <option value="member">Membre</option>
+          <option value="lawyer">Juriste</option>
           <option value="admin">Administrateur</option>
-          <option value="viewer">Lecteur</option>
+          <option value="reader">Lecteur</option>
         </select>
       </div>
       <div style="font-size:12px;color:var(--slate-500);background:var(--slate-50);padding:12px;border-radius:6px;">
-        ℹ️ Un email d'invitation sera envoyé à l'utilisateur.
+        ℹ️ Le compte est créé immédiatement. Transmettez l'email et le mot de passe à l'utilisateur — il pourra se connecter directement.
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn-cancel" id="btnCancelInvite">Annuler</button>
-      <button class="btn-submit" id="btnSubmitInvite" disabled>Envoyer l'invitation</button>
+      <button class="btn-submit" id="btnSubmitInvite" disabled>Créer le compte</button>
     </div>
   </div>
 </div>
@@ -374,7 +414,7 @@ async function init() {
 
   document.getElementById('sidebarAvatar').textContent = initials;
   document.getElementById('sidebarName').textContent = name;
-  document.getElementById('sidebarPlan').textContent = 'Essai gratuit';
+  document.getElementById('sidebarPlan').textContent = '';
 
   // Initialiser le service
   orgService = new OrganizationService(window._sb, null);
@@ -395,6 +435,80 @@ async function init() {
 
   // Charger les données
   await loadMembers();
+  loadConsumption().catch(function(e) { console.warn('Consommation indisponible:', e); });
+}
+
+// ── CONSOMMATION (crédits IA du mois + stockage) ──
+function fmtBytes(b) {
+  b = b || 0;
+  if (b >= 1024 * 1024 * 1024) return (b / (1024 * 1024 * 1024)).toFixed(2) + ' Go';
+  if (b >= 1024 * 1024) return (b / (1024 * 1024)).toFixed(1) + ' Mo';
+  if (b >= 1024) return Math.round(b / 1024) + ' Ko';
+  return b + ' o';
+}
+
+function paintUsageBar(barId, pctId, pct, unlimited) {
+  var bar = document.getElementById(barId);
+  var label = document.getElementById(pctId);
+  if (unlimited) {
+    bar.style.width = '100%';
+    bar.style.background = 'var(--slate-300)';
+    label.textContent = 'Illimité';
+    return;
+  }
+  pct = Math.min(100, Math.round(pct));
+  bar.style.width = pct + '%';
+  bar.style.background = pct >= 100 ? 'var(--red)' : pct >= 75 ? 'var(--amber)' : 'var(--green)';
+  label.textContent = pct + '%';
+}
+
+async function loadConsumption() {
+  document.getElementById('usageBanner').style.display = 'block';
+
+  var now = new Date();
+  document.getElementById('creditsMonthLabel').textContent =
+    now.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+  var monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
+    .toISOString().split('T')[0];
+
+  // Crédits consommés ce mois-ci (RLS : chaque membre actif voit son org)
+  var usageRes = await _sb
+    .from('organization_usage')
+    .select('total_cost')
+    .eq('org_id', currentOrg.id)
+    .eq('month', monthStart);
+  var used = (usageRes.data || []).reduce(function(s, u) { return s + (u.total_cost || 0); }, 0);
+  used = Math.round(used * 10) / 10;
+
+  var quota = currentOrg.monthly_quota;
+  if (quota === -1) {
+    document.getElementById('creditsDetail').innerHTML =
+      '<strong>' + used + '</strong> crédits consommés · quota illimité';
+    paintUsageBar('creditsBar', 'creditsPercent', 0, true);
+  } else {
+    var remaining = Math.max(0, Math.round((quota - used) * 10) / 10);
+    document.getElementById('creditsDetail').innerHTML =
+      '<strong>' + used + '</strong> / ' + (quota || 0) + ' crédits · ' + remaining + ' restant(s)';
+    paintUsageBar('creditsBar', 'creditsPercent', quota > 0 ? (used / quota) * 100 : 100, false);
+  }
+
+  // Stockage (fonction SQL sécurisée : membre actif, superadmin ou service role)
+  var storageRes = await _sb.rpc('fn_org_storage_bytes', { p_org_id: currentOrg.id });
+  if (storageRes.error) throw new Error(storageRes.error.message);
+  var bytes = storageRes.data || 0;
+
+  var maxMb = currentOrg.max_storage_mb;
+  if (maxMb === -1) {
+    document.getElementById('storageDetail').innerHTML =
+      '<strong>' + fmtBytes(bytes) + '</strong> utilisés · stockage illimité';
+    paintUsageBar('storageBar', 'storagePercent', 0, true);
+  } else {
+    var maxBytes = (maxMb || 0) * 1024 * 1024;
+    document.getElementById('storageDetail').innerHTML =
+      '<strong>' + fmtBytes(bytes) + '</strong> / ' + (maxMb || 0) + ' Mo · ' +
+      fmtBytes(Math.max(0, maxBytes - bytes)) + ' disponible(s)';
+    paintUsageBar('storageBar', 'storagePercent', maxBytes > 0 ? (bytes / maxBytes) * 100 : 100, false);
+  }
 }
 
 // ── LOAD MEMBERS ──
@@ -436,11 +550,16 @@ async function loadMembers() {
       </td>
       <td>${m.email}</td>
       <td>
+        ${m.role === 'owner' ? `
+          <span class="badge badge-active" title="Propriétaire de l'organisation">Propriétaire</span>
+        ` : `
         <select class="role-select" onchange="changeRole('${m.id}', this.value)" ${!isCurrentUserAdmin ? 'disabled' : ''}>
-          <option value="viewer" ${m.role === 'viewer' ? 'selected' : ''}>Lecteur</option>
+          <option value="reader" ${m.role === 'reader' ? 'selected' : ''}>Lecteur</option>
           <option value="member" ${m.role === 'member' ? 'selected' : ''}>Membre</option>
+          <option value="lawyer" ${m.role === 'lawyer' ? 'selected' : ''}>Juriste</option>
           <option value="admin" ${m.role === 'admin' ? 'selected' : ''}>Admin</option>
         </select>
+        `}
       </td>
       <td>
         <span class="badge ${m.is_active ? 'badge-active' : 'badge-inactive'}">
@@ -514,13 +633,37 @@ async function deleteMember(memberId) {
     alert('Vous n\'avez pas les permissions pour supprimer des utilisateurs');
     return;
   }
-  if (!confirm('Supprimer définitivement cet utilisateur?')) return;
+  if (!confirm('Supprimer définitivement cet utilisateur ?\n\nSon compte sera supprimé et il ne pourra plus se connecter.')) return;
   try {
-    const result = await orgService.deleteMember(memberId);
-    if (result) {
-      await loadMembers();
+    // Suppression via l'edge function : retire le membre ET supprime son
+    // compte auth (une suppression DB directe laisserait un compte orphelin
+    // capable de se connecter).
+    const sessionResult = await _sb.auth.getSession();
+
+    if (!sessionResult.data?.session?.access_token) {
+      throw new Error('Session invalide ou token manquant');
     }
+
+    const payload = { action: 'remove', orgId: currentOrg.id, memberId };
+    console.log('[deleteMember] Payload:', payload);
+
+    const response = await fetch(JURIA_CONFIG.INVITE_USER_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + sessionResult.data.session.access_token,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    console.log('[deleteMember] Response status:', response.status);
+    const result = await response.json();
+    console.log('[deleteMember] Response body:', result);
+
+    if (!response.ok) throw new Error(result.error || `HTTP ${response.status}: Suppression impossible`);
+    await loadMembers();
   } catch (err) {
+    console.error('[deleteMember] Error:', err);
     alert('Erreur: ' + err.message);
   }
 }
@@ -540,63 +683,93 @@ function closeInviteModal() {
   document.getElementById('inviteFirstName').value = '';
   document.getElementById('inviteLastName').value = '';
   document.getElementById('inviteEmail').value = '';
+  document.getElementById('invitePassword').value = '';
   document.getElementById('inviteRole').value = 'member';
   document.getElementById('btnSubmitInvite').disabled = true;
+}
+
+function generateInvitePassword() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  const buf = new Uint32Array(14);
+  crypto.getRandomValues(buf);
+  document.getElementById('invitePassword').value =
+    Array.from(buf, n => chars[n % chars.length]).join('');
+  document.getElementById('invitePassword').dispatchEvent(new Event('input'));
 }
 
 async function submitInvite() {
   const firstName = document.getElementById('inviteFirstName').value.trim();
   const lastName = document.getElementById('inviteLastName').value.trim();
-  const email = document.getElementById('inviteEmail').value.trim();
+  const email = document.getElementById('inviteEmail').value.trim().toLowerCase();
+  const password = document.getElementById('invitePassword').value;
   const role = document.getElementById('inviteRole').value;
 
-  if (!firstName || !lastName || !email) {
+  if (!firstName || !lastName || !email || !password) {
     alert('Veuillez remplir tous les champs');
     return;
   }
-
   if (!email.includes('@')) {
     alert('Email invalide');
+    return;
+  }
+  if (password.length < 8) {
+    alert('Le mot de passe doit contenir au moins 8 caractères');
     return;
   }
 
   try {
     document.getElementById('btnSubmitInvite').disabled = true;
 
+    const sessionResult = await _sb.auth.getSession();
+    console.log('[submitInvite] Session result:', sessionResult);
+
+    if (!sessionResult.data?.session?.access_token) {
+      throw new Error('Session invalide ou token manquant');
+    }
+
+    const payload = {
+      email,
+      password,
+      firstName,
+      lastName,
+      role,
+      orgId: currentOrg.id,
+    };
+    console.log('[submitInvite] Payload:', { ...payload, password: '***' });
+
     const response = await fetch(JURIA_CONFIG.INVITE_USER_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + sessionResult.data.session.access_token,
       },
-      body: JSON.stringify({
-        email,
-        firstName,
-        lastName,
-        role,
-        orgId: currentOrg.id,
-        invitedBy: currentUser.id,
-      }),
+      body: JSON.stringify(payload),
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Erreur lors de l\'invitation');
-    }
+    console.log('[submitInvite] Response status:', response.status, response.statusText);
+    console.log('[submitInvite] Response headers:', [...response.headers.entries()]);
 
     const result = await response.json();
-    const inviteLink = result.inviteLink ?
-      (window.location.origin + result.inviteLink) :
-      (window.location.origin + '/auth.html?email=' + encodeURIComponent(email));
+    console.log('[submitInvite] Response body:', result);
+
+    if (!response.ok) {
+      throw new Error(result.error || `HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const loginLink = window.location.origin +
+      (result.loginLink || ('/auth.html?email=' + encodeURIComponent(email)));
 
     alert(
-      'Invitation créée!\n\n' +
-      'Email: ' + email + '\n\n' +
-      'L\'utilisateur doit créer son compte ici:\n' +
-      inviteLink
+      'Compte créé !\n\n' +
+      'Transmettez ces identifiants à l\'utilisateur :\n\n' +
+      'Email : ' + email + '\n' +
+      'Mot de passe : ' + password + '\n\n' +
+      'Connexion : ' + loginLink
     );
     closeInviteModal();
     await loadMembers();
   } catch (err) {
+    console.error('[submitInvite] Error:', err);
     alert('Erreur: ' + err.message);
   } finally {
     document.getElementById('btnSubmitInvite').disabled = false;
@@ -625,14 +798,16 @@ document.getElementById('btnLogout').addEventListener('click', async function() 
 });
 
 // Valider le formulaire
-['inviteFirstName', 'inviteLastName', 'inviteEmail'].forEach(id => {
+['inviteFirstName', 'inviteLastName', 'inviteEmail', 'invitePassword'].forEach(id => {
   document.getElementById(id).addEventListener('input', function() {
     const canSubmit = document.getElementById('inviteFirstName').value.trim() &&
                      document.getElementById('inviteLastName').value.trim() &&
-                     document.getElementById('inviteEmail').value.trim();
+                     document.getElementById('inviteEmail').value.trim() &&
+                     document.getElementById('invitePassword').value.length >= 8;
     document.getElementById('btnSubmitInvite').disabled = !canSubmit;
   });
 });
+document.getElementById('btnGenPassword').addEventListener('click', generateInvitePassword);
 
 // Close modal when clicking outside
 document.getElementById('inviteModal').addEventListener('click', function(e) {

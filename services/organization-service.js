@@ -13,38 +13,39 @@ class OrganizationService extends BaseService {
   // ── Organization Management ───────────────────────────────────────────
 
   /**
-   * Get current organization (from user metadata or by querying organization_users)
+   * Get current organization.
+   *
+   * SOURCE DE VÉRITÉ : organization_users (appartenance active). Les
+   * user_metadata.org_id peuvent être périmés (org purgée via superadmin,
+   * compte rattaché à une autre org…) : s'y fier en premier faisait pointer
+   * l'app vers une org où l'utilisateur n'est pas membre → toutes les
+   * écritures étaient refusées par la RLS (42501) et les lectures revenaient
+   * vides. Les metadata ne servent plus que de département : si l'utilisateur
+   * appartient à PLUSIEURS orgs, on préfère celle des metadata.
    * @param {Object} user - auth.users object
    * @returns {Promise<Object|null>}
    */
   async getCurrentOrganization(user) {
-    // First try getting from user metadata
-    if (user?.user_metadata?.org_id) {
-      const { data, error } = await this._sb
-        .from(this._orgTable)
-        .select('*')
-        .eq('id', user.user_metadata.org_id)
-        .single();
-
-      if (!error) return data;
-    }
-
-    // Fallback: find organization by querying organization_users table.
-    // Use maybeSingle() so that a user with no membership row resolves to
-    // null instead of triggering a PGRST116 / HTTP 406 ("Cannot coerce the
-    // result to a single JSON object") error.
-    const { data: memberData, error: memberError } = await this._sb
+    // Memberships actifs — la seule source fiable
+    const { data: memberships, error: memberError } = await this._sb
       .from(this._table)
       .select('organization_id')
       .eq('user_id', user.id)
-      .eq('is_active', true)
-      .limit(1)
-      .maybeSingle();
+      .eq('is_active', true);
 
     if (memberError) {
       this._handleError('getCurrentOrganization', memberError);
       return null;
     }
+
+    const orgIds = (memberships || []).map(m => m.organization_id);
+
+    // Les metadata ne départagent que si elles désignent une org où
+    // l'utilisateur est réellement membre actif.
+    const metaOrg = user?.user_metadata?.org_id;
+    const memberData = {
+      organization_id: (metaOrg && orgIds.includes(metaOrg)) ? metaOrg : orgIds[0],
+    };
 
     if (!memberData?.organization_id) {
       // User is authenticated but not linked to any organization yet.
@@ -363,15 +364,18 @@ class OrganizationService extends BaseService {
    * @returns {Promise<Object|null>}
    */
   async getMemberByUserId(orgId, userId) {
+    // limit(1) + maybeSingle : .single() échoue aussi bien sur ZÉRO ligne
+    // que sur PLUSIEURS (ex. double invitation réclamée) — et un admin
+    // légitime se retrouvait détecté non-admin.
     const { data, error } = await this._sb
       .from(this._table)
       .select('*')
       .eq('organization_id', orgId)
       .eq('user_id', userId)
-      .single();
+      .limit(1)
+      .maybeSingle();
 
     if (error) {
-      if (error.code === 'PGRST116') return null; // Not found
       this._handleError('getMemberByUserId', error);
       return null;
     }

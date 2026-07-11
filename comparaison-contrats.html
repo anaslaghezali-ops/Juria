@@ -141,6 +141,7 @@
     .sidebar-overlay.show { display: block; }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
+  <link rel="stylesheet" href="assets/juria-ui.css"/>
 </head>
 <body>
 
@@ -156,52 +157,47 @@
   </div>
   <nav class="sidebar-nav">
     <div class="nav-section">Principal</div>
-    <a href="documents.html" class="nav-item">
-      <span class="nav-icon">📊</span> Dashboard
+    <a href="documents.html?page=dashboard" class="nav-item">
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span> Dashboard
     </a>
-    <a href="documents.html" class="nav-item">
-      <span class="nav-icon">🏢</span> Contreparties
-      <span class="nav-count" id="navCpCount">—</span>
+    <a href="documents.html?page=documents" class="nav-item">
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span> Documents
     </a>
-    <a href="documents.html" class="nav-item">
-      <span class="nav-icon">📁</span> Dossiers
-      <span class="nav-count" id="navFolderCount">—</span>
+    <a href="documents.html?page=dossiers" class="nav-item">
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span> Dossiers
     </a>
-    <a href="documents.html" class="nav-item">
-      <span class="nav-icon">📄</span> Documents
-      <span class="nav-count" id="navTotalCount">—</span>
+    <a href="documents.html?page=contreparties" class="nav-item">
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 9h1M9 12h1M9 15h1M14 9h1M14 12h1M14 15h1"/></svg></span> Contreparties
     </a>
-
     <div class="nav-section">Analyse</div>
-    <a href="documents.html" class="nav-item">
-      <span class="nav-icon">⚠️</span> Risques
-      <span class="nav-count nav-badge-red" id="navRisksCount">—</span>
+    <a href="documents.html?page=risques" class="nav-item">
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span> Risques
     </a>
-    <a href="documents.html" class="nav-item">
-      <span class="nav-icon">📅</span> Échéances
+    <a href="documents.html?page=echeances" class="nav-item">
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> Échéances
     </a>
-    <a href="documents.html" class="nav-item">
-      <span class="nav-icon">🕐</span> Timeline
+    <a href="documents.html?page=timeline" class="nav-item">
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> Timeline
     </a>
-    <a href="documents.html" class="nav-item">
-      <span class="nav-icon">✅</span> Tâches
-      <span class="nav-count nav-badge-red" id="navTasksCount">—</span>
+    <a href="documents.html?page=tasks" class="nav-item">
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span> Tâches
     </a>
-
     <div class="nav-section">Outils</div>
-    <a href="chat.html" class="nav-item">
-      <span class="nav-icon">💬</span> Assistant IA
-    </a>
-    <a href="base-juridique.html" class="nav-item">
-      <span class="nav-icon">📚</span> Base juridique
+    <a href="analyse-contrat.html" class="nav-item">
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><circle cx="11.5" cy="14.5" r="2.5"/><path d="M13.25 16.25L15 18"/></svg></span> Analyse de contrat
     </a>
     <a href="comparaison-contrats.html" class="nav-item active">
-      <span class="nav-icon">🔍</span> Comparaison
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Comparaison
     </a>
-
+    <a href="chat.html" class="nav-item">
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span> Assistant IA
+    </a>
+    <a href="base-juridique.html" class="nav-item">
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span> Base juridique
+    </a>
     <div class="nav-section">Organisation</div>
     <a href="administration.html" class="nav-item">
-      <span class="nav-icon">⚙️</span> Administration
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span> Administration
     </a>
   </nav>
   <div class="sidebar-footer">
@@ -209,7 +205,7 @@
       <div class="user-avatar" id="sidebarAvatar">?</div>
       <div>
         <div class="user-name" id="sidebarName">…</div>
-        <div class="user-plan" id="sidebarPlan">Essai gratuit</div>
+        <div class="user-plan" id="sidebarPlan"></div>
       </div>
       <button class="btn-logout" id="btnLogout" title="Déconnexion">🚪 Déconnexion</button>
     </div>
@@ -293,8 +289,8 @@ async function init() {
   const session = await requireAuth();
   if (!session) return;
 
-  // Si on arrive avec ?doc_id=, pré-charger le document
-  await preloadDocument();
+  // NOTE : l'ancien pré-chargement mono-document (?doc_id=) appartenait à
+  // la page analyse ; la comparaison charge ses deux contrats via les zones.
 }
 // NOTE: init() est appelé à la fin du script (voir tout en bas)
 
@@ -303,470 +299,6 @@ async function init() {
 //  Stratégie : 1) document_content (texte déjà extrait → rapide)
 //              2) Storage (fallback : télécharge le fichier)
 // ══════════════════════════════════════════════
-async function preloadDocument() {
-  const docId = new URLSearchParams(window.location.search).get('doc_id');
-  if (!docId) return;
-
-  try {
-    setStep('Chargement du document…');
-    document.getElementById('loading').classList.add('show');
-
-    // 1. Charger les infos du document
-    const { data: doc, error: docErr } = await _sb
-      .from('documents')
-      .select('*')
-      .eq('id', docId)
-      .single();
-
-    if (docErr || !doc) {
-      console.error('Document introuvable:', docErr);
-      document.getElementById('loading').classList.remove('show');
-      return;
-    }
-
-    // ── STRATÉGIE 1 : Texte déjà extrait dans document_content ──
-    const { data: content } = await _sb
-      .from('document_content')
-      .select('extracted_text')
-      .eq('document_id', docId)
-      .maybeSingle();
-
-    if (content && content.extracted_text) {
-      extractedText = content.extracted_text;
-      selectedFile = { name: doc.name, size: doc.file_size || 0 };
-
-      const ext = (doc.file_type || doc.name.split('.').pop() || 'pdf').toLowerCase();
-      document.getElementById('fileName').textContent = doc.name;
-      document.getElementById('fileSize').textContent = ((doc.file_size || 0) / 1024).toFixed(0) + ' KB';
-      document.getElementById('fileIcon').textContent = ext === 'pdf' ? '📕' : '📘';
-      document.getElementById('fileSelected').classList.add('show');
-      document.getElementById('btnAnalyse').disabled = false;
-      document.getElementById('dropZone').style.display = 'none';
-      document.getElementById('loading').classList.remove('show');
-      console.log('✓ Texte pré-chargé depuis document_content');
-      return;
-    }
-
-    // ── STRATÉGIE 2 (fallback) : Télécharger le fichier depuis Storage ──
-    if (!doc.storage_path) {
-      console.warn('Ni document_content ni storage_path pour ce document');
-      document.getElementById('loading').classList.remove('show');
-      alert('Ce document n\'a pas de contenu enregistré. Veuillez le re-uploader manuellement.');
-      return;
-    }
-
-    const { data: signedData, error: signErr } = await _sb.storage
-      .from(doc.storage_bucket || 'juria-documents')
-      .createSignedUrl(doc.storage_path, 3600);
-
-    if (signErr || !signedData?.signedUrl) {
-      console.error('Erreur URL signée:', signErr);
-      document.getElementById('loading').classList.remove('show');
-      alert('Impossible d\'accéder au fichier stocké.');
-      return;
-    }
-
-    const response = await fetch(signedData.signedUrl);
-    if (!response.ok) throw new Error('Téléchargement échoué (' + response.status + ')');
-
-    const blob = await response.blob();
-    const ext = (doc.file_type || doc.name.split('.').pop() || 'pdf').toLowerCase();
-    const file = new File([blob], doc.name, { type: blob.type });
-
-    selectedFile = file;
-    document.getElementById('fileName').textContent = doc.name;
-    document.getElementById('fileSize').textContent = (file.size / 1024).toFixed(0) + ' KB';
-    document.getElementById('fileIcon').textContent = ext === 'pdf' ? '📕' : '📘';
-    document.getElementById('fileSelected').classList.add('show');
-    document.getElementById('btnAnalyse').disabled = false;
-    document.getElementById('dropZone').style.display = 'none';
-    document.getElementById('loading').classList.remove('show');
-    console.log('✓ Fichier pré-chargé depuis Storage');
-
-  } catch(e) {
-    console.error('Erreur pré-chargement:', e);
-    document.getElementById('loading').classList.remove('show');
-    alert('Erreur chargement du document : ' + e.message);
-  }
-}
-
-
-
-// Drag & Drop
-var dropZone = document.getElementById('dropZone');
-dropZone.addEventListener('dragover', function(e) { e.preventDefault(); dropZone.classList.add('drag-over'); });
-dropZone.addEventListener('dragleave', function() { dropZone.classList.remove('drag-over'); });
-dropZone.addEventListener('drop', function(e) {
-  e.preventDefault(); dropZone.classList.remove('drag-over');
-  var file = e.dataTransfer.files[0];
-  if (file) handleFile(file);
-});
-dropZone.addEventListener('click', function() { document.getElementById('fileInput').click(); });
-document.getElementById('fileInput').addEventListener('change', function(e) {
-  if (e.target.files[0]) handleFile(e.target.files[0]);
-});
-
-function handleFile(file) {
-  if (file.size > 10 * 1024 * 1024) { alert('Fichier trop volumineux. Maximum 10 MB.'); return; }
-  var ext = file.name.split('.').pop().toLowerCase();
-  if (!['pdf','docx'].includes(ext)) { alert('Format non supporté. Utilisez PDF ou DOCX.'); return; }
-
-  selectedFile = file;
-  document.getElementById('fileName').textContent = file.name;
-  document.getElementById('fileSize').textContent = (file.size / 1024).toFixed(0) + ' KB';
-  document.getElementById('fileIcon').textContent = ext === 'pdf' ? '📕' : '📘';
-  document.getElementById('fileSelected').classList.add('show');
-  document.getElementById('btnAnalyse').disabled = false;
-  document.getElementById('dropZone').style.display = 'none';
-}
-
-document.getElementById('btnRemove').addEventListener('click', function() { resetForm(); });
-
-function resetForm() {
-  selectedFile = null; extractedText = null; analysisResult = null; contractParagraphs = [];
-  document.getElementById('fileSelected').classList.remove('show');
-  document.getElementById('dropZone').style.display = 'block';
-  document.getElementById('btnAnalyse').disabled = true;
-  document.getElementById('results').classList.remove('show');
-  document.getElementById('loading').classList.remove('show');
-  document.getElementById('fileInput').value = '';
-}
-
-async function startAnalysis() {
-  if (!selectedFile) return;
-  document.getElementById('btnAnalyse').disabled = true;
-  document.getElementById('loading').classList.add('show');
-  document.getElementById('results').classList.remove('show');
-
-  try {
-    // Si le texte a déjà été pré-chargé (depuis document_content) et qu'on
-    // n'a pas de vrai fichier, on saute l'extraction.
-    if (extractedText && extractedText.trim().length >= 50 && !(selectedFile instanceof File)) {
-      setStep('Texte déjà chargé...');
-    } else {
-      setStep('Extraction du texte...');
-      var ext = selectedFile.name.split('.').pop().toLowerCase();
-      if (ext === 'pdf') {
-        extractedText = await extractPDFText(selectedFile);
-      } else if (ext === 'docx') {
-        extractedText = await extractDOCXText(selectedFile);
-      } else if (ext === 'doc') {
-        // mammoth.js ne supporte que le .docx (XML), pas l'ancien .doc binaire
-        throw new Error('Le format .doc (ancien Word) n\'est pas pris en charge. Merci de convertir le document en PDF ou .docx puis de le re-uploader.');
-      } else {
-        throw new Error('Format non supporté : .' + ext + '. Utilisez PDF ou DOCX.');
-      }
-    }
-
-    if (!extractedText || extractedText.trim().length < 50) {
-      throw new Error('Impossible d\'extraire le texte du document.');
-    }
-
-    // Parser le contrat en paragraphes numérotés
-    contractParagraphs = extractedText.split('\n')
-      .map(function(t) { return t.trim(); })
-      .filter(function(t) { return t.length > 2; })
-      .map(function(t, i) { return { id: i + 1, text: t }; });
-
-    setStep('Analyse juridique en cours...');
-    var session = await _sb.auth.getSession();
-    var token = session.data.session.access_token;
-
-    // Envoyer les paragraphes numérotés à GPT pour identification précise
-    var paragraphsForGPT = contractParagraphs.slice(0, 150).map(function(p) {
-      return '[' + p.id + '] ' + p.text.slice(0, 300);
-    }).join('\n');
-
-    var res = await fetch(EDGE_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-      body: JSON.stringify({
-        question: 'Analyse ce contrat',
-        contract_to_analyze: paragraphsForGPT,
-        mode: 'analyze',
-        history: []
-      }),
-    });
-
-    if (!res.ok) throw new Error('Erreur serveur: ' + res.status);
-    analysisResult = await res.json();
-
-    setStep('Finalisation...');
-    showResults(analysisResult);
-    window._lastAnalysisResult = analysisResult; // debug
-
-    // Stocker le texte dans sessionStorage pour "poser des questions"
-    sessionStorage.setItem('juriaDocText', extractedText);
-    sessionStorage.setItem('juriaDocName', selectedFile.name);
-
-    // NOUVEAU : Persister l'analyse en base de données
-    setStep('Enregistrement de l\'analyse...');
-    await saveAnalysisToDatabase(analysisResult, selectedFile, extractedText);
-
-    const currentDocId = new URLSearchParams(window.location.search).get('doc_id');
-
-    if(currentDocId){
-      const { error } = await _sb
-        .from('document_content')
-        .upsert({
-          document_id: currentDocId,
-          extracted_text: extractedText,
-          updated_at: new Date().toISOString()
-        });
-
-      console.log('document_content', error || 'OK');
-    }
-
-
-  } catch(e) {
-    alert('Erreur: ' + e.message);
-    document.getElementById('btnAnalyse').disabled = false;
-  } finally {
-    document.getElementById('loading').classList.remove('show');
-  }
-}
-
-function setStep(text) {
-  document.getElementById('loadingStep').textContent = text;
-}
-
-function showResults(result) {
-  var score = result.score || 0;
-  var scoreEl = document.getElementById('scoreNumber');
-  scoreEl.textContent = score;
-
-  var circle = document.getElementById('scoreCircle');
-  if (score >= 7) { circle.style.background = '#ecfdf5'; scoreEl.style.color = '#065f46'; }
-  else if (score >= 5) { circle.style.background = '#fffbeb'; scoreEl.style.color = '#92400e'; }
-  else { circle.style.background = '#fef2f2'; scoreEl.style.color = '#991b1b'; }
-
-  document.getElementById('scoreSummary').textContent = result.summary || 'Analyse complète';
-
-  // ✅ Fix #13: Escape HTML to prevent XSS
-  // Issues avec checkboxes
-  if (result.issues && result.issues.length > 0) {
-    document.getElementById('issuesCard').style.display = 'block';
-    document.getElementById('issuesList').innerHTML = result.issues.map(function(issue, i) {
-      var sev = issue.severity || 'medium';
-      var sevLabel = sev === 'high' ? 'Critique' : sev === 'medium' ? 'Important' : 'Mineur';
-      return '<div class="issue-item"><div class="issue-header"><input type="checkbox" class="issue-checkbox" data-index="' + i + '" data-type="issue" style="width:16px;height:16px;cursor:pointer;accent-color:#4f46e5"/><span class="severity-badge severity-' + sev + '">' + sevLabel + '</span><span class="issue-clause">' + escapeHTML(issue.clause || '') + '</span></div><div class="issue-problem">' + escapeHTML(issue.problem || '') + '</div>' + (issue.suggestion ? '<div class="issue-suggestion">💡 ' + escapeHTML(issue.suggestion) + '</div>' : '') + '</div>';
-    }).join('');
-  }
-
-  // Missing clauses avec checkboxes
-  if (result.missing_clauses && result.missing_clauses.length > 0) {
-    document.getElementById('missingCard').style.display = 'block';
-    document.getElementById('missingList').innerHTML = result.missing_clauses.map(function(c, i) {
-      // Handle both string and object formats
-      var text = typeof c === 'string' ? c : (c.clause || c.name || c.description || JSON.stringify(c));
-      return '<div class="missing-item"><input type="checkbox" class="issue-checkbox" data-index="' + i + '" data-type="missing" style="width:16px;height:16px;cursor:pointer;accent-color:#4f46e5;flex-shrink:0"/>' + escapeHTML(text) + '</div>';
-    }).join('');
-  }
-
-  // Bouton générer docx avec commentaires
-  document.getElementById('generateDocBtn').style.display = 'block';
-  document.getElementById('results').classList.add('show');
-}
-
-async function generateAnnotatedDoc() {
-  var selectedIssues = [];
-  var selectedMissing = [];
-
-  document.querySelectorAll('.issue-checkbox:checked').forEach(function(cb) {
-    var idx = parseInt(cb.dataset.index);
-    if (cb.dataset.type === 'issue') {
-      selectedIssues.push(analysisResult.issues[idx]);
-    } else {
-      var clause = analysisResult.missing_clauses[idx];
-      selectedMissing.push(typeof clause === 'string' ? clause : (clause.name || JSON.stringify(clause)));
-    }
-  });
-
-  if (selectedIssues.length === 0 && selectedMissing.length === 0) {
-    alert('Cochez au moins un point à modifier.');
-    return;
-  }
-
-  // Générer rapport PDF avec uniquement les points sélectionnés
-  var win = window.open('', '_blank');
-  var score = analysisResult.score || 0;
-  var scoreColor = score >= 7 ? '#065f46' : score >= 5 ? '#92400e' : '#991b1b';
-  var scoreBg = score >= 7 ? '#ecfdf5' : score >= 5 ? '#fffbeb' : '#fef2f2';
-
-  var issuesHtml = selectedIssues.map(function(issue) {
-    var sev = issue.severity === 'high' ? '🔴 Critique' : issue.severity === 'medium' ? '🟡 Important' : '🟢 Mineur';
-    var sevBg = issue.severity === 'high' ? '#fef2f2' : issue.severity === 'medium' ? '#fffbeb' : '#ecfdf5';
-    return '<div style="padding:16px;border:1px solid #e5e7eb;border-radius:10px;margin-bottom:12px;background:' + sevBg + '">' +
-      '<div style="font-weight:600;margin-bottom:8px">' + sev + ' — ' + (issue.clause || '') + '</div>' +
-      '<p style="color:#374151;margin:0 0 8px">' + (issue.problem || '') + '</p>' +
-      (issue.suggestion ? '<div style="background:#eef2ff;padding:10px;border-radius:8px;color:#3730a3"><strong>💡 Suggestion :</strong> ' + issue.suggestion + '</div>' : '') +
-      '</div>';
-  }).join('');
-
-  var missingHtml = selectedMissing.map(function(c) {
-    return '<div style="padding:10px 0;border-bottom:1px solid #f3f4f6;color:#374151">⚠️ ' + c + '</div>';
-  }).join('');
-
-  win.document.write('<html><head><title>Rapport Juria</title><style>' +
-    'body{font-family:Inter,Arial,sans-serif;max-width:800px;margin:40px auto;padding:0 32px;color:#0f1117}' +
-    'h1{color:#4f46e5;font-size:24px;margin-bottom:4px}' +
-    'h2{font-size:16px;font-weight:600;margin:28px 0 12px;padding-bottom:8px;border-bottom:2px solid #e5e7eb}' +
-    '.footer{margin-top:48px;padding-top:16px;border-top:1px solid #e5e7eb;color:#9ca3af;font-size:12px;text-align:center}' +
-    '@media print{.no-print{display:none}}' +
-    '</style></head><body>');
-
-  win.document.write('<h1>Rapport d analyse - Juria</h1>');
-  win.document.write('<p style="color:#6b7280;font-size:14px">' + (selectedFile ? selectedFile.name : 'Document') + ' · ' + new Date().toLocaleDateString('fr-MA') + '</p>');
-
-  win.document.write('<div style="background:' + scoreBg + ';border-radius:12px;padding:20px;margin:20px 0;display:flex;gap:20px;align-items:center">');
-  win.document.write('<div style="font-size:52px;font-weight:700;color:' + scoreColor + ';font-family:Georgia,serif">' + score + '<span style="font-size:22px">/10</span></div>');
-  win.document.write('<div><strong style="font-size:15px">Score de conformité juridique</strong><p style="margin:4px 0 0;color:#374151">' + (analysisResult.summary || '') + '</p></div>');
-  win.document.write('</div>');
-
-  if (issuesHtml) {
-    win.document.write('<h2>⚠️ Points à corriger (' + selectedIssues.length + ' sélectionnés)</h2>' + issuesHtml);
-  }
-  if (missingHtml) {
-    win.document.write('<h2>📋 Clauses manquantes (' + selectedMissing.length + ' sélectionnées)</h2>' + missingHtml);
-  }
-
-  win.document.write('<div class="footer">Rapport généré par Juria · À titre indicatif uniquement · Faites valider ce contrat par un avocat avant signature.</div>');
-  win.document.write('<div class="no-print" style="text-align:center;margin-top:24px"><button type="button" onclick="window.print()" style="padding:12px 32px;background:#4f46e5;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-weight:600">🖨️ Imprimer / Sauvegarder en PDF</button></div>');
-  win.document.write('</body></html>');
-  win.document.close();
-}
-
-async function generateDocxWithComments(contractParas, annotationMap, missing) {
-  var D = window.docx;
-  if (!D) {
-    alert('Librairie Word non disponible. Utilisez le bouton PDF a la place.');
-    return;
-  }
-
-  var paragraphs = [];
-
-  // En-tete
-  paragraphs.push(new D.Paragraph({
-    children: [new D.TextRun({ text: 'CONTRAT AVEC ANNOTATIONS - JURIA', bold: true, size: 28, color: '4f46e5' })],
-    alignment: D.AlignmentType.CENTER,
-    spacing: { after: 120 },
-  }));
-  paragraphs.push(new D.Paragraph({
-    children: [new D.TextRun({ text: 'Annote le ' + new Date().toLocaleDateString('fr-MA') + ' - A reviser par un avocat avant signature', size: 16, color: '888888', italics: true })],
-    alignment: D.AlignmentType.CENTER,
-    spacing: { after: 400 },
-  }));
-
-  // Contrat original avec annotations injectees localement (zero appel GPT)
-  contractParas.forEach(function(p) {
-    var isTitre = p.text.length < 100 && (
-      p.text.toLowerCase().indexOf('article') === 0 ||
-      p.text.toLowerCase().indexOf('chapitre') === 0
-    );
-
-    paragraphs.push(new D.Paragraph({
-      children: [new D.TextRun({ text: p.text, bold: !!isTitre, size: isTitre ? 22 : 20 })],
-      spacing: { after: isTitre ? 100 : 60 },
-    }));
-
-    var annotations = annotationMap[p.id] || [];
-    annotations.forEach(function(issue) {
-      var sevColor = issue.severity === 'high' ? 'ef4444' : issue.severity === 'medium' ? 'f59e0b' : '10b981';
-      var sevLabel = issue.severity === 'high' ? 'CRITIQUE' : issue.severity === 'medium' ? 'IMPORTANT' : 'MINEUR';
-
-      paragraphs.push(new D.Paragraph({
-        children: [
-          new D.TextRun({ text: '[JURIA - ' + sevLabel + '] ', bold: true, size: 18, color: sevColor }),
-          new D.TextRun({ text: issue.problem || '', size: 18, color: '374151', italics: true }),
-        ],
-        spacing: { before: 40, after: 40 },
-        indent: { left: 480 },
-      }));
-
-      if (issue.suggestion) {
-        paragraphs.push(new D.Paragraph({
-          children: [
-            new D.TextRun({ text: 'Suggestion: ', bold: true, size: 18, color: '4f46e5' }),
-            new D.TextRun({ text: issue.suggestion, size: 18, color: '3730a3' }),
-          ],
-          spacing: { after: 120 },
-          indent: { left: 480 },
-        }));
-      }
-    });
-  });
-
-  // Clauses manquantes a la fin
-  if (missing && missing.length > 0) {
-    paragraphs.push(new D.Paragraph({ children: [], spacing: { before: 400 } }));
-    paragraphs.push(new D.Paragraph({
-      children: [new D.TextRun({ text: 'CLAUSES A AJOUTER', bold: true, size: 24, color: 'f59e0b' })],
-      spacing: { after: 200 },
-    }));
-    missing.forEach(function(clause) {
-      paragraphs.push(new D.Paragraph({
-        children: [
-          new D.TextRun({ text: '+ ', bold: true, size: 20, color: 'f59e0b' }),
-          new D.TextRun({ text: clause, size: 20 }),
-        ],
-        spacing: { after: 100 },
-        indent: { left: 360 },
-      }));
-    });
-  }
-
-  // Footer
-  paragraphs.push(new D.Paragraph({ children: [], spacing: { before: 600 } }));
-  paragraphs.push(new D.Paragraph({
-    children: [new D.TextRun({ text: 'Document annote par Juria - A titre indicatif uniquement - Faire valider par un avocat.', color: '9ca3af', size: 16, italics: true })],
-    alignment: D.AlignmentType.CENTER,
-  }));
-
-  var doc = new D.Document({
-    creator: 'Juria',
-    title: 'Contrat Annote',
-    sections: [{ properties: {}, children: paragraphs }],
-  });
-
-  D.Packer.toBlob(doc).then(function(blob) {
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = 'contrat-annote-juria.docx';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
-  });
-}
-
-
-function exportPDF() {
-  if (!analysisResult) return;
-  var win = window.open('', '_blank');
-  var score = analysisResult.score || 0;
-  var scoreColor = score >= 7 ? '#065f46' : score >= 5 ? '#92400e' : '#991b1b';
-  var issuesHtml = '';
-  if (analysisResult.issues) {
-    issuesHtml = analysisResult.issues.map(function(i) {
-      var sev = i.severity === 'high' ? '🔴 Critique' : i.severity === 'medium' ? '🟡 Important' : '🟢 Mineur';
-      return '<div style="padding:12px;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:8px"><strong>' + sev + ' — ' + i.clause + '</strong><p style="color:#374151;margin:6px 0">' + i.problem + '</p>' + (i.suggestion ? '<p style="color:#3730a3;background:#eef2ff;padding:8px;border-radius:6px">💡 ' + i.suggestion + '</p>' : '') + '</div>';
-    }).join('');
-  }
-  var missingHtml = '';
-  if (analysisResult.missing_clauses) {
-    missingHtml = analysisResult.missing_clauses.map(function(c) { return '<li>' + (typeof c === 'string' ? c : (c.clause || c.name || JSON.stringify(c))) + '</li>'; }).join('');
-  }
-  win.document.write('<html><head><title>Rapport Juria</title><style>body{font-family:Inter,sans-serif;max-width:800px;margin:40px auto;padding:0 24px;color:#0f1117}h1{color:#4f46e5;margin-bottom:4px}h2{margin:24px 0 12px;font-size:16px}.footer{margin-top:40px;padding-top:16px;border-top:1px solid #e5e7eb;color:#9ca3af;font-size:12px}</style></head><body>');
-  win.document.write('<h1>⚖️ Rapport d\'analyse — Juria</h1>');
-  win.document.write('<p style="color:#6b7280;font-size:14px">' + selectedFile.name + ' · ' + new Date().toLocaleDateString('fr-MA') + '</p>');
-  win.document.write('<div style="background:#f8f9fb;border-radius:12px;padding:20px;margin:20px 0;display:flex;gap:20px;align-items:center"><div style="font-size:48px;font-weight:700;color:' + scoreColor + '">' + score + '<span style="font-size:20px">/10</span></div><div><strong>Score de conformité juridique</strong><p>' + (analysisResult.summary || '') + '</p></div></div>');
-  if (issuesHtml) { win.document.write('<h2>⚠️ Points à corriger</h2>' + issuesHtml); }
-  if (missingHtml) { win.document.write('<h2>📋 Clauses manquantes</h2><ul>' + missingHtml + '</ul>'); }
-  win.document.write('<div class="footer">Rapport généré par Juria · À titre indicatif uniquement · Faites valider ce contrat par un avocat avant signature.<br><button type="button" onclick="window.print()" style="margin-top:12px;padding:10px 24px;background:#4f46e5;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px">Imprimer / Sauvegarder en PDF</button></div>');
-  win.document.write('</body></html>');
-  win.document.close();
-}
 
 // PDF extraction via PDF.js
 async function extractPDFText(file) {
@@ -835,18 +367,6 @@ async function extractDOCXText(file) {
       document.head.appendChild(script);
     }
   });
-}
-
-// ---- ONGLETS ----
-window.switchTab = function switchTab(tab) {
-  document.getElementById('section-analyse').style.display = tab === 'analyse' ? 'block' : 'none';
-  document.getElementById('section-comparaison').style.display = tab === 'comparaison' ? 'block' : 'none';
-  document.getElementById('tab-analyse').style.color = tab === 'analyse' ? 'var(--indigo)' : 'var(--slate-400)';
-  document.getElementById('tab-analyse').style.borderBottomColor = tab === 'analyse' ? 'var(--indigo)' : 'transparent';
-  document.getElementById('tab-analyse').style.fontWeight = tab === 'analyse' ? '600' : '500';
-  document.getElementById('tab-comparaison').style.color = tab === 'comparaison' ? 'var(--indigo)' : 'var(--slate-400)';
-  document.getElementById('tab-comparaison').style.borderBottomColor = tab === 'comparaison' ? 'var(--indigo)' : 'transparent';
-  document.getElementById('tab-comparaison').style.fontWeight = tab === 'comparaison' ? '600' : '500';
 }
 
 // ---- COMPARAISON ----
@@ -920,7 +440,11 @@ window.startComparison = async function startComparison() {
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
       body: JSON.stringify({
         question: 'Comparer les deux versions de contrat',
-        document_context: 'CONTRAT V1:\n' + contractText1 + '\n\n---\n\nCONTRAT V2:\n' + contractText2,
+        // Champs séparés : l'ancien transport concaténé "V1 --- V2" cassait
+        // si un contrat contenait lui-même "---". Le serveur compare
+        // désormais les versions INTÉGRALES (diff aligné par fenêtres).
+        contract_v1: contractText1,
+        contract_v2: contractText2,
         mode: 'compare',
         history: []
       }),
@@ -1687,48 +1211,6 @@ async function saveAnalysisToDatabase(analysisResult, selectedFile, extractedTex
     }
   }
 }
-
-
-// ============================================================
-// 8. MODIFICATION DE startAnalysis()
-// ============================================================
-
-/*
-  À la fin de la fonction startAnalysis(), après l'appel à showResults(),
-  ajouter cette ligne :
-  
-  AVANT (ligne ~373) :
-  ───────────────────
-    setStep('Finalisation...');
-    showResults(analysisResult);
-    window._lastAnalysisResult = analysisResult; // debug
-
-    // Stocker le texte dans sessionStorage pour "poser des questions"
-    sessionStorage.setItem('juriaDocText', extractedText);
-    sessionStorage.setItem('juriaDocName', selectedFile.name);
-
-    // NOUVEAU : Persister l'analyse en base de données
-    setStep('Enregistrement de l\'analyse...');
-    await saveAnalysisToDatabase(analysisResult, selectedFile, extractedText);
-  
-  APRÈS (ajouter ces lignes) :
-  ────────────────────────────
-    setStep('Finalisation...');
-    showResults(analysisResult);
-    window._lastAnalysisResult = analysisResult; // debug
-
-    // Stocker le texte dans sessionStorage pour "poser des questions"
-    sessionStorage.setItem('juriaDocText', extractedText);
-    sessionStorage.setItem('juriaDocName', selectedFile.name);
-
-    // NOUVEAU : Persister l'analyse en base de données
-    setStep('Enregistrement de l\'analyse...');
-    await saveAnalysisToDatabase(analysisResult, selectedFile, extractedText);
-
-    // NOUVEAU : Persister l'analyse en base de données
-    setStep('Enregistrement de l\'analyse...');
-    await saveAnalysisToDatabase(analysisResult, selectedFile, extractedText);
-*/
 
 
 // ============================================================

@@ -51,15 +51,19 @@ jobs:
             "embed-articles"
             "generate-keywords"
             "get-embedding"
+            "get-remaining-quota"
             "process-chunks"
             "vector-search"
             "generate-synthesis"
+            "superadmin"
+            "invite-user"
           )
 
-          # Fonctions SANS vérification JWT : appelées pendant le signup,
-          # avant qu'une session existe (sécurisées par SERVICE_ROLE_KEY côté serveur)
+          # Fonctions SANS vérification JWT (héritage du flux d'invitation ;
+          # link-user-to-org ne sert plus qu'à réclamer d'anciennes
+          # invitations en attente — le provisioning crée les comptes
+          # directement avec user_id)
           NO_JWT_FUNCTIONS=(
-            "invite-user"
             "link-user-to-org"
           )
 

@@ -29,4 +29,20 @@
   window.CONFIG = JURIA_CONFIG;
 
   console.log('[init-common] Supabase client initialized');
+
+  // ── Design system : une pastille de compteur vide (0 / —) est du bruit.
+  //    On la marque [data-empty] pour que juria-ui.css la masque, quel que
+  //    soit le code qui la met à jour (observation continue du DOM).
+  function tagEmptyCounts(root) {
+    root.querySelectorAll('.nav-count, .nav-badge-red').forEach(function(el) {
+      var t = el.textContent.trim();
+      if (t === '0' || t === '—' || t === '-' || t === '') el.setAttribute('data-empty', '');
+      else el.removeAttribute('data-empty');
+    });
+  }
+  document.addEventListener('DOMContentLoaded', function() {
+    tagEmptyCounts(document);
+    new MutationObserver(function() { tagEmptyCounts(document); })
+      .observe(document.body, { childList: true, subtree: true, characterData: true });
+  });
 })();

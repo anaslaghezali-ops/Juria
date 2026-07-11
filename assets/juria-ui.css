@@ -1,0 +1,180 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   JURIA UI — design system unique (cf. docs/AUDIT_UX.md)
+   Chargé APRÈS les styles locaux de chaque page : à spécificité égale,
+   ces règles gagnent et font converger les 10 écrans vers un seul langage.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --ui-radius: 14px;        /* cartes / surfaces */
+  --ui-radius-ctl: 9px;     /* boutons / inputs / selects */
+  --ui-border: #e7e8ec;
+  --ui-shadow: 0 1px 2px rgba(15, 17, 23, 0.04);
+  --ui-shadow-hover: 0 6px 24px rgba(15, 17, 23, 0.07);
+  --ui-ring: 0 0 0 3px rgba(79, 70, 229, 0.22);
+  --ui-ease: cubic-bezier(0.25, 0.8, 0.35, 1);
+}
+
+/* ── Fondations ────────────────────────────────────────────────────────── */
+html { font-size: 15px; }
+::selection { background: #c7d2fe; color: #1e1b4b; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: #d6d8de; border-radius: 99px; border: 2px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background: #b9bcc6; border: 2px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* Focus clavier visible partout — exigence accessibilité (banques / AO) */
+:focus-visible { outline: none; box-shadow: var(--ui-ring); border-radius: var(--ui-radius-ctl); }
+input:focus-visible, select:focus-visible, textarea:focus-visible { box-shadow: var(--ui-ring); }
+
+/* ── Structure : mêmes dimensions partout ──────────────────────────────── */
+.sidebar { width: 260px; }
+:root { --sidebar-w: 260px; }
+.topbar { height: 56px; }
+
+/* Icônes de navigation : SVG au trait, centrés, héritant la couleur */
+.nav-icon { display: inline-flex; align-items: center; justify-content: center; }
+.nav-icon svg { display: block; }
+
+/* ── Cartes : un seul rayon, une seule bordure, un seul souffle ────────── */
+.section-card, .kpi-card, .doc-header, .license-banner, .members-section,
+.memo, .gen-timeline, .gen-live, .synth-empty,
+.code-card, .action-card, .quota-banner, .folder-detail-header {
+  border-radius: var(--ui-radius);
+  border-color: var(--ui-border);
+  box-shadow: var(--ui-shadow);
+}
+
+/* Cartes interactives : réponse au survol, discrète et uniforme */
+.kpi-card, .code-card, .action-card, .history-item, .ws-subcard {
+  transition: box-shadow 0.2s var(--ui-ease), transform 0.2s var(--ui-ease), border-color 0.2s;
+}
+.code-card:hover, .action-card:hover, .ws-subcard:hover {
+  box-shadow: var(--ui-shadow-hover);
+  transform: translateY(-1px);
+}
+
+/* ── Mort au look "dashboard Bootstrap" ────────────────────────────────── */
+/* KPI : plus d'arc-en-ciel de bordures gauches ; la donnée porte seule */
+.kpi-card.red, .kpi-card.amber, .kpi-card.green, .kpi-card.indigo, .kpi-card.blue {
+  border-left: 1px solid var(--ui-border);
+}
+.kpi-card { padding: 18px 20px; }
+.kpi-label { letter-spacing: 0.07em; font-size: 10.5px; color: #9ca3af; }
+/* Un zéro n'est pas une alerte : il s'efface */
+.kpi-card[data-zero] .kpi-value, .kpi-value:where([data-zero]) { color: #c3c7cf; }
+
+/* Pastilles de navigation : masquées quand vides (0 / —) — géré par
+   init-common.js qui pose [data-empty] */
+.nav-count[data-empty], .nav-badge-red[data-empty] { display: none; }
+
+/* Répartition des risques : la couleur devient un accent (point + chiffre),
+   plus des pavés pleins — les aplats criards, c'est le "Bootstrap look" */
+.risk-level-card.high, .risk-level-card.med, .risk-level-card.low {
+  background: #fff; border: 1px solid var(--ui-border);
+}
+.risk-level-card { position: relative; }
+.risk-level-card::before {
+  content: ''; display: block; width: 7px; height: 7px; border-radius: 50%;
+  margin: 0 auto 7px;
+}
+.risk-level-card.high::before { background: #ef4444; }
+.risk-level-card.med::before  { background: #f59e0b; }
+.risk-level-card.low::before  { background: #10b981; }
+
+/* ── Boutons : deux tailles, un comportement ──────────────────────────── */
+button { font-family: inherit; }
+.btn-invite, .btn-chat, .btn-reanalyze, .btn-submit, .btn-cancel,
+.btn-synth-action, .btn-synth-generate, .ws-action-btn, .action-btn,
+.btn-analyse, .btn-new, .search-btn {
+  border-radius: var(--ui-radius-ctl);
+  transition: background 0.15s var(--ui-ease), border-color 0.15s, color 0.15s,
+              transform 0.12s var(--ui-ease), box-shadow 0.2s;
+}
+.btn-invite:active, .btn-chat:active, .btn-submit:active,
+.btn-synth-generate:active, .btn-analyse:active { transform: scale(0.97); }
+.btn-chat:hover, .btn-invite:hover, .btn-submit:hover { box-shadow: 0 4px 14px rgba(79, 70, 229, 0.28); }
+
+/* ── Tableaux : même tête, même respiration, même survol ──────────────── */
+table th {
+  font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: #8b90a0; font-weight: 600;
+}
+.members-table tr, .docs-table tr { transition: background 0.12s; }
+
+/* ── Modales : une entrée, pas une apparition sèche ────────────────────── */
+.modal.show .modal-content, .modal-overlay.open .modal, .modal-overlay.show .modal {
+  animation: ui-modal-in 0.22s var(--ui-ease);
+}
+.modal.show, .modal-overlay.open, .modal-overlay.show {
+  animation: ui-fade-in 0.18s ease;
+  backdrop-filter: blur(2px);
+}
+@keyframes ui-modal-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes ui-fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* ── Panneaux / onglets : entrée en fondu montant ──────────────────────── */
+.page.active, #paneOverview, #paneSynthese, .synth-layout, .synth-gen {
+  animation: ui-pane-in 0.28s var(--ui-ease);
+}
+@keyframes ui-pane-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Skeleton loader ───────────────────────────────────────────────────── */
+.ui-skeleton {
+  position: relative; overflow: hidden;
+  background: #eef0f4; border-radius: 8px;
+}
+.ui-skeleton::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+  transform: translateX(-100%);
+  animation: ui-shimmer 1.4s infinite;
+}
+@keyframes ui-shimmer { to { transform: translateX(100%); } }
+.ui-skel-card {
+  background: #fff; border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius); padding: 24px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+
+/* ── États vides : sobres, une seule action ───────────────────────────── */
+.section-empty, .empty-state {
+  color: #a6abb8; font-size: 13.5px; line-height: 1.6;
+}
+
+/* ── Toasts ────────────────────────────────────────────────────────────── */
+.toast { border-radius: 11px; box-shadow: 0 8px 32px rgba(15, 17, 23, 0.22); }
+
+/* ── Typographie : les titres respirent ────────────────────────────────── */
+.page-title { letter-spacing: -0.01em; }
+
+/* ── document-view : le titre domine, les scores accompagnent ──────────── */
+.doc-title { font-size: 25px; letter-spacing: -0.01em; }
+.score-block {
+  background: #fff; border: 1px solid var(--ui-border);
+  border-radius: 12px; padding: 13px 16px;
+  transition: border-color 0.2s;
+}
+.score-block-value { font-size: 22px; }
+.doc-header { padding: 26px 28px 22px; }
+
+/* Onglets de la fiche : zone cliquable généreuse, transition douce */
+.doc-tab { padding: 12px 18px; }
+
+/* Historique : lignes cliquables assumées */
+.history-item { cursor: pointer; border-radius: 10px; }
+.history-item:hover { background: #f6f7fa; }
+
+/* ── Motion : respect des préférences système ──────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
