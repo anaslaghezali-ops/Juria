@@ -1495,6 +1495,24 @@
   </div>
 </div>
 
+<!-- ══════════ MODAL: PARTAGER UNE CONTREPARTIE ══════════ -->
+<div class="modal-overlay" id="cpShareModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeCpShareModal()">×</button>
+    <div class="modal-title" id="cpShareModalTitle">Partager la contrepartie</div>
+    <div class="modal-sub">Donne accès à <b>tous les dossiers et documents</b> de cette contrepartie — présents et à venir.</div>
+    <div id="cpShareMembersList"></div>
+    <div class="share-add-row" id="cpShareAddRow">
+      <select class="form-input" id="cpShareAddSelect"></select>
+      <select class="form-input" id="cpShareAddRole" style="flex:0 0 110px">
+        <option value="viewer">Lecteur</option>
+        <option value="editor">Éditeur</option>
+      </select>
+      <button class="btn-primary" style="white-space:nowrap" onclick="cpShareAddMember()">Inviter</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="deadlineModal">
   <div class="modal">
     <button class="modal-close" onclick="closeDeadlineModal()">×</button>
@@ -2137,14 +2155,17 @@ let wsTreeInitialized = false;
  */
 let allFolderMembers = [];
 let folderMembersByFolder = {};
+let cpMembersByCp = {};       // counterparty_id -> [{user_id, role, ...}]
 let allOrgMembers = [];
 let myOrgRole = 'member';
 let shareFolderId = null;
+let shareCpId = null;
 
 async function loadSharingData() {
   try {
-    const [fmRes, members] = await Promise.all([
+    const [fmRes, cmRes, members] = await Promise.all([
       _sb.from('folder_members').select('folder_id, user_id, role, granted_by, created_at'),
+      _sb.from('counterparty_members').select('counterparty_id, user_id, role, granted_by, created_at'),
       Services?.organizations ? Services.organizations.getMembers(currentOrgId) : Promise.resolve([]),
     ]);
     allFolderMembers = fmRes?.data || [];
@@ -2152,9 +2173,20 @@ async function loadSharingData() {
     allFolderMembers.forEach(m => {
       (folderMembersByFolder[m.folder_id] = folderMembersByFolder[m.folder_id] || []).push(m);
     });
+    cpMembersByCp = {};
+    (cmRes?.data || []).forEach(m => {
+      (cpMembersByCp[m.counterparty_id] = cpMembersByCp[m.counterparty_id] || []).push(m);
+    });
     allOrgMembers = (members || []).filter(m => m.is_active);
     myOrgRole = allOrgMembers.find(m => m.user_id === currentUser?.id)?.role || 'member';
   } catch (e) { console.warn('[Partage] chargement échoué:', e?.message); }
+}
+
+/** Mon accès hérité d'un partage de contrepartie ('editor'|'viewer'|null). */
+function myCpAccess(counterpartyId) {
+  if (!counterpartyId) return null;
+  const m = (cpMembersByCp[counterpartyId] || []).find(x => x.user_id === currentUser?.id);
+  return m ? m.role : null;
 }
 
 /** Dossier racine (l'unité de partage), en suivant parent_id. */
@@ -2173,8 +2205,11 @@ function folderAccess(folderId) {
   if (!root) return null;
   if (myOrgRole === 'owner' || myOrgRole === 'admin') return 'owner';
   if (root.created_by === currentUser?.id) return 'owner';
+  // Le rôle le plus permissif l'emporte entre partage de dossier et de contrepartie.
   const fm = (folderMembersByFolder[root.id] || []).find(m => m.user_id === currentUser?.id);
-  if (fm) return fm.role;
+  const cp = myCpAccess(root.counterparty_id);
+  if (fm?.role === 'editor' || cp === 'editor') return 'editor';
+  if (fm?.role === 'viewer' || cp === 'viewer') return 'viewer';
   // visibility absente = données démo / fallback : comportement historique
   if (root.visibility === 'org' || !root.visibility) return myOrgRole === 'reader' ? 'viewer' : 'editor';
   return null;
@@ -2187,9 +2222,10 @@ function folderShareState(folder) {
   const members = folderMembersByFolder[root.id] || [];
   if (root.created_by === currentUser?.id) {
     if (root.visibility === 'org') return 'org';
-    return members.length ? 'mine-shared' : 'mine-private';
+    return (members.length || (cpMembersByCp[root.counterparty_id] || []).length) ? 'mine-shared' : 'mine-private';
   }
-  if (members.some(m => m.user_id === currentUser?.id)) return 'shared-with-me';
+  // Partagé avec moi : soit le dossier directement, soit sa contrepartie.
+  if (members.some(m => m.user_id === currentUser?.id) || myCpAccess(root.counterparty_id)) return 'shared-with-me';
   if (root.visibility === 'org') return 'org';
   return 'supervision'; // visible uniquement grâce au rôle admin/owner d'org
 }
@@ -2359,6 +2395,114 @@ async function shareSetVisibility(vis) {
   showToast(vis === 'org' ? 'Dossier visible par toute l\'organisation.' : 'Dossier repassé en privé.', 'success');
 }
 
+// ══════════════════════════════════════════════
+//  PARTAGE D'UNE CONTREPARTIE ENTIÈRE
+//  Donne accès à tous les dossiers (présents + futurs) de la contrepartie.
+// ══════════════════════════════════════════════
+function cpIsManager(cpId) {
+  if (myOrgRole === 'owner' || myOrgRole === 'admin') return true;
+  const cp = allCounterparties.find(c => c.id === cpId);
+  return !!cp && cp.created_by === currentUser?.id;
+}
+
+function openCpShareModal(cpId) {
+  if (!cpIsManager(cpId)) { showToast('Seul le propriétaire de la contrepartie gère ses accès.', 'error'); return; }
+  shareCpId = cpId;
+  renderCpShareModal();
+  document.getElementById('cpShareModal').classList.add('show');
+}
+
+function closeCpShareModal() {
+  document.getElementById('cpShareModal').classList.remove('show');
+  shareCpId = null;
+}
+
+function renderCpShareModal() {
+  const cp = allCounterparties.find(c => c.id === shareCpId);
+  if (!cp) return;
+  const members = cpMembersByCp[shareCpId] || [];
+  document.getElementById('cpShareModalTitle').textContent = `Partager « ${cp.name} »`;
+
+  const ownerRow = `
+    <div class="share-member-row">
+      <span class="sh-av">${escHtml(memberInitials(cp.created_by))}</span>
+      <div class="share-member-info">
+        <div class="share-member-name">${escHtml(memberLabel(cp.created_by))}${cp.created_by === currentUser?.id ? ' (vous)' : ''}</div>
+        <div class="share-member-email">${escHtml(allOrgMembers.find(m => m.user_id === cp.created_by)?.email || '')}</div>
+      </div>
+      <span class="share-owner-tag">Propriétaire</span>
+    </div>`;
+
+  const memberRows = members.map(m => `
+    <div class="share-member-row">
+      <span class="sh-av">${escHtml(memberInitials(m.user_id))}</span>
+      <div class="share-member-info">
+        <div class="share-member-name">${escHtml(memberLabel(m.user_id))}</div>
+        <div class="share-member-email">${escHtml(allOrgMembers.find(x => x.user_id === m.user_id)?.email || '')}</div>
+      </div>
+      <select class="share-role-select" onchange="cpShareChangeRole('${m.user_id}', this.value)">
+        <option value="viewer" ${m.role === 'viewer' ? 'selected' : ''}>Lecteur</option>
+        <option value="editor" ${m.role === 'editor' ? 'selected' : ''}>Éditeur</option>
+      </select>
+      <button class="action-btn danger" title="Révoquer l'accès" onclick="cpShareRemoveMember('${m.user_id}')">✕</button>
+    </div>`).join('');
+
+  document.getElementById('cpShareMembersList').innerHTML = ownerRow + memberRows;
+
+  const invitable = allOrgMembers.filter(m =>
+    m.user_id !== cp.created_by &&
+    m.role !== 'owner' && m.role !== 'admin' &&
+    !members.some(x => x.user_id === m.user_id)
+  );
+  const addRow = document.getElementById('cpShareAddRow');
+  if (invitable.length) {
+    addRow.style.display = '';
+    document.getElementById('cpShareAddSelect').innerHTML =
+      invitable.map(m => `<option value="${m.user_id}">${escHtml(memberLabel(m.user_id))} — ${escHtml(m.email || '')}</option>`).join('');
+  } else {
+    addRow.style.display = 'none';
+  }
+}
+
+function _cpShareRefreshUI() {
+  renderTree();
+  if (typeof renderCounterparties === 'function') renderCounterparties();
+  if (shareCpId) renderCpShareModal();
+}
+
+async function cpShareAddMember() {
+  const userId = document.getElementById('cpShareAddSelect').value;
+  const role = document.getElementById('cpShareAddRole').value;
+  if (!userId || !shareCpId) return;
+  const { error } = await _sb.from('counterparty_members').insert({
+    counterparty_id: shareCpId, user_id: userId, role, granted_by: currentUser.id,
+  });
+  if (error) { showToast('Erreur : ' + error.message, 'error'); return; }
+  (cpMembersByCp[shareCpId] = cpMembersByCp[shareCpId] || [])
+    .push({ counterparty_id: shareCpId, user_id: userId, role, granted_by: currentUser.id });
+  _cpShareRefreshUI();
+  showToast(`${memberLabel(userId)} a maintenant accès à toute la contrepartie.`, 'success');
+}
+
+async function cpShareChangeRole(userId, role) {
+  const { error } = await _sb.from('counterparty_members')
+    .update({ role }).eq('counterparty_id', shareCpId).eq('user_id', userId);
+  if (error) { showToast('Erreur : ' + error.message, 'error'); renderCpShareModal(); return; }
+  const m = (cpMembersByCp[shareCpId] || []).find(x => x.user_id === userId);
+  if (m) m.role = role;
+  _cpShareRefreshUI();
+}
+
+async function cpShareRemoveMember(userId) {
+  if (!confirm(`Révoquer l'accès de ${memberLabel(userId)} à toute la contrepartie ?`)) return;
+  const { error } = await _sb.from('counterparty_members')
+    .delete().eq('counterparty_id', shareCpId).eq('user_id', userId);
+  if (error) { showToast('Erreur : ' + error.message, 'error'); return; }
+  cpMembersByCp[shareCpId] = (cpMembersByCp[shareCpId] || []).filter(x => x.user_id !== userId);
+  _cpShareRefreshUI();
+  showToast('Accès révoqué.', 'success');
+}
+
 // ── Historique des accès (journal folder_access_log) ─────────────────
 async function toggleShareHistory() {
   const wrap = document.getElementById('shareHistory');
@@ -2427,17 +2571,24 @@ function notifText(n) {
   const p = n.payload || {};
   const by = p.by ? memberLabel(p.by) : 'Un collègue';
   const name = p.folder_name || 'un dossier';
+  const cpName = p.counterparty_name || 'une contrepartie';
   const role = p.role === 'editor' ? 'éditeur' : 'lecteur';
   switch (n.type) {
-    case 'folder_shared':       return `<b>${escHtml(by)}</b> vous a donné accès au dossier <b>${escHtml(name)}</b> (${role})`;
-    case 'folder_role_changed': return `<b>${escHtml(by)}</b> vous a passé en ${role} sur <b>${escHtml(name)}</b>`;
-    case 'folder_revoked':      return `<b>${escHtml(by)}</b> a révoqué votre accès au dossier <b>${escHtml(name)}</b>`;
-    default:                    return escHtml(n.type);
+    case 'folder_shared':             return `<b>${escHtml(by)}</b> vous a donné accès au dossier <b>${escHtml(name)}</b> (${role})`;
+    case 'folder_role_changed':       return `<b>${escHtml(by)}</b> vous a passé en ${role} sur <b>${escHtml(name)}</b>`;
+    case 'folder_revoked':            return `<b>${escHtml(by)}</b> a révoqué votre accès au dossier <b>${escHtml(name)}</b>`;
+    case 'counterparty_shared':       return `<b>${escHtml(by)}</b> vous a donné accès à toute la contrepartie <b>${escHtml(cpName)}</b> (${role})`;
+    case 'counterparty_role_changed': return `<b>${escHtml(by)}</b> vous a passé en ${role} sur la contrepartie <b>${escHtml(cpName)}</b>`;
+    case 'counterparty_revoked':      return `<b>${escHtml(by)}</b> a révoqué votre accès à la contrepartie <b>${escHtml(cpName)}</b>`;
+    default:                          return escHtml(n.type);
   }
 }
 
 function notifIcon(n) {
-  return { folder_shared: '📁', folder_role_changed: '✏️', folder_revoked: '🚫' }[n.type] || '🔔';
+  return {
+    folder_shared: '📁', folder_role_changed: '✏️', folder_revoked: '🚫',
+    counterparty_shared: '🏢', counterparty_role_changed: '✏️', counterparty_revoked: '🚫',
+  }[n.type] || '🔔';
 }
 
 function notifTimeAgo(iso) {
@@ -2612,13 +2763,20 @@ function renderTree(searchFilter) {
     let cpDocCount = 0;
     folders.forEach(f => { cpDocCount += folderStats(f.id, f.name).docCount; });
 
+    const cpShareCount = (cpMembersByCp[cpId] || []).length;
+    const cpShareBadge = cpShareCount ? `<span class="tree-share" title="Contrepartie partagée avec ${cpShareCount} personne${cpShareCount > 1 ? 's' : ''}">👥</span>` : '';
+    const cpShareAction = cpIsManager(cpId)
+      ? `<span class="tree-actions"><button class="tree-action" onclick="event.stopPropagation();openCpShareModal('${cpId}')" title="Partager toute la contrepartie">👥</button></span>`
+      : '';
     html += `
       <div class="tree-node" data-level="0">
         <div class="tree-row" onclick="toggleTreeNode('${cpNodeId}')">
           <span class="tree-caret ${expanded ? 'expanded' : ''}">▶</span>
           <span class="tree-icon">🏢</span>
           <span class="tree-name">${escHtml(cpName)}</span>
+          ${cpShareBadge}
           <span class="tree-badge">${cpDocCount}</span>
+          ${cpShareAction}
         </div>
         <div class="tree-children ${expanded ? '' : 'collapsed'}">
           ${folders.map(f => renderTreeFolder(f, 1, q, folderStats)).join('')}
