@@ -220,8 +220,9 @@
     .tree-badge { font-size: 11px; font-weight: 600; color: var(--slate-400); background: var(--slate-100); padding: 1px 6px; border-radius: 10px; flex-shrink: 0; }
     .tree-row.selected .tree-badge { background: rgba(79,70,229,0.12); color: var(--indigo); }
     .tree-badge-risk { font-size: 11px; font-weight: 700; color: #fff; background: var(--red); padding: 1px 6px; border-radius: 10px; flex-shrink: 0; }
-    .tree-actions { display: none; align-items: center; gap: 2px; flex-shrink: 0; }
-    .tree-row:hover .tree-actions { display: flex; }
+    .tree-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; opacity: 0.55; transition: opacity 0.15s; }
+    .tree-row:hover .tree-actions { opacity: 1; }
+    @media (hover: none) { .tree-actions { opacity: 1; } }
     .tree-action { width: 20px; height: 20px; border: none; background: none; color: var(--slate-400); cursor: pointer; border-radius: 4px; font-size: 12px; display: flex; align-items: center; justify-content: center; }
     .tree-action:hover { background: var(--slate-200); color: var(--slate-700); }
     .tree-children { overflow: hidden; }
@@ -332,8 +333,9 @@
     .score-chip.med { background: var(--amber-bg); color: var(--amber-text); }
     .score-chip.low { background: var(--red-bg); color: var(--red-text); }
     .score-chip.none { background: var(--slate-100); color: var(--slate-400); }
-    .row-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s; }
+    .row-actions { display: flex; gap: 4px; opacity: 0.55; transition: opacity 0.15s; }
     tr:hover .row-actions { opacity: 1; }
+    @media (hover: none) { .row-actions { opacity: 1; } }
     .action-btn { padding: 5px 7px; border-radius: 6px; border: 1px solid var(--border); background: var(--white); color: var(--slate-500); cursor: pointer; transition: all 0.15s; }
     .action-btn:hover { color: var(--indigo); border-color: var(--indigo); background: var(--indigo-bg); }
     .action-btn.danger:hover { color: var(--red); border-color: var(--red); background: var(--red-bg); }
