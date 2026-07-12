@@ -464,6 +464,8 @@
     .toast { background: var(--slate-900); color: #fff; padding: 10px 16px; border-radius: 8px; font-size: 13px; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); max-width: 320px; }
     .toast.success { background: var(--green); }
     .toast.error { background: var(--red); }
+    .toast-action { margin-left: 10px; background: rgba(255,255,255,0.18); color: #fff; border: none; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: var(--font); flex-shrink: 0; }
+    .toast-action:hover { background: rgba(255,255,255,0.32); }
 
 
     /* ── CONTREPARTIES ── */
@@ -2379,7 +2381,7 @@ async function shareChangeRole(userId, role) {
 }
 
 async function shareRemoveMember(userId) {
-  if (!confirm(`Révoquer l'accès de ${memberLabel(userId)} ?`)) return;
+  if (!await uiConfirm({ title: "Révoquer l'accès", message: `Révoquer l'accès de ${memberLabel(userId)} à ce dossier ?`, confirmLabel: 'Révoquer', danger: true })) return;
   const { error } = await _sb.from('folder_members')
     .delete().eq('folder_id', shareFolderId).eq('user_id', userId);
   if (error) { showToast('Erreur : ' + error.message, 'error'); return; }
@@ -2434,7 +2436,7 @@ async function deleteCounterparty(cpId) {
   const detail = parts.length
     ? `\n\n${parts.join(' et ')} seront conservés mais détachés (deviennent « sans contrepartie »).`
     : '';
-  if (!confirm(`Supprimer la contrepartie « ${cp.name} » ?${detail}`)) return;
+  if (!await uiConfirm({ title: 'Supprimer la contrepartie', message: `« ${cp.name} » ?${detail}`, confirmLabel: 'Supprimer', danger: true })) return;
 
   const { error } = await _sb.from('counterparties').delete().eq('id', cpId).eq('organization_id', currentOrgId);
   if (error) { showToast('Erreur : ' + error.message, 'error'); return; }
@@ -2535,7 +2537,7 @@ async function cpShareChangeRole(userId, role) {
 }
 
 async function cpShareRemoveMember(userId) {
-  if (!confirm(`Révoquer l'accès de ${memberLabel(userId)} à toute la contrepartie ?`)) return;
+  if (!await uiConfirm({ title: "Révoquer l'accès", message: `Révoquer l'accès de ${memberLabel(userId)} à toute la contrepartie ?`, confirmLabel: 'Révoquer', danger: true })) return;
   const { error } = await _sb.from('counterparty_members')
     .delete().eq('counterparty_id', shareCpId).eq('user_id', userId);
   if (error) { showToast('Erreur : ' + error.message, 'error'); return; }
@@ -3181,6 +3183,7 @@ function wsSwitchTab(tabName) {
  */
 function renderWsDocsTable(docs, subs, canEdit = false) {
   subs = subs || [];
+  docs = docs.filter(d => !pendingDeleteIds.has(d.id));
   if (!docs.length && !subs.length) {
     return wsEmptyTab('📄', 'Aucun document', 'Importez des documents ou créez des sous-dossiers pour organiser ce dossier.');
   }
@@ -3413,6 +3416,7 @@ function filterDocs() {
   const folder = document.getElementById('filterFolder')?.value || '';
 
   filteredDocs = allDocs.filter(d => {
+    if (pendingDeleteIds.has(d.id)) return false;
     const matchQ = !q || d.name.toLowerCase().includes(q) || (d.parties||'').toLowerCase().includes(q) || (d.folder||'').toLowerCase().includes(q);
     const matchType = !type || d.file_type === type;
     const matchStatus = !status || d.status === status;
@@ -3471,6 +3475,7 @@ function filterDocs() {
 }
 
 function renderDocsTable(docs) {
+  docs = docs.filter(d => !pendingDeleteIds.has(d.id));
   return `<table class="docs-table">
     <thead><tr><th>Document</th><th>Date</th><th>Score</th><th>Statut</th><th></th></tr></thead>
     <tbody>${docs.map(doc => {
@@ -3959,7 +3964,7 @@ async function saveDeadline() {
 }
 
 async function deleteDeadline(id) {
-  if (!confirm('Supprimer cette échéance ?')) return;
+  if (!await uiConfirm({ title: "Supprimer l'échéance", message: 'Cette échéance sera définitivement supprimée.', confirmLabel: 'Supprimer', danger: true })) return;
   const { error } = await _sb.from('document_obligations').delete().eq('id', id);
   if (error) { showToast('Erreur : ' + error.message, 'error'); return; }
   Store.setDeadlines(Store.state.deadlines.filter(d => d.id !== id));
@@ -4071,7 +4076,7 @@ async function deleteFolder(folderId) {
   if (docCount) parts.push(`${docCount} document${docCount > 1 ? 's' : ''} sera conservé${docCount > 1 ? 's' : ''} et déplacé${docCount > 1 ? 's' : ''} en « sans dossier »`);
   if (subs.length) parts.push(`${subs.length} sous-dossier${subs.length > 1 ? 's' : ''} sera supprimé${subs.length > 1 ? 's' : ''}`);
   const detail = parts.length ? '\n\n' + parts.join('.\n') + '.' : '';
-  if (!confirm(`Supprimer le dossier « ${folder.name} » ?${detail}`)) return;
+  if (!await uiConfirm({ title: 'Supprimer le dossier', message: `« ${folder.name} » ?${detail}`, confirmLabel: 'Supprimer', danger: true })) return;
 
   const { error } = await _sb.from('folders').delete().eq('id', folderId).eq('organization_id', currentOrgId);
   if (error) { showToast('Erreur : ' + error.message, 'error'); return; }
@@ -4577,30 +4582,45 @@ function analyzeDoc(id) { window.location.href = 'analyse-contrat.html?doc_id=' 
 function openSynthesis(id) { window.location.href = 'document-view.html?id=' + encodeURIComponent(id) + '#synthese'; }
 async function deleteDoc(id) {
   const doc = allDocs.find(d => d.id === id);
-  if (!doc || !confirm('Supprimer « ' + doc.name + ' » ?')) return;
+  if (!doc) return;
+  const confirmed = await uiConfirm({
+    title: 'Supprimer le document',
+    message: `« ${doc.name} » sera supprimé, ainsi que ses tâches et commentaires.\nVous pourrez annuler pendant quelques secondes.`,
+    confirmLabel: 'Supprimer', danger: true,
+  });
+  if (!confirmed) return;
 
-  let ok = false;
-  if (Services?.documents) {
-    ok = await Services.documents.archiveDocument(id, currentOrgId, true);
-    if (ok) allDocs = Store.state.documents;
-  } else {
-    try {
-      const { error } = await _sb.from('documents').delete().eq('id', id).eq('organization_id', currentOrgId);
-      ok = !error;
-    } catch(e) { ok = false; }
-    if (ok) allDocs = allDocs.filter(d => d.id !== id);
-  }
+  // Masquage optimiste : le document disparaît des vues, mais la suppression
+  // réelle n'est déclenchée qu'après la fenêtre d'annulation.
+  pendingDeleteIds.add(id);
+  refreshDocViews();
 
-  if (!ok) { showToast('Suppression impossible. Réessayez.', 'error'); return; }
-  updateNavCounts();
-  filterDocs();
-  // Rafraîchir aussi les vues « Dossiers » et « Contrepartie » si ouvertes.
-  try {
-    if (wsSelectedFolderId === '__all__') wsSwitchTab(wsActiveTab);
-    else if (wsSelectedFolderId) renderFolderDetail(wsSelectedFolderId);
-  } catch (e) {}
-  try { if (currentDetailCpId) openCpDetail(currentDetailCpId); } catch (e) {}
-  showToast('Document supprimé.', 'success');
+  let undone = false;
+  const commit = async () => {
+    if (undone) return;
+    let ok = false;
+    if (Services?.documents) {
+      ok = await Services.documents.archiveDocument(id, currentOrgId, true);
+      if (ok) allDocs = Store.state.documents;
+    } else {
+      try {
+        const { error } = await _sb.from('documents').delete().eq('id', id).eq('organization_id', currentOrgId);
+        ok = !error;
+      } catch (e) { ok = false; }
+      if (ok) allDocs = allDocs.filter(d => d.id !== id);
+    }
+    pendingDeleteIds.delete(id);
+    if (!ok) showToast('Suppression impossible. Réessayez.', 'error');
+    refreshDocViews();
+  };
+  const timer = setTimeout(commit, 5000);
+
+  showActionToast('Document supprimé.', 'Annuler', () => {
+    undone = true;
+    clearTimeout(timer);
+    pendingDeleteIds.delete(id);
+    refreshDocViews();
+  }, 5000);
 }
 
 // ── BADGES & HELPERS ──────────────────────────
@@ -5914,6 +5934,91 @@ function showToast(msg, type) {
   toast.textContent = msg;
   wrap.appendChild(toast);
   setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.3s'; setTimeout(() => toast.remove(), 300); }, 3000);
+}
+
+// Toast avec bouton d'action (ex. « Annuler »). onAction n'est appelé que si
+// l'utilisateur clique avant la fin du délai.
+function showActionToast(msg, actionLabel, onAction, duration = 5000) {
+  const wrap = document.getElementById('toastWrap');
+  const toast = document.createElement('div');
+  toast.className = 'toast success';
+  const span = document.createElement('span');
+  span.textContent = msg;
+  const btn = document.createElement('button');
+  btn.className = 'toast-action';
+  btn.textContent = actionLabel;
+  toast.appendChild(span);
+  toast.appendChild(btn);
+  wrap.appendChild(toast);
+  let done = false;
+  const remove = () => { if (done) return; done = true; toast.style.opacity = '0'; toast.style.transition = 'opacity 0.3s'; setTimeout(() => toast.remove(), 300); };
+  const timer = setTimeout(remove, duration);
+  btn.onclick = () => { clearTimeout(timer); remove(); onAction(); };
+}
+
+// Modale de confirmation cohérente avec l'app (remplace le confirm() natif).
+// Renvoie une Promise<boolean>. Échap / clic hors modale = annuler, Entrée = confirmer.
+function uiConfirm({ title = 'Confirmer', message = '', confirmLabel = 'Confirmer', cancelLabel = 'Annuler', danger = false } = {}) {
+  return new Promise((resolve) => {
+    let overlay = document.getElementById('uiConfirmOverlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.id = 'uiConfirmOverlay';
+      overlay.innerHTML =
+        '<div class="modal" style="width:420px">' +
+        '<div class="modal-title" id="uiConfirmTitle"></div>' +
+        '<div class="modal-sub" id="uiConfirmMsg" style="margin-bottom:0;white-space:pre-line"></div>' +
+        '<div class="modal-actions">' +
+        '<button class="btn-cancel" id="uiConfirmCancel"></button>' +
+        '<button class="btn-confirm" id="uiConfirmOk"></button>' +
+        '</div></div>';
+      document.body.appendChild(overlay);
+    }
+    const titleEl = overlay.querySelector('#uiConfirmTitle');
+    const msgEl = overlay.querySelector('#uiConfirmMsg');
+    const okBtn = overlay.querySelector('#uiConfirmOk');
+    const cancelBtn = overlay.querySelector('#uiConfirmCancel');
+    titleEl.textContent = title;
+    msgEl.textContent = message;
+    msgEl.style.display = message ? '' : 'none';
+    okBtn.textContent = confirmLabel;
+    cancelBtn.textContent = cancelLabel;
+    // Bouton rouge en mode danger, mais gardé à droite (btn-danger a margin-right:auto).
+    okBtn.className = danger ? 'btn-danger' : 'btn-confirm';
+    okBtn.style.marginRight = '0';
+
+    const close = (val) => {
+      overlay.classList.remove('show');
+      okBtn.onclick = cancelBtn.onclick = overlay.onclick = null;
+      document.removeEventListener('keydown', onKey);
+      resolve(val);
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); close(false); }
+      else if (e.key === 'Enter') { e.preventDefault(); close(true); }
+    };
+    okBtn.onclick = () => close(true);
+    cancelBtn.onclick = () => close(false);
+    overlay.onclick = (e) => { if (e.target === overlay) close(false); };
+    document.addEventListener('keydown', onKey);
+    overlay.classList.add('show');
+    setTimeout(() => okBtn.focus(), 30);
+  });
+}
+
+// Documents en attente de suppression (fenêtre d'annulation) : masqués des vues.
+const pendingDeleteIds = new Set();
+
+// Re-render des trois vues où un document peut apparaître.
+function refreshDocViews() {
+  updateNavCounts();
+  filterDocs();
+  try {
+    if (wsSelectedFolderId === '__all__') wsSwitchTab(wsActiveTab);
+    else if (wsSelectedFolderId) renderFolderDetail(wsSelectedFolderId);
+  } catch (e) {}
+  try { if (currentDetailCpId) openCpDetail(currentDetailCpId); } catch (e) {}
 }
 
 // ── SYNC ALIASES (appelé par bootstrap.js après chaque chargement) ──
