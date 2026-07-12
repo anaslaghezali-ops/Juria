@@ -23,7 +23,7 @@ class CounterpartyService extends BaseService {
       // notes, organization_id, created_at
       const data = await this.getByOrg(orgId, `
         id, name, type, sector, country,
-        risk_level, notes, organization_id, created_at
+        risk_level, notes, organization_id, created_by, created_at
       `, {
         order: { column: 'name', ascending: true },
       });
@@ -50,7 +50,7 @@ class CounterpartyService extends BaseService {
    * @param {string} orgId
    * @returns {Promise<Object|null>}
    */
-  async saveCounterparty(payload, orgId) {
+  async saveCounterparty(payload, orgId, userId) {
     const cpData = {
       name:            payload.name,
       type:            payload.type     || null,
@@ -66,8 +66,10 @@ class CounterpartyService extends BaseService {
       // Mise à jour d'une vraie entrée Supabase — pas de colonne updated_at
       result = await this.update(payload.id, orgId, cpData, { skipUpdatedAt: true });
     } else {
-      // Création — counterparties n'a PAS de colonne updated_at
+      // Création — created_by requis par la RLS cloisonnée (migration 17) ;
+      // c'est aussi ce qui rend la contrepartie visible à son auteur.
       delete cpData.id;
+      cpData.created_by = userId || null;
       result = await this.create(cpData, { skipUpdatedAt: true });
     }
 

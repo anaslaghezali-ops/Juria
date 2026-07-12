@@ -220,8 +220,9 @@
     .tree-badge { font-size: 11px; font-weight: 600; color: var(--slate-400); background: var(--slate-100); padding: 1px 6px; border-radius: 10px; flex-shrink: 0; }
     .tree-row.selected .tree-badge { background: rgba(79,70,229,0.12); color: var(--indigo); }
     .tree-badge-risk { font-size: 11px; font-weight: 700; color: #fff; background: var(--red); padding: 1px 6px; border-radius: 10px; flex-shrink: 0; }
-    .tree-actions { display: none; align-items: center; gap: 2px; flex-shrink: 0; }
-    .tree-row:hover .tree-actions { display: flex; }
+    .tree-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; opacity: 0.55; transition: opacity 0.15s; }
+    .tree-row:hover .tree-actions { opacity: 1; }
+    @media (hover: none) { .tree-actions { opacity: 1; } }
     .tree-action { width: 20px; height: 20px; border: none; background: none; color: var(--slate-400); cursor: pointer; border-radius: 4px; font-size: 12px; display: flex; align-items: center; justify-content: center; }
     .tree-action:hover { background: var(--slate-200); color: var(--slate-700); }
     .tree-children { overflow: hidden; }
@@ -332,8 +333,9 @@
     .score-chip.med { background: var(--amber-bg); color: var(--amber-text); }
     .score-chip.low { background: var(--red-bg); color: var(--red-text); }
     .score-chip.none { background: var(--slate-100); color: var(--slate-400); }
-    .row-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s; }
+    .row-actions { display: flex; gap: 4px; opacity: 0.55; transition: opacity 0.15s; }
     tr:hover .row-actions { opacity: 1; }
+    @media (hover: none) { .row-actions { opacity: 1; } }
     .action-btn { padding: 5px 7px; border-radius: 6px; border: 1px solid var(--border); background: var(--white); color: var(--slate-500); cursor: pointer; transition: all 0.15s; }
     .action-btn:hover { color: var(--indigo); border-color: var(--indigo); background: var(--indigo-bg); }
     .action-btn.danger:hover { color: var(--red); border-color: var(--red); background: var(--red-bg); }
@@ -437,6 +439,8 @@
     .btn-cancel { padding: 8px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--slate-600); background: var(--white); cursor: pointer; font-family: var(--font); }
     .btn-cancel:hover { background: var(--slate-100); }
     .btn-confirm { padding: 8px 20px; background: var(--indigo); color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--font); }
+    .btn-danger { padding: 8px 20px; background: #fff; color: #dc2626; border: 1px solid #fecaca; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--font); margin-right: auto; }
+    .btn-danger:hover { background: #fef2f2; border-color: #dc2626; }
     .btn-confirm:hover { background: var(--indigo-light); }
     .drop-zone { border: 2px dashed var(--border); border-radius: 12px; padding: 32px; text-align: center; cursor: pointer; transition: all 0.15s; margin-bottom: 16px; }
     .drop-zone:hover, .drop-zone.drag-over { border-color: var(--indigo); background: var(--indigo-bg); }
@@ -460,6 +464,26 @@
     .toast { background: var(--slate-900); color: #fff; padding: 10px 16px; border-radius: 8px; font-size: 13px; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); max-width: 320px; }
     .toast.success { background: var(--green); }
     .toast.error { background: var(--red); }
+    .toast-action { margin-left: 10px; background: rgba(255,255,255,0.18); color: #fff; border: none; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: var(--font); flex-shrink: 0; }
+    .toast-action:hover { background: rgba(255,255,255,0.32); }
+
+    /* ── Écran de chargement initial ── */
+    .app-loading { position: fixed; inset: 0; z-index: 9999; background: var(--slate-50); display: flex; align-items: center; justify-content: center; transition: opacity 0.35s ease; }
+    .app-loading.hide { opacity: 0; pointer-events: none; }
+    .app-loading-inner { display: flex; flex-direction: column; align-items: center; gap: 22px; }
+    .app-loading-brand { display: flex; align-items: center; gap: 12px; }
+    .app-loading-mark { width: 44px; height: 44px; background: var(--indigo); color: #fff; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-family: var(--serif); font-size: 24px; box-shadow: 0 6px 20px rgba(79,70,229,0.32); }
+    .app-loading-name { font-family: var(--serif); font-size: 28px; color: var(--slate-900); }
+    .app-loading-bar { width: 180px; height: 4px; border-radius: 99px; background: var(--slate-200); overflow: hidden; }
+    .app-loading-bar > span { display: block; width: 40%; height: 100%; border-radius: 99px; background: var(--indigo); animation: appLoadSlide 1.1s ease-in-out infinite; }
+    @keyframes appLoadSlide { 0% { transform: translateX(-120%); } 100% { transform: translateX(320%); } }
+
+    /* ── Squelettes de contenu (chargements ciblés) ── */
+    .skeleton { position: relative; overflow: hidden; background: var(--slate-100); border-radius: 8px; }
+    .skeleton::after { content: ''; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255,255,255,0.65), transparent); animation: skelShimmer 1.3s infinite; }
+    @keyframes skelShimmer { 100% { transform: translateX(100%); } }
+    .skel-row { height: 52px; margin-bottom: 8px; }
+    .skel-line { height: 12px; border-radius: 6px; }
 
 
     /* ── CONTREPARTIES ── */
@@ -723,6 +747,17 @@
   <link rel="stylesheet" href="assets/juria-ui.css"/>
 </head>
 <body>
+
+<!-- Écran de chargement initial (retiré à la fin de init()) -->
+<div class="app-loading" id="appLoading">
+  <div class="app-loading-inner">
+    <div class="app-loading-brand">
+      <div class="app-loading-mark">J</div>
+      <div class="app-loading-name">Juria</div>
+    </div>
+    <div class="app-loading-bar"><span></span></div>
+  </div>
+</div>
 
 <!-- Voile de fermeture du tiroir mobile -->
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -1495,6 +1530,24 @@
   </div>
 </div>
 
+<!-- ══════════ MODAL: PARTAGER UNE CONTREPARTIE ══════════ -->
+<div class="modal-overlay" id="cpShareModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeCpShareModal()">×</button>
+    <div class="modal-title" id="cpShareModalTitle">Partager la contrepartie</div>
+    <div class="modal-sub">Donne accès à <b>tous les dossiers et documents</b> de cette contrepartie — présents et à venir.</div>
+    <div id="cpShareMembersList"></div>
+    <div class="share-add-row" id="cpShareAddRow">
+      <select class="form-input" id="cpShareAddSelect"></select>
+      <select class="form-input" id="cpShareAddRole" style="flex:0 0 110px">
+        <option value="viewer">Lecteur</option>
+        <option value="editor">Éditeur</option>
+      </select>
+      <button class="btn-primary" style="white-space:nowrap" onclick="cpShareAddMember()">Inviter</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="deadlineModal">
   <div class="modal">
     <button class="modal-close" onclick="closeDeadlineModal()">×</button>
@@ -1576,6 +1629,7 @@
 
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeFolderModal()">Annuler</button>
+      <button class="btn-danger" id="folderDeleteBtn" style="display:none" onclick="deleteFolder(editingFolderId)">🗑 Supprimer</button>
       <button class="btn-confirm" onclick="createFolder()">Créer le dossier</button>
     </div>
   </div>
@@ -2137,14 +2191,17 @@ let wsTreeInitialized = false;
  */
 let allFolderMembers = [];
 let folderMembersByFolder = {};
+let cpMembersByCp = {};       // counterparty_id -> [{user_id, role, ...}]
 let allOrgMembers = [];
 let myOrgRole = 'member';
 let shareFolderId = null;
+let shareCpId = null;
 
 async function loadSharingData() {
   try {
-    const [fmRes, members] = await Promise.all([
+    const [fmRes, cmRes, members] = await Promise.all([
       _sb.from('folder_members').select('folder_id, user_id, role, granted_by, created_at'),
+      _sb.from('counterparty_members').select('counterparty_id, user_id, role, granted_by, created_at'),
       Services?.organizations ? Services.organizations.getMembers(currentOrgId) : Promise.resolve([]),
     ]);
     allFolderMembers = fmRes?.data || [];
@@ -2152,9 +2209,20 @@ async function loadSharingData() {
     allFolderMembers.forEach(m => {
       (folderMembersByFolder[m.folder_id] = folderMembersByFolder[m.folder_id] || []).push(m);
     });
+    cpMembersByCp = {};
+    (cmRes?.data || []).forEach(m => {
+      (cpMembersByCp[m.counterparty_id] = cpMembersByCp[m.counterparty_id] || []).push(m);
+    });
     allOrgMembers = (members || []).filter(m => m.is_active);
     myOrgRole = allOrgMembers.find(m => m.user_id === currentUser?.id)?.role || 'member';
   } catch (e) { console.warn('[Partage] chargement échoué:', e?.message); }
+}
+
+/** Mon accès hérité d'un partage de contrepartie ('editor'|'viewer'|null). */
+function myCpAccess(counterpartyId) {
+  if (!counterpartyId) return null;
+  const m = (cpMembersByCp[counterpartyId] || []).find(x => x.user_id === currentUser?.id);
+  return m ? m.role : null;
 }
 
 /** Dossier racine (l'unité de partage), en suivant parent_id. */
@@ -2173,8 +2241,11 @@ function folderAccess(folderId) {
   if (!root) return null;
   if (myOrgRole === 'owner' || myOrgRole === 'admin') return 'owner';
   if (root.created_by === currentUser?.id) return 'owner';
+  // Le rôle le plus permissif l'emporte entre partage de dossier et de contrepartie.
   const fm = (folderMembersByFolder[root.id] || []).find(m => m.user_id === currentUser?.id);
-  if (fm) return fm.role;
+  const cp = myCpAccess(root.counterparty_id);
+  if (fm?.role === 'editor' || cp === 'editor') return 'editor';
+  if (fm?.role === 'viewer' || cp === 'viewer') return 'viewer';
   // visibility absente = données démo / fallback : comportement historique
   if (root.visibility === 'org' || !root.visibility) return myOrgRole === 'reader' ? 'viewer' : 'editor';
   return null;
@@ -2187,9 +2258,10 @@ function folderShareState(folder) {
   const members = folderMembersByFolder[root.id] || [];
   if (root.created_by === currentUser?.id) {
     if (root.visibility === 'org') return 'org';
-    return members.length ? 'mine-shared' : 'mine-private';
+    return (members.length || (cpMembersByCp[root.counterparty_id] || []).length) ? 'mine-shared' : 'mine-private';
   }
-  if (members.some(m => m.user_id === currentUser?.id)) return 'shared-with-me';
+  // Partagé avec moi : soit le dossier directement, soit sa contrepartie.
+  if (members.some(m => m.user_id === currentUser?.id) || myCpAccess(root.counterparty_id)) return 'shared-with-me';
   if (root.visibility === 'org') return 'org';
   return 'supervision'; // visible uniquement grâce au rôle admin/owner d'org
 }
@@ -2338,7 +2410,7 @@ async function shareChangeRole(userId, role) {
 }
 
 async function shareRemoveMember(userId) {
-  if (!confirm(`Révoquer l'accès de ${memberLabel(userId)} ?`)) return;
+  if (!await uiConfirm({ title: "Révoquer l'accès", message: `Révoquer l'accès de ${memberLabel(userId)} à ce dossier ?`, confirmLabel: 'Révoquer', danger: true })) return;
   const { error } = await _sb.from('folder_members')
     .delete().eq('folder_id', shareFolderId).eq('user_id', userId);
   if (error) { showToast('Erreur : ' + error.message, 'error'); return; }
@@ -2359,13 +2431,161 @@ async function shareSetVisibility(vis) {
   showToast(vis === 'org' ? 'Dossier visible par toute l\'organisation.' : 'Dossier repassé en privé.', 'success');
 }
 
+// ══════════════════════════════════════════════
+//  PARTAGE D'UNE CONTREPARTIE ENTIÈRE
+//  Donne accès à tous les dossiers (présents + futurs) de la contrepartie.
+// ══════════════════════════════════════════════
+function cpIsManager(cpId) {
+  if (myOrgRole === 'owner' || myOrgRole === 'admin') return true;
+  const cp = allCounterparties.find(c => c.id === cpId);
+  return !!cp && cp.created_by === currentUser?.id;
+}
+
+function openCpShareModal(cpId) {
+  if (!cpIsManager(cpId)) { showToast('Seul le propriétaire de la contrepartie gère ses accès.', 'error'); return; }
+  shareCpId = cpId;
+  renderCpShareModal();
+  document.getElementById('cpShareModal').classList.add('show');
+}
+
+/**
+ * Supprime une contrepartie (non destructif) : ses dossiers et documents sont
+ * conservés mais détachés (deviennent « sans contrepartie »). RLS : créateur/admin.
+ */
+async function deleteCounterparty(cpId) {
+  const cp = allCounterparties.find(c => c.id === cpId);
+  if (!cp) return;
+  if (!cpIsManager(cpId)) { showToast('Seul le propriétaire de la contrepartie peut la supprimer.', 'error'); return; }
+
+  const nbFolders = allFolders.filter(f => f.counterparty_id === cpId).length;
+  const nbDocs = allDocs.filter(d => d.counterparty_id === cpId).length;
+  const parts = [];
+  if (nbFolders) parts.push(`${nbFolders} dossier${nbFolders > 1 ? 's' : ''}`);
+  if (nbDocs) parts.push(`${nbDocs} document${nbDocs > 1 ? 's' : ''}`);
+  const detail = parts.length
+    ? `\n\n${parts.join(' et ')} seront conservés mais détachés (deviennent « sans contrepartie »).`
+    : '';
+  if (!await uiConfirm({ title: 'Supprimer la contrepartie', message: `« ${cp.name} » ?${detail}`, confirmLabel: 'Supprimer', danger: true })) return;
+
+  const { error } = await _sb.from('counterparties').delete().eq('id', cpId).eq('organization_id', currentOrgId);
+  if (error) { showToast('Erreur : ' + error.message, 'error'); return; }
+
+  // Reflet local : retirer la CP, détacher ses dossiers/documents
+  allCounterparties = allCounterparties.filter(c => c.id !== cpId);
+  if (typeof Store !== 'undefined') Store.setCounterparties(allCounterparties);
+  allFolders.forEach(f => { if (f.counterparty_id === cpId) f.counterparty_id = null; });
+  if (typeof Store !== 'undefined') Store.setFolders(allFolders);
+  allDocs.forEach(d => { if (d.counterparty_id === cpId) d.counterparty_id = null; });
+  delete cpMembersByCp[cpId];
+
+  renderTree();
+  if (typeof renderCounterparties === 'function') renderCounterparties();
+  updateNavCounts();
+  showToast('Contrepartie supprimée.', 'success');
+}
+
+function closeCpShareModal() {
+  document.getElementById('cpShareModal').classList.remove('show');
+  shareCpId = null;
+}
+
+function renderCpShareModal() {
+  const cp = allCounterparties.find(c => c.id === shareCpId);
+  if (!cp) return;
+  const members = cpMembersByCp[shareCpId] || [];
+  document.getElementById('cpShareModalTitle').textContent = `Partager « ${cp.name} »`;
+
+  const ownerRow = `
+    <div class="share-member-row">
+      <span class="sh-av">${escHtml(memberInitials(cp.created_by))}</span>
+      <div class="share-member-info">
+        <div class="share-member-name">${escHtml(memberLabel(cp.created_by))}${cp.created_by === currentUser?.id ? ' (vous)' : ''}</div>
+        <div class="share-member-email">${escHtml(allOrgMembers.find(m => m.user_id === cp.created_by)?.email || '')}</div>
+      </div>
+      <span class="share-owner-tag">Propriétaire</span>
+    </div>`;
+
+  const memberRows = members.map(m => `
+    <div class="share-member-row">
+      <span class="sh-av">${escHtml(memberInitials(m.user_id))}</span>
+      <div class="share-member-info">
+        <div class="share-member-name">${escHtml(memberLabel(m.user_id))}</div>
+        <div class="share-member-email">${escHtml(allOrgMembers.find(x => x.user_id === m.user_id)?.email || '')}</div>
+      </div>
+      <select class="share-role-select" onchange="cpShareChangeRole('${m.user_id}', this.value)">
+        <option value="viewer" ${m.role === 'viewer' ? 'selected' : ''}>Lecteur</option>
+        <option value="editor" ${m.role === 'editor' ? 'selected' : ''}>Éditeur</option>
+      </select>
+      <button class="action-btn danger" title="Révoquer l'accès" onclick="cpShareRemoveMember('${m.user_id}')">✕</button>
+    </div>`).join('');
+
+  document.getElementById('cpShareMembersList').innerHTML = ownerRow + memberRows;
+
+  const invitable = allOrgMembers.filter(m =>
+    m.user_id !== cp.created_by &&
+    m.role !== 'owner' && m.role !== 'admin' &&
+    !members.some(x => x.user_id === m.user_id)
+  );
+  const addRow = document.getElementById('cpShareAddRow');
+  if (invitable.length) {
+    addRow.style.display = '';
+    document.getElementById('cpShareAddSelect').innerHTML =
+      invitable.map(m => `<option value="${m.user_id}">${escHtml(memberLabel(m.user_id))} — ${escHtml(m.email || '')}</option>`).join('');
+  } else {
+    addRow.style.display = 'none';
+  }
+}
+
+function _cpShareRefreshUI() {
+  renderTree();
+  if (typeof renderCounterparties === 'function') renderCounterparties();
+  if (shareCpId) renderCpShareModal();
+}
+
+async function cpShareAddMember() {
+  const userId = document.getElementById('cpShareAddSelect').value;
+  const role = document.getElementById('cpShareAddRole').value;
+  if (!userId || !shareCpId) return;
+  const { error } = await _sb.from('counterparty_members').insert({
+    counterparty_id: shareCpId, user_id: userId, role, granted_by: currentUser.id,
+  });
+  if (error) { showToast('Erreur : ' + error.message, 'error'); return; }
+  (cpMembersByCp[shareCpId] = cpMembersByCp[shareCpId] || [])
+    .push({ counterparty_id: shareCpId, user_id: userId, role, granted_by: currentUser.id });
+  _cpShareRefreshUI();
+  showToast(`${memberLabel(userId)} a maintenant accès à toute la contrepartie.`, 'success');
+}
+
+async function cpShareChangeRole(userId, role) {
+  const { error } = await _sb.from('counterparty_members')
+    .update({ role }).eq('counterparty_id', shareCpId).eq('user_id', userId);
+  if (error) { showToast('Erreur : ' + error.message, 'error'); renderCpShareModal(); return; }
+  const m = (cpMembersByCp[shareCpId] || []).find(x => x.user_id === userId);
+  if (m) m.role = role;
+  _cpShareRefreshUI();
+}
+
+async function cpShareRemoveMember(userId) {
+  if (!await uiConfirm({ title: "Révoquer l'accès", message: `Révoquer l'accès de ${memberLabel(userId)} à toute la contrepartie ?`, confirmLabel: 'Révoquer', danger: true })) return;
+  const { error } = await _sb.from('counterparty_members')
+    .delete().eq('counterparty_id', shareCpId).eq('user_id', userId);
+  if (error) { showToast('Erreur : ' + error.message, 'error'); return; }
+  cpMembersByCp[shareCpId] = (cpMembersByCp[shareCpId] || []).filter(x => x.user_id !== userId);
+  _cpShareRefreshUI();
+  showToast('Accès révoqué.', 'success');
+}
+
 // ── Historique des accès (journal folder_access_log) ─────────────────
 async function toggleShareHistory() {
   const wrap = document.getElementById('shareHistory');
   if (!wrap) return;
   if (wrap.style.display !== 'none') { wrap.style.display = 'none'; return; }
   wrap.style.display = '';
-  wrap.innerHTML = '<div class="notif-empty">Chargement…</div>';
+  wrap.innerHTML = '<div style="padding:12px 14px">' +
+    '<div class="skeleton skel-line" style="width:72%;margin-bottom:10px"></div>' +
+    '<div class="skeleton skel-line" style="width:88%;margin-bottom:10px"></div>' +
+    '<div class="skeleton skel-line" style="width:58%"></div>' +
+    '</div>';
   const { data, error } = await _sb
     .from('folder_access_log')
     .select('action, target_user, actor, detail, created_at')
@@ -2427,17 +2647,24 @@ function notifText(n) {
   const p = n.payload || {};
   const by = p.by ? memberLabel(p.by) : 'Un collègue';
   const name = p.folder_name || 'un dossier';
+  const cpName = p.counterparty_name || 'une contrepartie';
   const role = p.role === 'editor' ? 'éditeur' : 'lecteur';
   switch (n.type) {
-    case 'folder_shared':       return `<b>${escHtml(by)}</b> vous a donné accès au dossier <b>${escHtml(name)}</b> (${role})`;
-    case 'folder_role_changed': return `<b>${escHtml(by)}</b> vous a passé en ${role} sur <b>${escHtml(name)}</b>`;
-    case 'folder_revoked':      return `<b>${escHtml(by)}</b> a révoqué votre accès au dossier <b>${escHtml(name)}</b>`;
-    default:                    return escHtml(n.type);
+    case 'folder_shared':             return `<b>${escHtml(by)}</b> vous a donné accès au dossier <b>${escHtml(name)}</b> (${role})`;
+    case 'folder_role_changed':       return `<b>${escHtml(by)}</b> vous a passé en ${role} sur <b>${escHtml(name)}</b>`;
+    case 'folder_revoked':            return `<b>${escHtml(by)}</b> a révoqué votre accès au dossier <b>${escHtml(name)}</b>`;
+    case 'counterparty_shared':       return `<b>${escHtml(by)}</b> vous a donné accès à toute la contrepartie <b>${escHtml(cpName)}</b> (${role})`;
+    case 'counterparty_role_changed': return `<b>${escHtml(by)}</b> vous a passé en ${role} sur la contrepartie <b>${escHtml(cpName)}</b>`;
+    case 'counterparty_revoked':      return `<b>${escHtml(by)}</b> a révoqué votre accès à la contrepartie <b>${escHtml(cpName)}</b>`;
+    default:                          return escHtml(n.type);
   }
 }
 
 function notifIcon(n) {
-  return { folder_shared: '📁', folder_role_changed: '✏️', folder_revoked: '🚫' }[n.type] || '🔔';
+  return {
+    folder_shared: '📁', folder_role_changed: '✏️', folder_revoked: '🚫',
+    counterparty_shared: '🏢', counterparty_role_changed: '✏️', counterparty_revoked: '🚫',
+  }[n.type] || '🔔';
 }
 
 function notifTimeAgo(iso) {
@@ -2612,13 +2839,23 @@ function renderTree(searchFilter) {
     let cpDocCount = 0;
     folders.forEach(f => { cpDocCount += folderStats(f.id, f.name).docCount; });
 
+    const cpShareCount = (cpMembersByCp[cpId] || []).length;
+    const cpShareBadge = cpShareCount ? `<span class="tree-share" title="Contrepartie partagée avec ${cpShareCount} personne${cpShareCount > 1 ? 's' : ''}">👥</span>` : '';
+    const cpShareAction = cpIsManager(cpId)
+      ? `<span class="tree-actions">
+           <button class="tree-action" onclick="event.stopPropagation();openCpShareModal('${cpId}')" title="Partager toute la contrepartie">👥</button>
+           <button class="tree-action" onclick="event.stopPropagation();deleteCounterparty('${cpId}')" title="Supprimer la contrepartie">🗑</button>
+         </span>`
+      : '';
     html += `
       <div class="tree-node" data-level="0">
         <div class="tree-row" onclick="toggleTreeNode('${cpNodeId}')">
           <span class="tree-caret ${expanded ? 'expanded' : ''}">▶</span>
           <span class="tree-icon">🏢</span>
           <span class="tree-name">${escHtml(cpName)}</span>
+          ${cpShareBadge}
           <span class="tree-badge">${cpDocCount}</span>
+          ${cpShareAction}
         </div>
         <div class="tree-children ${expanded ? '' : 'collapsed'}">
           ${folders.map(f => renderTreeFolder(f, 1, q, folderStats)).join('')}
@@ -2636,13 +2873,62 @@ function renderTree(searchFilter) {
     }
   }
 
-  // Dossiers que des collègues m'ont partagés
+  // Dossiers que des collègues m'ont partagés.
+  // Hiérarchie à 3 niveaux : Partagé par <personne> → Contrepartie → Dossier.
   if (sharedWithMe.length) {
     const filtered = sharedWithMe.filter(f => !q || f.name.toLowerCase().includes(q) ||
       getSubFoldersFast(f.id).some(s => s.name.toLowerCase().includes(q)));
     if (filtered.length) {
       html += `<div class="tree-section-label">Partagés avec moi</div>`;
-      filtered.forEach(f => { html += renderTreeFolder(f, 0, q, folderStats, memberLabel(f.created_by)); });
+
+      // Niveau 1 : regrouper par personne qui a partagé (le propriétaire du dossier)
+      const bySharer = {};
+      filtered.forEach(f => { (bySharer[f.created_by] = bySharer[f.created_by] || []).push(f); });
+
+      Object.entries(bySharer).forEach(([sharerId, sharerFolders]) => {
+        const sharerNodeId = 'shared-by-' + sharerId;
+        const sharerOpen = wsExpandedNodes.has(sharerNodeId);
+        html += `
+          <div class="tree-node" data-level="0">
+            <div class="tree-row" onclick="toggleTreeNode('${sharerNodeId}')">
+              <span class="tree-caret ${sharerOpen ? 'expanded' : ''}">▶</span>
+              <span class="tree-icon">👤</span>
+              <span class="tree-name">${escHtml(memberLabel(sharerId))}</span>
+              <span class="tree-badge">${sharerFolders.length}</span>
+            </div>
+            <div class="tree-children ${sharerOpen ? '' : 'collapsed'}">`;
+
+        // Niveau 2 : regrouper les dossiers de cette personne par contrepartie
+        const byCp = {};
+        const noCpFolders = [];
+        sharerFolders.forEach(f => {
+          if (f.counterparty_id) (byCp[f.counterparty_id] = byCp[f.counterparty_id] || []).push(f);
+          else noCpFolders.push(f);
+        });
+
+        Object.entries(byCp).forEach(([cpId, cpFolders]) => {
+          const cp = allCounterparties.find(c => c.id === cpId);
+          const cpNodeId = sharerNodeId + '-cp-' + cpId;
+          const cpOpen = wsExpandedNodes.has(cpNodeId);
+          html += `
+            <div class="tree-node" data-level="1">
+              <div class="tree-row" onclick="toggleTreeNode('${cpNodeId}')">
+                <span class="tree-caret ${cpOpen ? 'expanded' : ''}">▶</span>
+                <span class="tree-icon">🏢</span>
+                <span class="tree-name">${escHtml(cp?.name || 'Contrepartie')}</span>
+                <span class="tree-badge">${cpFolders.length}</span>
+              </div>
+              <div class="tree-children ${cpOpen ? '' : 'collapsed'}">
+                ${cpFolders.map(f => renderTreeFolder(f, 2, q, folderStats)).join('')}
+              </div>
+            </div>`;
+        });
+
+        // Dossiers partagés sans contrepartie : directement sous la personne
+        noCpFolders.forEach(f => { html += renderTreeFolder(f, 1, q, folderStats); });
+
+        html += `</div></div>`;
+      });
     }
   }
 
@@ -2905,7 +3191,10 @@ function wsSwitchTab(tabName) {
   }
 
   if (tabName === 'docs') {
-    document.getElementById('wsTab-docs').innerHTML = renderWsDocsTable(docsInScope, subs);
+    const canEditScope = (wsSelectedFolderId === '__all__')
+      ? true
+      : !!(folder && ['owner', 'editor'].includes(folderAccess(folder.id)));
+    document.getElementById('wsTab-docs').innerHTML = renderWsDocsTable(docsInScope, subs, canEditScope);
   } else if (tabName === 'subs') {
     document.getElementById('wsTab-subs').innerHTML = renderWsSubfolders(folder, subs);
   } else if (tabName === 'risks') {
@@ -2925,8 +3214,9 @@ function wsSwitchTab(tabName) {
 /**
  * Table de documents moderne (style NetDocuments / iManage).
  */
-function renderWsDocsTable(docs, subs) {
+function renderWsDocsTable(docs, subs, canEdit = false) {
   subs = subs || [];
+  docs = docs.filter(d => !pendingDeleteIds.has(d.id));
   if (!docs.length && !subs.length) {
     return wsEmptyTab('📄', 'Aucun document', 'Importez des documents ou créez des sous-dossiers pour organiser ce dossier.');
   }
@@ -2992,7 +3282,10 @@ function renderWsDocsTable(docs, subs) {
       <td>${fileBadge(d.file_type)}</td>
       <td style="color:var(--slate-500)">${fmtDate(d.created_at)}</td>
       <td style="color:var(--slate-500)">${fmtSize(d.file_size)}</td>
-      <td style="text-align:right"><button class="tree-action" onclick="event.stopPropagation();openDoc('${d.id}')" title="Ouvrir">⋯</button></td>
+      <td style="text-align:right;white-space:nowrap">
+        <button class="tree-action" onclick="event.stopPropagation();openDoc('${d.id}')" title="Ouvrir">⋯</button>
+        ${canEdit ? `<button class="tree-action" onclick="event.stopPropagation();deleteDoc('${d.id}')" title="Supprimer">🗑</button>` : ''}
+      </td>
     </tr>`).join('');
 
   return `<table class="ws-doctable">
@@ -3156,6 +3449,7 @@ function filterDocs() {
   const folder = document.getElementById('filterFolder')?.value || '';
 
   filteredDocs = allDocs.filter(d => {
+    if (pendingDeleteIds.has(d.id)) return false;
     const matchQ = !q || d.name.toLowerCase().includes(q) || (d.parties||'').toLowerCase().includes(q) || (d.folder||'').toLowerCase().includes(q);
     const matchType = !type || d.file_type === type;
     const matchStatus = !status || d.status === status;
@@ -3214,9 +3508,12 @@ function filterDocs() {
 }
 
 function renderDocsTable(docs) {
+  docs = docs.filter(d => !pendingDeleteIds.has(d.id));
   return `<table class="docs-table">
-    <thead><tr><th>Document</th><th>Date</th><th>Score</th><th>Statut</th></tr></thead>
-    <tbody>${docs.map(doc => `
+    <thead><tr><th>Document</th><th>Date</th><th>Score</th><th>Statut</th><th></th></tr></thead>
+    <tbody>${docs.map(doc => {
+      const canDel = ['owner', 'editor'].includes(folderAccess(doc.folder_id));
+      return `
     <tr onclick="openDoc('${doc.id}')">
       <td><div class="doc-cell">
         <div class="doc-icon ${doc.file_type === 'pdf' ? 'pdf' : 'docx'}">${doc.file_type === 'pdf' ? '📕' : '📘'}</div>
@@ -3225,7 +3522,12 @@ function renderDocsTable(docs) {
       <td style="font-size:13px;color:var(--slate-400)">${new Date(doc.created_at).toLocaleDateString('fr-MA',{day:'numeric',month:'short'})}</td>
       <td>${getScoreChip(doc.score)}</td>
       <td>${getStatusBadge(doc.status)}</td>
-    </tr>`).join('')}
+      <td style="text-align:right;white-space:nowrap">
+        <button class="tree-action" onclick="event.stopPropagation();openDoc('${doc.id}')" title="Ouvrir">⋯</button>
+        ${canDel ? `<button class="tree-action" onclick="event.stopPropagation();deleteDoc('${doc.id}')" title="Supprimer">🗑</button>` : ''}
+      </td>
+    </tr>`;
+    }).join('')}
     </tbody></table>`;
 }
 
@@ -3695,7 +3997,7 @@ async function saveDeadline() {
 }
 
 async function deleteDeadline(id) {
-  if (!confirm('Supprimer cette échéance ?')) return;
+  if (!await uiConfirm({ title: "Supprimer l'échéance", message: 'Cette échéance sera définitivement supprimée.', confirmLabel: 'Supprimer', danger: true })) return;
   const { error } = await _sb.from('document_obligations').delete().eq('id', id);
   if (error) { showToast('Erreur : ' + error.message, 'error'); return; }
   Store.setDeadlines(Store.state.deadlines.filter(d => d.id !== id));
@@ -3778,6 +4080,8 @@ function openFolderModal() {
   document.getElementById('folderName').value = '';
   document.getElementById('folderDesc').value = '';
   document.getElementById('folderCounterparty').value = '';
+  const delBtn = document.getElementById('folderDeleteBtn');
+  if (delBtn) delBtn.style.display = 'none'; // pas de suppression en création
   document.getElementById('folderModal').classList.add('show');
 }
 function closeFolderModal() {
@@ -3790,6 +4094,39 @@ function closeFolderModal() {
  * - Dossier principal : nom, description, contrepartie modifiables
  * - Sous-dossier : nom, description seulement (contrepartie héritée, non modifiable)
  */
+/**
+ * Supprime un dossier (non destructif) : documents conservés (déplacés en
+ * « sans dossier »), sous-dossiers supprimés, tâches détachées. RLS : owner.
+ */
+async function deleteFolder(folderId) {
+  const folder = allFolders.find(f => f.id === folderId);
+  if (!folder) return;
+  const subs = getSubFoldersFast(folderId);
+  const subIds = [folderId, ...subs.map(s => s.id)];
+  const docCount = allDocs.filter(d => subIds.includes(d.folder_id)).length;
+
+  const parts = [];
+  if (docCount) parts.push(`${docCount} document${docCount > 1 ? 's' : ''} sera conservé${docCount > 1 ? 's' : ''} et déplacé${docCount > 1 ? 's' : ''} en « sans dossier »`);
+  if (subs.length) parts.push(`${subs.length} sous-dossier${subs.length > 1 ? 's' : ''} sera supprimé${subs.length > 1 ? 's' : ''}`);
+  const detail = parts.length ? '\n\n' + parts.join('.\n') + '.' : '';
+  if (!await uiConfirm({ title: 'Supprimer le dossier', message: `« ${folder.name} » ?${detail}`, confirmLabel: 'Supprimer', danger: true })) return;
+
+  const { error } = await _sb.from('folders').delete().eq('id', folderId).eq('organization_id', currentOrgId);
+  if (error) { showToast('Erreur : ' + error.message, 'error'); return; }
+
+  // Reflet local : retirer le dossier + ses sous-dossiers, détacher leurs docs
+  allFolders = allFolders.filter(f => !subIds.includes(f.id));
+  if (typeof Store !== 'undefined') Store.setFolders(allFolders);
+  allDocs.forEach(d => { if (subIds.includes(d.folder_id)) { d.folder_id = null; d.folder = '—'; } });
+  if (wsSelectedFolderId === folderId || subIds.includes(wsSelectedFolderId)) wsSelectedFolderId = '__all__';
+
+  closeFolderModal();
+  renderTree();
+  if (typeof selectAllFolders === 'function') selectAllFolders();
+  updateNavCounts();
+  showToast('Dossier supprimé.', 'success');
+}
+
 function editFolder(folderId) {
   const folder = allFolders.find(f => f.id === folderId);
   if (!folder) return;
@@ -3807,6 +4144,10 @@ function editFolder(folderId) {
 
   document.getElementById('folderName').value = folder.name || '';
   document.getElementById('folderDesc').value = folder.description || '';
+
+  // Suppression réservée au propriétaire du dossier (la RLS l'exige aussi)
+  const delBtn = document.getElementById('folderDeleteBtn');
+  if (delBtn) delBtn.style.display = (folderAccess(folderId) === 'owner') ? '' : 'none';
 
   const cpGroup = document.getElementById('counterpartyGroup');
   if (isSubFolder) {
@@ -4274,18 +4615,45 @@ function analyzeDoc(id) { window.location.href = 'analyse-contrat.html?doc_id=' 
 function openSynthesis(id) { window.location.href = 'document-view.html?id=' + encodeURIComponent(id) + '#synthese'; }
 async function deleteDoc(id) {
   const doc = allDocs.find(d => d.id === id);
-  if (!doc || !confirm('Supprimer « ' + doc.name + ' » ?')) return;
+  if (!doc) return;
+  const confirmed = await uiConfirm({
+    title: 'Supprimer le document',
+    message: `« ${doc.name} » sera supprimé, ainsi que ses tâches et commentaires.\nVous pourrez annuler pendant quelques secondes.`,
+    confirmLabel: 'Supprimer', danger: true,
+  });
+  if (!confirmed) return;
 
-  if (Services?.documents) {
-    const ok = await Services.documents.archiveDocument(id, currentOrgId, true);
-    if (ok) allDocs = Store.state.documents;
-  } else {
-    try { await _sb.from('documents').delete().eq('id', id).eq('organization_id', currentOrgId); } catch(e) {}
-    allDocs = allDocs.filter(d => d.id !== id);
-  }
-  updateNavCounts();
-  filterDocs();
-  showToast('Document supprimé.', '');
+  // Masquage optimiste : le document disparaît des vues, mais la suppression
+  // réelle n'est déclenchée qu'après la fenêtre d'annulation.
+  pendingDeleteIds.add(id);
+  refreshDocViews();
+
+  let undone = false;
+  const commit = async () => {
+    if (undone) return;
+    let ok = false;
+    if (Services?.documents) {
+      ok = await Services.documents.archiveDocument(id, currentOrgId, true);
+      if (ok) allDocs = Store.state.documents;
+    } else {
+      try {
+        const { error } = await _sb.from('documents').delete().eq('id', id).eq('organization_id', currentOrgId);
+        ok = !error;
+      } catch (e) { ok = false; }
+      if (ok) allDocs = allDocs.filter(d => d.id !== id);
+    }
+    pendingDeleteIds.delete(id);
+    if (!ok) showToast('Suppression impossible. Réessayez.', 'error');
+    refreshDocViews();
+  };
+  const timer = setTimeout(commit, 5000);
+
+  showActionToast('Document supprimé.', 'Annuler', () => {
+    undone = true;
+    clearTimeout(timer);
+    pendingDeleteIds.delete(id);
+    refreshDocViews();
+  }, 5000);
 }
 
 // ── BADGES & HELPERS ──────────────────────────
@@ -4516,7 +4884,7 @@ async function createCounterparty() {
   try {
     // ✅ Sauvegarder en base via le service
     if (Services?.counterparties) {
-      const saved = await Services.counterparties.saveCounterparty(payload, currentOrgId);
+      const saved = await Services.counterparties.saveCounterparty(payload, currentOrgId, currentUser?.id);
       if (!saved) throw new Error('Sauvegarde échouée');
       
       // Le service appelle déjà upsertCounterparty, mais on force une sync
@@ -5601,6 +5969,91 @@ function showToast(msg, type) {
   setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.3s'; setTimeout(() => toast.remove(), 300); }, 3000);
 }
 
+// Toast avec bouton d'action (ex. « Annuler »). onAction n'est appelé que si
+// l'utilisateur clique avant la fin du délai.
+function showActionToast(msg, actionLabel, onAction, duration = 5000) {
+  const wrap = document.getElementById('toastWrap');
+  const toast = document.createElement('div');
+  toast.className = 'toast success';
+  const span = document.createElement('span');
+  span.textContent = msg;
+  const btn = document.createElement('button');
+  btn.className = 'toast-action';
+  btn.textContent = actionLabel;
+  toast.appendChild(span);
+  toast.appendChild(btn);
+  wrap.appendChild(toast);
+  let done = false;
+  const remove = () => { if (done) return; done = true; toast.style.opacity = '0'; toast.style.transition = 'opacity 0.3s'; setTimeout(() => toast.remove(), 300); };
+  const timer = setTimeout(remove, duration);
+  btn.onclick = () => { clearTimeout(timer); remove(); onAction(); };
+}
+
+// Modale de confirmation cohérente avec l'app (remplace le confirm() natif).
+// Renvoie une Promise<boolean>. Échap / clic hors modale = annuler, Entrée = confirmer.
+function uiConfirm({ title = 'Confirmer', message = '', confirmLabel = 'Confirmer', cancelLabel = 'Annuler', danger = false } = {}) {
+  return new Promise((resolve) => {
+    let overlay = document.getElementById('uiConfirmOverlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.id = 'uiConfirmOverlay';
+      overlay.innerHTML =
+        '<div class="modal" style="width:420px">' +
+        '<div class="modal-title" id="uiConfirmTitle"></div>' +
+        '<div class="modal-sub" id="uiConfirmMsg" style="margin-bottom:0;white-space:pre-line"></div>' +
+        '<div class="modal-actions">' +
+        '<button class="btn-cancel" id="uiConfirmCancel"></button>' +
+        '<button class="btn-confirm" id="uiConfirmOk"></button>' +
+        '</div></div>';
+      document.body.appendChild(overlay);
+    }
+    const titleEl = overlay.querySelector('#uiConfirmTitle');
+    const msgEl = overlay.querySelector('#uiConfirmMsg');
+    const okBtn = overlay.querySelector('#uiConfirmOk');
+    const cancelBtn = overlay.querySelector('#uiConfirmCancel');
+    titleEl.textContent = title;
+    msgEl.textContent = message;
+    msgEl.style.display = message ? '' : 'none';
+    okBtn.textContent = confirmLabel;
+    cancelBtn.textContent = cancelLabel;
+    // Bouton rouge en mode danger, mais gardé à droite (btn-danger a margin-right:auto).
+    okBtn.className = danger ? 'btn-danger' : 'btn-confirm';
+    okBtn.style.marginRight = '0';
+
+    const close = (val) => {
+      overlay.classList.remove('show');
+      okBtn.onclick = cancelBtn.onclick = overlay.onclick = null;
+      document.removeEventListener('keydown', onKey);
+      resolve(val);
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); close(false); }
+      else if (e.key === 'Enter') { e.preventDefault(); close(true); }
+    };
+    okBtn.onclick = () => close(true);
+    cancelBtn.onclick = () => close(false);
+    overlay.onclick = (e) => { if (e.target === overlay) close(false); };
+    document.addEventListener('keydown', onKey);
+    overlay.classList.add('show');
+    setTimeout(() => okBtn.focus(), 30);
+  });
+}
+
+// Documents en attente de suppression (fenêtre d'annulation) : masqués des vues.
+const pendingDeleteIds = new Set();
+
+// Re-render des trois vues où un document peut apparaître.
+function refreshDocViews() {
+  updateNavCounts();
+  filterDocs();
+  try {
+    if (wsSelectedFolderId === '__all__') wsSwitchTab(wsActiveTab);
+    else if (wsSelectedFolderId) renderFolderDetail(wsSelectedFolderId);
+  } catch (e) {}
+  try { if (currentDetailCpId) openCpDetail(currentDetailCpId); } catch (e) {}
+}
+
 // ── SYNC ALIASES (appelé par bootstrap.js après chaque chargement) ──
 function _syncGlobalAliases() {
   if (typeof Store === 'undefined') return;
@@ -5632,10 +6085,21 @@ document.getElementById('btnLogout').addEventListener('click', async () => { awa
 // Les sidebars des autres pages pointent ici (Contreparties, Dossiers,
 // Risques, Échéances, Timeline, Tâches) — sans ce paramètre, ces liens
 // retombaient tous sur le dashboard, donnant l'impression de liens morts.
+function hideAppLoading() {
+  var el = document.getElementById('appLoading');
+  if (!el || el.classList.contains('hide')) return;
+  el.classList.add('hide');
+  setTimeout(function() { el.remove(); }, 400);
+}
+// Filet de sécurité : ne jamais rester bloqué sur l'écran de chargement.
+setTimeout(hideAppLoading, 12000);
+
 init().then(function() {
   var pageParam = new URLSearchParams(window.location.search).get('page');
   if (pageParam && document.getElementById('page-' + pageParam)) showPage(pageParam);
-});
+}).catch(function(e) {
+  console.error('[init] échec du chargement', e);
+}).finally(hideAppLoading);
 </script>
 </body>
 </html>

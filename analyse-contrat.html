@@ -518,7 +518,17 @@ async function startAnalysis() {
       }),
     });
 
-    if (!res.ok) throw new Error('Erreur serveur: ' + res.status);
+    if (!res.ok) {
+      // Message serveur explicite s'il existe (quota, surcharge IA…), sinon générique.
+      var serverMsg = '';
+      try { var errBody = await res.json(); serverMsg = errBody && errBody.error ? errBody.error : ''; } catch (e) {}
+      if (!serverMsg) {
+        serverMsg = res.status === 429
+          ? "Le service d'analyse est momentanément surchargé. Réessayez dans un instant."
+          : 'Erreur serveur (' + res.status + '). Réessayez.';
+      }
+      throw new Error(serverMsg);
+    }
     analysisResult = await res.json();
 
     setStep('Finalisation...');
@@ -549,7 +559,7 @@ async function startAnalysis() {
 
 
   } catch(e) {
-    alert('Erreur: ' + e.message);
+    alert(e.message || 'Une erreur est survenue pendant l\'analyse.');
     document.getElementById('btnAnalyse').disabled = false;
   } finally {
     document.getElementById('loading').classList.remove('show');
