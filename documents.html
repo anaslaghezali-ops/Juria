@@ -467,6 +467,24 @@
     .toast-action { margin-left: 10px; background: rgba(255,255,255,0.18); color: #fff; border: none; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: var(--font); flex-shrink: 0; }
     .toast-action:hover { background: rgba(255,255,255,0.32); }
 
+    /* ── Écran de chargement initial ── */
+    .app-loading { position: fixed; inset: 0; z-index: 9999; background: var(--slate-50); display: flex; align-items: center; justify-content: center; transition: opacity 0.35s ease; }
+    .app-loading.hide { opacity: 0; pointer-events: none; }
+    .app-loading-inner { display: flex; flex-direction: column; align-items: center; gap: 22px; }
+    .app-loading-brand { display: flex; align-items: center; gap: 12px; }
+    .app-loading-mark { width: 44px; height: 44px; background: var(--indigo); color: #fff; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-family: var(--serif); font-size: 24px; box-shadow: 0 6px 20px rgba(79,70,229,0.32); }
+    .app-loading-name { font-family: var(--serif); font-size: 28px; color: var(--slate-900); }
+    .app-loading-bar { width: 180px; height: 4px; border-radius: 99px; background: var(--slate-200); overflow: hidden; }
+    .app-loading-bar > span { display: block; width: 40%; height: 100%; border-radius: 99px; background: var(--indigo); animation: appLoadSlide 1.1s ease-in-out infinite; }
+    @keyframes appLoadSlide { 0% { transform: translateX(-120%); } 100% { transform: translateX(320%); } }
+
+    /* ── Squelettes de contenu (chargements ciblés) ── */
+    .skeleton { position: relative; overflow: hidden; background: var(--slate-100); border-radius: 8px; }
+    .skeleton::after { content: ''; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255,255,255,0.65), transparent); animation: skelShimmer 1.3s infinite; }
+    @keyframes skelShimmer { 100% { transform: translateX(100%); } }
+    .skel-row { height: 52px; margin-bottom: 8px; }
+    .skel-line { height: 12px; border-radius: 6px; }
+
 
     /* ── CONTREPARTIES ── */
     .cp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
@@ -729,6 +747,17 @@
   <link rel="stylesheet" href="assets/juria-ui.css"/>
 </head>
 <body>
+
+<!-- Écran de chargement initial (retiré à la fin de init()) -->
+<div class="app-loading" id="appLoading">
+  <div class="app-loading-inner">
+    <div class="app-loading-brand">
+      <div class="app-loading-mark">J</div>
+      <div class="app-loading-name">Juria</div>
+    </div>
+    <div class="app-loading-bar"><span></span></div>
+  </div>
+</div>
 
 <!-- Voile de fermeture du tiroir mobile -->
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -2552,7 +2581,11 @@ async function toggleShareHistory() {
   if (!wrap) return;
   if (wrap.style.display !== 'none') { wrap.style.display = 'none'; return; }
   wrap.style.display = '';
-  wrap.innerHTML = '<div class="notif-empty">Chargement…</div>';
+  wrap.innerHTML = '<div style="padding:12px 14px">' +
+    '<div class="skeleton skel-line" style="width:72%;margin-bottom:10px"></div>' +
+    '<div class="skeleton skel-line" style="width:88%;margin-bottom:10px"></div>' +
+    '<div class="skeleton skel-line" style="width:58%"></div>' +
+    '</div>';
   const { data, error } = await _sb
     .from('folder_access_log')
     .select('action, target_user, actor, detail, created_at')
@@ -6052,10 +6085,21 @@ document.getElementById('btnLogout').addEventListener('click', async () => { awa
 // Les sidebars des autres pages pointent ici (Contreparties, Dossiers,
 // Risques, Échéances, Timeline, Tâches) — sans ce paramètre, ces liens
 // retombaient tous sur le dashboard, donnant l'impression de liens morts.
+function hideAppLoading() {
+  var el = document.getElementById('appLoading');
+  if (!el || el.classList.contains('hide')) return;
+  el.classList.add('hide');
+  setTimeout(function() { el.remove(); }, 400);
+}
+// Filet de sécurité : ne jamais rester bloqué sur l'écran de chargement.
+setTimeout(hideAppLoading, 12000);
+
 init().then(function() {
   var pageParam = new URLSearchParams(window.location.search).get('page');
   if (pageParam && document.getElementById('page-' + pageParam)) showPage(pageParam);
-});
+}).catch(function(e) {
+  console.error('[init] échec du chargement', e);
+}).finally(hideAppLoading);
 </script>
 </body>
 </html>
