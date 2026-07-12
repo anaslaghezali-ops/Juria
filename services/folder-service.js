@@ -22,7 +22,7 @@ class FolderService extends BaseService {
       const data = await this.getByOrg(orgId, `
         id, name, description, color, icon,
         organization_id, parent_id, counterparty_id,
-        created_by, documents_count, position,
+        created_by, documents_count, position, visibility,
         created_at, updated_at
       `, {
         order: { column: 'updated_at', ascending: false },

@@ -10,18 +10,18 @@ const corsHeaders = {
 /**
  * Provision organization membership for a freshly-created auth user.
  *
- * Two paths:
- *   1. INVITED user  — a pre-invitation row exists in organization_users
- *                      (user_id IS NULL, email matches). We claim it by
- *                      setting user_id.
- *   2. ORGANIC signup — no pre-invitation exists. We create a brand-new
- *                       organization and link the user as its owner so the
- *                       app never ends up with an authenticated-but-orgless
- *                       user (which previously caused a PGRST116 / 406 in
- *                       getCurrentOrganization()).
+ * Juria est SUR INVITATION UNIQUEMENT : les organisations sont créées par le
+ * superadmin (back-office) ; leurs membres par un admin d'organisation
+ * (invite-user). Il n'existe AUCUN signup organique.
  *
- * This function is idempotent: if the user already has a membership row it
- * is a no-op.
+ *   - mode "check" ({ email, check: true }) : l'email a-t-il une invitation
+ *     en attente ? Appelé par auth.html AVANT de créer le compte auth.
+ *   - mode claim ({ userId, email })        : réclame l'invitation en
+ *     attente (user_id IS NULL, email égal sans tenir compte de la casse —
+ *     les claviers mobiles capitalisent). Sans invitation → 403 NOT_INVITED,
+ *     aucune organisation n'est créée.
+ *
+ * Idempotent : si l'utilisateur a déjà une adhésion, no-op.
  */
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -33,11 +33,12 @@ serve(async (req) => {
   }
 
   try {
-    const { userId, email, name } = await req.json()
+    const { userId, email, check } = await req.json()
 
-    if (!userId || !email) {
+    const normalizedEmail = typeof email === "string" ? email.toLowerCase().trim() : ""
+    if (!normalizedEmail) {
       return new Response(
-        JSON.stringify({ error: "Missing userId or email" }),
+        JSON.stringify({ error: "Missing email" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       )
     }
@@ -52,6 +53,31 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, serviceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     })
+
+    // ── Mode CHECK : invitation en attente pour cet email ? ─────────────
+    if (check) {
+      const { data: pending, error: checkError } = await supabase
+        .from("organization_users")
+        .select("id")
+        .ilike("email", normalizedEmail)
+        .is("user_id", null)
+        .limit(1)
+        .maybeSingle()
+
+      if (checkError) throw new Error(JSON.stringify(checkError))
+
+      return new Response(
+        JSON.stringify({ invited: !!pending }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      )
+    }
+
+    if (!userId) {
+      return new Response(
+        JSON.stringify({ error: "Missing userId" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      )
+    }
 
     // ── Idempotency guard: already a member? ────────────────────────────
     const { data: existing, error: existingError } = await supabase
@@ -74,78 +100,43 @@ serve(async (req) => {
       )
     }
 
-    // ── Path 1: claim a pre-invitation ──────────────────────────────────
-    const { data: invited, error: inviteError } = await supabase
+    // ── Claim de l'invitation (insensible à la casse : les claviers
+    //    mobiles capitalisent la première lettre de l'email) ──────────────
+    const { data: pending, error: pendingError } = await supabase
       .from("organization_users")
-      .update({ user_id: userId })
-      .eq("email", email)
+      .select("id")
+      .ilike("email", normalizedEmail)
       .is("user_id", null)
-      .select("id, organization_id")
 
-    if (inviteError) throw new Error(JSON.stringify(inviteError))
+    if (pendingError) throw new Error(JSON.stringify(pendingError))
 
-    if (invited && invited.length > 0) {
+    if (pending && pending.length > 0) {
+      const { data: claimed, error: claimError } = await supabase
+        .from("organization_users")
+        .update({ user_id: userId, email: normalizedEmail })
+        .in("id", pending.map((p) => p.id))
+        .select("id, organization_id")
+
+      if (claimError) throw new Error(JSON.stringify(claimError))
+
       return new Response(
         JSON.stringify({
           success: true,
           type: "invited",
-          organizationId: invited[0].organization_id,
+          organizationId: claimed![0].organization_id,
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       )
     }
 
-    // ── Path 2: organic signup → create a personal organization ─────────
-    const displayName = (name && name.trim()) || email.split("@")[0]
-
-    // Collision-safe slug: base derived from the email local-part plus a
-    // short random suffix, since organizations.slug is UNIQUE.
-    const base = email
-      .split("@")[0]
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 40) || "org"
-    const slug = `${base}-${crypto.randomUUID().slice(0, 8)}`
-
-    const { data: org, error: orgError } = await supabase
-      .from("organizations")
-      .insert({
-        name: displayName,
-        slug,
-        plan: "trial",
-        max_users: 1,
-        country: "MA",
-      })
-      .select("id")
-      .single()
-
-    if (orgError) throw new Error(JSON.stringify(orgError))
-
-    const [firstName, ...rest] = displayName.split(" ")
-    const lastName = rest.join(" ") || null
-
-    const { error: memberError } = await supabase
-      .from("organization_users")
-      .insert({
-        organization_id: org.id,
-        user_id: userId,
-        email,
-        first_name: firstName || null,
-        last_name: lastName,
-        role: "owner",
-        is_active: true,
-      })
-
-    if (memberError) throw new Error(JSON.stringify(memberError))
-
+    // ── Pas d'invitation : Juria est sur invitation uniquement. On ne
+    //    crée JAMAIS d'organisation ici. ──────────────────────────────────
     return new Response(
       JSON.stringify({
-        success: true,
-        type: "created",
-        organizationId: org.id,
+        error: "Aucune invitation trouvée pour cet email. Les comptes Juria sont créés sur invitation par votre organisation.",
+        code: "NOT_INVITED",
       }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     )
   } catch (error: any) {
     const errorMsg = error?.message || "Unknown error"

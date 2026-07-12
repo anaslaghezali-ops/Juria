@@ -1,5 +1,6 @@
 import { getCorsHeaders, handleCorsPreFlight } from "../_shared/cors.ts";
 import { authenticateRequest, errorResponse } from "../_shared/auth.ts";
+import { checkOrgQuota, logQuotaUsage, getOrgIdForUser } from "../_shared/quota-utils.ts";
 
 /**
  * JURIA — generate-synthesis
@@ -20,6 +21,12 @@ import { authenticateRequest, errorResponse } from "../_shared/auth.ts";
  */
 
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+
+// ── Quotas système v2 : global par organisation + crédits ──────────────────
+// Chaque org a un monthly_quota (en crédits).
+// Chaque opération consomme un nombre de crédits (cf. operation_costs).
+// -1 = illimité. Protection serveur, non contournable par client.
+// checkOrgQuota / logQuotaUsage / getOrgIdForUser : cf. _shared/quota-utils.ts
 
 // ── Appel OpenAI non-streamé ─────────────────────────────────────────────
 async function callGPT(
@@ -242,8 +249,14 @@ ${sectionList}
 - Si une section marquée "omets si sans matière" n'a pas de matière : n'émets PAS son marqueur du tout.
 
 STYLE : français juridique professionnel, précis, dense, sans remplissage. Jamais de "il semble que" — quand c'est incertain, dis pourquoi. Tu écris pour quelqu'un qui facture son temps.
+Si une donnée est absente du dossier (échéance, sanction…), écris "—" ; n'écris JAMAIS "null".
 
-${plan.instructions}`;
+${plan.instructions}
+
+RAPPEL FORMAT — RÈGLES ABSOLUES :
+1. Ta réponse COMMENCE directement par le premier marqueur <<<SECTION:...>>> (aucun préambule).
+2. N'invente AUCUN titre : pas de #, pas de ##, pas de titres en gras seuls sur une ligne. Les marqueurs <<<SECTION:id|Titre>>> sont les SEULS titres autorisés.
+3. Utilise uniquement les marqueurs listés ci-dessus, à l'identique, dans l'ordre.`;
 }
 
 // ── Handler ──────────────────────────────────────────────────────────────
@@ -257,10 +270,44 @@ Deno.serve(async (req) => {
   }
 
   try {
-    await authenticateRequest(req);
+    const { userId } = await authenticateRequest(req);
 
     const body = await req.json();
     const { mode } = body;
+
+    // ── MODE QUOTA (lecture seule, pour l'UI) ────────────────────────
+    if (mode === "quota") {
+      try {
+        const orgId = await getOrgIdForUser(userId);
+        const quotaCheck = await checkOrgQuota(orgId, "synthesis", 0);
+        return new Response(JSON.stringify({ quotaCheck }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (err) {
+        return errorResponse(500, `Erreur quota: ${err.message}`, corsHeaders);
+      }
+    }
+
+    // ── QUOTA : appliqué avant tout appel IA facturable ──────────────
+    if (mode === "extract" || mode === "compose") {
+      try {
+        const orgId = await getOrgIdForUser(userId);
+        const quotaCheck = await checkOrgQuota(orgId, "synthesis", 1);
+        if (!quotaCheck.allowed) {
+          return new Response(JSON.stringify({
+            error: quotaCheck.reason || "Quota organisation atteint",
+            code: "QUOTA_EXCEEDED",
+            remaining_credits: quotaCheck.remaining_credits,
+          }), {
+            status: 429,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      } catch (err) {
+        return errorResponse(500, `Erreur quota: ${err.message}`, corsHeaders);
+      }
+    }
 
     // ── MODE EXTRACT (MAP) ───────────────────────────────────────────
     if (mode === "extract") {
@@ -331,7 +378,28 @@ Deno.serve(async (req) => {
       ], 6000, corsHeaders);
     }
 
-    return errorResponse(400, "mode invalide (extract | consolidate | compose)", corsHeaders);
+    // ── MODE LOG-USAGE (enregistre la consommation de crédits) ────────
+    if (mode === "log-usage") {
+      try {
+        const { operation_type, quantity = 1 } = body;
+        if (!operation_type) {
+          return errorResponse(400, "operation_type requis", corsHeaders);
+        }
+        const orgId = await getOrgIdForUser(userId);
+        const logged = await logQuotaUsage(orgId, operation_type, quantity);
+        if (!logged) {
+          return errorResponse(500, "Erreur lors du log de quota", corsHeaders);
+        }
+        return new Response(JSON.stringify({ success: true }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (err) {
+        return errorResponse(500, `Erreur log-usage: ${err.message}`, corsHeaders);
+      }
+    }
+
+    return errorResponse(400, "mode invalide (extract | consolidate | compose | log-usage | quota)", corsHeaders);
   } catch (error) {
     const status = (error as { status?: number })?.status || 500;
     const message = (error as { message?: string })?.message || "Erreur interne";

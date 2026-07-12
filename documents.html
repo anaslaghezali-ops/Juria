@@ -114,6 +114,55 @@
     .folder-card-clickable { padding: 20px; cursor: pointer; }
     .folder-card-actions { display: flex; gap: 2px; }
     .folder-card-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
+
+    /* ── Partage de dossiers ── */
+    .tree-share { font-size: 10px; margin-left: 2px; flex-shrink: 0; opacity: 0.8; }
+    .tree-owner { font-size: 10.5px; color: var(--slate-400); margin-left: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .share-avatars { display: inline-flex; align-items: center; margin-right: 6px; cursor: pointer; }
+    .share-avatars .sh-av { width: 22px; height: 22px; border-radius: 50%; background: var(--indigo); color: #fff; font-size: 9px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; border: 2px solid var(--white); margin-left: -6px; }
+    .share-avatars .sh-av:first-child { margin-left: 0; }
+    .share-avatars .sh-av.more { background: var(--slate-400); }
+    .share-member-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+    .share-member-row:last-child { border-bottom: none; }
+    .share-member-row .sh-av { width: 30px; height: 30px; border-radius: 50%; background: var(--indigo); color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .share-member-info { flex: 1; min-width: 0; }
+    .share-member-name { font-size: 13px; font-weight: 600; color: var(--slate-900); }
+    .share-member-email { font-size: 11px; color: var(--slate-400); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .share-role-select { font-size: 12px; padding: 4px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--white); color: var(--slate-700); }
+    .share-owner-tag { font-size: 11px; color: var(--slate-400); font-weight: 600; padding: 4px 8px; }
+    .share-vis-row { display: flex; gap: 8px; margin-bottom: 16px; }
+    .share-vis-opt { flex: 1; border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 12px; cursor: pointer; font-size: 12.5px; color: var(--slate-600); transition: all 0.15s; }
+    .share-vis-opt.active { border-color: var(--indigo); background: rgba(79,70,229,0.05); color: var(--slate-900); }
+    .share-vis-opt b { display: block; font-size: 13px; margin-bottom: 2px; }
+    .share-add-row { display: flex; gap: 8px; margin-top: 14px; align-items: center; }
+    .share-add-row select { flex: 1; }
+    .share-hint { font-size: 11.5px; color: var(--amber-700, #b45309); background: #fef3c7; border-radius: 6px; padding: 6px 10px; margin-top: 6px; }
+    .share-history-toggle { font-size: 12px; color: var(--indigo); cursor: pointer; margin-top: 14px; display: inline-block; }
+    .share-history { margin-top: 8px; max-height: 200px; overflow-y: auto; border-top: 1px solid var(--border); }
+    .share-history-row { display: flex; gap: 8px; padding: 7px 0; font-size: 12px; color: var(--slate-600); border-bottom: 1px solid var(--slate-100); }
+    .share-history-row .h-date { color: var(--slate-400); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+    /* ── Notifications ── */
+    .notif-wrap { position: relative; }
+    .notif-bell { position: relative; background: none; border: none; font-size: 17px; cursor: pointer; padding: 6px 8px; border-radius: 8px; }
+    .notif-bell:hover { background: var(--slate-100); }
+    .notif-badge { position: absolute; top: 0; right: 0; background: #dc2626; color: #fff; font-size: 9.5px; font-weight: 700; border-radius: 99px; padding: 1px 5px; min-width: 16px; text-align: center; }
+    .notif-dropdown { display: none; position: absolute; right: 0; top: calc(100% + 8px); width: 340px; max-width: 90vw; background: var(--white); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 8px 30px rgba(15,23,42,0.12); z-index: 300; }
+    .notif-dropdown.show { display: block; }
+    .notif-head { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 13px; font-weight: 700; color: var(--slate-900); }
+    .notif-markall { background: none; border: none; color: var(--indigo); font-size: 11.5px; cursor: pointer; font-weight: 600; }
+    .notif-list { max-height: 360px; overflow-y: auto; }
+    .notif-item { display: flex; gap: 10px; padding: 11px 16px; border-bottom: 1px solid var(--slate-100); cursor: pointer; align-items: flex-start; }
+    .notif-item:hover { background: var(--slate-50, #f8fafc); }
+    .notif-item:last-child { border-bottom: none; }
+    .notif-item.unread { background: rgba(79,70,229,0.04); }
+    .notif-item .n-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+    .notif-item .n-body { flex: 1; min-width: 0; }
+    .notif-item .n-text { font-size: 12.5px; color: var(--slate-700); line-height: 1.4; }
+    .notif-item .n-text b { color: var(--slate-900); }
+    .notif-item .n-time { font-size: 10.5px; color: var(--slate-400); margin-top: 2px; }
+    .notif-item .n-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--indigo); flex-shrink: 0; margin-top: 6px; }
+    .notif-empty { padding: 28px 16px; text-align: center; color: var(--slate-400); font-size: 12.5px; }
     .folder-icon { font-size: 28px; }
     .folder-menu-btn { background: none; border: none; color: var(--slate-400); cursor: pointer; padding: 4px; border-radius: 6px; font-size: 15px; }
     .folder-menu-btn:hover { background: var(--slate-100); color: var(--slate-700); }
@@ -171,8 +220,9 @@
     .tree-badge { font-size: 11px; font-weight: 600; color: var(--slate-400); background: var(--slate-100); padding: 1px 6px; border-radius: 10px; flex-shrink: 0; }
     .tree-row.selected .tree-badge { background: rgba(79,70,229,0.12); color: var(--indigo); }
     .tree-badge-risk { font-size: 11px; font-weight: 700; color: #fff; background: var(--red); padding: 1px 6px; border-radius: 10px; flex-shrink: 0; }
-    .tree-actions { display: none; align-items: center; gap: 2px; flex-shrink: 0; }
-    .tree-row:hover .tree-actions { display: flex; }
+    .tree-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; opacity: 0.55; transition: opacity 0.15s; }
+    .tree-row:hover .tree-actions { opacity: 1; }
+    @media (hover: none) { .tree-actions { opacity: 1; } }
     .tree-action { width: 20px; height: 20px; border: none; background: none; color: var(--slate-400); cursor: pointer; border-radius: 4px; font-size: 12px; display: flex; align-items: center; justify-content: center; }
     .tree-action:hover { background: var(--slate-200); color: var(--slate-700); }
     .tree-children { overflow: hidden; }
@@ -283,8 +333,9 @@
     .score-chip.med { background: var(--amber-bg); color: var(--amber-text); }
     .score-chip.low { background: var(--red-bg); color: var(--red-text); }
     .score-chip.none { background: var(--slate-100); color: var(--slate-400); }
-    .row-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s; }
+    .row-actions { display: flex; gap: 4px; opacity: 0.55; transition: opacity 0.15s; }
     tr:hover .row-actions { opacity: 1; }
+    @media (hover: none) { .row-actions { opacity: 1; } }
     .action-btn { padding: 5px 7px; border-radius: 6px; border: 1px solid var(--border); background: var(--white); color: var(--slate-500); cursor: pointer; transition: all 0.15s; }
     .action-btn:hover { color: var(--indigo); border-color: var(--indigo); background: var(--indigo-bg); }
     .action-btn.danger:hover { color: var(--red); border-color: var(--red); background: var(--red-bg); }
@@ -388,6 +439,8 @@
     .btn-cancel { padding: 8px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--slate-600); background: var(--white); cursor: pointer; font-family: var(--font); }
     .btn-cancel:hover { background: var(--slate-100); }
     .btn-confirm { padding: 8px 20px; background: var(--indigo); color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--font); }
+    .btn-danger { padding: 8px 20px; background: #fff; color: #dc2626; border: 1px solid #fecaca; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--font); margin-right: auto; }
+    .btn-danger:hover { background: #fef2f2; border-color: #dc2626; }
     .btn-confirm:hover { background: var(--indigo-light); }
     .drop-zone { border: 2px dashed var(--border); border-radius: 12px; padding: 32px; text-align: center; cursor: pointer; transition: all 0.15s; margin-bottom: 16px; }
     .drop-zone:hover, .drop-zone.drag-over { border-color: var(--indigo); background: var(--indigo-bg); }
@@ -470,8 +523,7 @@
     .top-risk-count { font-size: 12px; font-weight: 700; color: var(--slate-500); }
 
     /* ── DASHBOARD ENRICHI ── */
-    .dash-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 20px; }
-    @media (max-width: 1100px) { .dash-grid-3 { grid-template-columns: 1fr 1fr; } }
+    .dash-grid-3 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 20px; }
     @media (max-width: 700px) { .dash-grid-3 { grid-template-columns: 1fr; } }
     .deadline-mini { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
     .deadline-mini:last-child { border-bottom: none; }
@@ -672,6 +724,7 @@
       .ws-back-btn { display: inline-flex; }
     }
   </style>
+  <link rel="stylesheet" href="assets/juria-ui.css"/>
 </head>
 <body>
 
@@ -689,52 +742,53 @@
   <nav class="sidebar-nav">
     <div class="nav-section">Principal</div>
     <button class="nav-item" onclick="showPage('dashboard')">
-      <span class="nav-icon">📊</span> Dashboard
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span> Dashboard
     </button>
     <button class="nav-item" onclick="showPage('contreparties')">
-      <span class="nav-icon">🏢</span> Contreparties
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 9h1M9 12h1M9 15h1M14 9h1M14 12h1M14 15h1"/></svg></span> Contreparties
       <span class="nav-count" id="navCpCount">—</span>
     </button>
     <button class="nav-item" onclick="showPage('dossiers')">
-      <span class="nav-icon">📁</span> Dossiers
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span> Dossiers
       <span class="nav-count" id="navFolderCount">—</span>
     </button>
     <button class="nav-item" onclick="showPage('documents')">
-      <span class="nav-icon">📄</span> Documents
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span> Documents
       <span class="nav-count" id="navTotalCount">—</span>
     </button>
-
-    <div class="nav-section">Analyse</div>
     <button class="nav-item" onclick="showPage('risques')">
-      <span class="nav-icon">⚠️</span> Risques
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span> Risques
       <span class="nav-count nav-badge-red" id="navRisksCount">—</span>
     </button>
     <button class="nav-item" onclick="showPage('echeances')">
-      <span class="nav-icon">📅</span> Échéances
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> Échéances
     </button>
     <button class="nav-item" onclick="showPage('timeline')">
-      <span class="nav-icon">🕐</span> Timeline
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> Timeline
     </button>
 
     <button class="nav-item" onclick="showPage('tasks')">
-      <span class="nav-icon">✅</span> Tâches
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span> Tâches
       <span class="nav-count nav-badge-red" id="navTasksCount">—</span>
     </button>
 
     <div class="nav-section">Outils</div>
+    <a href="analyse-contrat.html" class="nav-item">
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><circle cx="11.5" cy="14.5" r="2.5"/><path d="M13.25 16.25L15 18"/></svg></span> Analyse de contrat
+    </a>
     <a href="chat.html" class="nav-item">
-      <span class="nav-icon">💬</span> Assistant IA
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span> Assistant IA
     </a>
     <a href="base-juridique.html" class="nav-item">
-      <span class="nav-icon">📚</span> Base juridique
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span> Base juridique
     </a>
     <a href="comparaison-contrats.html" class="nav-item">
-      <span class="nav-icon">🔍</span> Comparaison
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Comparaison
     </a>
 
     <div class="nav-section">Organisation</div>
     <a href="administration.html" class="nav-item">
-      <span class="nav-icon">⚙️</span> Administration
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span> Administration
     </a>
   </nav>
   <div class="sidebar-footer">
@@ -742,7 +796,7 @@
       <div class="user-avatar" id="sidebarAvatar">?</div>
       <div>
         <div class="user-name" id="sidebarName">…</div>
-        <div class="user-plan" id="sidebarPlan">Essai gratuit</div>
+        <div class="user-plan" id="sidebarPlan"></div>
       </div>
       <button class="btn-logout" id="btnLogout" title="Déconnexion">🚪 Déconnexion</button>
     </div>
@@ -757,6 +811,18 @@
     <div class="search-global">
       <span style="color:var(--slate-400);font-size:14px">🔍</span>
       <input type="text" placeholder="Rechercher documents, dossiers, risques..." id="globalSearch" onkeyup="globalSearchFn()"/>
+    </div>
+    <div class="notif-wrap">
+      <button class="notif-bell" id="notifBell" onclick="toggleNotifDropdown(event)" title="Notifications">
+        🔔<span class="notif-badge" id="notifBadge" style="display:none">0</span>
+      </button>
+      <div class="notif-dropdown" id="notifDropdown">
+        <div class="notif-head">
+          <span>Notifications</span>
+          <button class="notif-markall" id="notifMarkAll" onclick="markAllNotifsRead()">Tout marquer lu</button>
+        </div>
+        <div class="notif-list" id="notifList"></div>
+      </div>
     </div>
   </div>
 
@@ -796,17 +862,17 @@
         </div>
       </div>
       <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">
-        <div class="kpi-card" style="border-left:3px solid var(--blue)">
+        <div class="kpi-card">
           <div class="kpi-label">Contreparties</div>
           <div class="kpi-val" id="kpiCp">—</div>
           <div class="kpi-sub">actives</div>
         </div>
-        <div class="kpi-card" style="border-left:3px solid var(--red)">
+        <div class="kpi-card">
           <div class="kpi-label">Échéances 30j</div>
           <div class="kpi-val" id="kpiDeadlines">—</div>
           <div class="kpi-sub">à venir</div>
         </div>
-        <div class="kpi-card" style="border-left:3px solid var(--indigo)">
+        <div class="kpi-card">
           <div class="kpi-label">Tâches ouvertes</div>
           <div class="kpi-val" id="kpiDashTasksOpen">—</div>
           <div class="kpi-sub">en cours</div>
@@ -822,30 +888,37 @@
       <div class="dash-grid-3">
         <!-- Risques critiques -->
         <div class="dash-card">
-          <div class="dash-card-title">⚠️ Risques élevés</div>
+          <div class="dash-card-title">Risques élevés</div>
           <div id="dashRisks"></div>
           <button class="btn-secondary" onclick="showPage('risques')" style="font-size:12px;margin-top:12px;width:100%">Voir tous les risques →</button>
         </div>
 
         <!-- Tâches urgentes -->
         <div class="dash-card">
-          <div class="dash-card-title">✅ Tâches prioritaires</div>
+          <div class="dash-card-title">Tâches prioritaires</div>
           <div id="dashTasks"></div>
           <button class="btn-secondary" onclick="showPage('tasks')" style="font-size:12px;margin-top:12px;width:100%">Voir toutes les tâches →</button>
         </div>
 
         <!-- Contreparties à risque -->
         <div class="dash-card">
-          <div class="dash-card-title">🏢 Contreparties critiques</div>
+          <div class="dash-card-title">Contreparties critiques</div>
           <div id="dashCp"></div>
           <button class="btn-secondary" onclick="showPage('contreparties')" style="font-size:12px;margin-top:12px;width:100%">Voir toutes les contreparties →</button>
+        </div>
+
+        <!-- Prochaines échéances -->
+        <div class="dash-card">
+          <div class="dash-card-title">Prochaines échéances</div>
+          <div id="dashDeadlines"></div>
+          <button class="btn-secondary" onclick="showPage('echeances')" style="font-size:12px;margin-top:12px;width:100%">Voir toutes les échéances →</button>
         </div>
       </div>
 
       <!-- Résolution risques + Répartition -->
       <div class="dash-grid" style="margin-top:20px">
         <div class="dash-card">
-          <div class="dash-card-title">📈 Résolution des risques</div>
+          <div class="dash-card-title">Résolution des risques</div>
           <div id="dashResolution"></div>
           <div style="margin-top:12px">
             <div style="font-size:11px;font-weight:700;color:var(--slate-400);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Score par dossier</div>
@@ -853,7 +926,7 @@
           </div>
         </div>
         <div class="dash-card">
-          <div class="dash-card-title">📊 Répartition des risques</div>
+          <div class="dash-card-title">Répartition des risques</div>
           <div id="dashRiskPortfolio"></div>
         </div>
       </div>
@@ -902,9 +975,11 @@
                   <span class="ws-detail-badge" id="wsDetailBadge"></span>
                 </div>
                 <div class="ws-detail-actions">
+                  <span class="share-avatars" id="wsShareAvatars" onclick="openShareModal(currentDetailFolderId)" title="Voir les accès"></span>
+                  <button class="ws-action-btn" id="wsShareBtn" onclick="openShareModal(currentDetailFolderId)" title="Gérer les accès" style="display:none">👥 Partager</button>
                   <button class="ws-action-btn" id="wsAddSubBtn" onclick="wsAddSubFolder()" title="Ajouter un sous-dossier">+ Sous-dossier</button>
-                  <button class="ws-action-btn" onclick="wsImportDoc()" title="Importer un document">+ Document</button>
-                  <button class="ws-action-btn ghost" onclick="wsEditFolder()" title="Modifier">✏️</button>
+                  <button class="ws-action-btn" id="wsImportBtn" onclick="wsImportDoc()" title="Importer un document">+ Document</button>
+                  <button class="ws-action-btn ghost" id="wsEditBtn" onclick="wsEditFolder()" title="Modifier">✏️</button>
                 </div>
               </div>
             </div>
@@ -1198,6 +1273,7 @@
           <div class="page-title">Échéances</div>
           <div class="page-sub">Obligations et dates clés extraites de vos contrats</div>
         </div>
+        <button class="btn-primary" onclick="openDeadlineModal()">+ Ajouter une échéance</button>
       </div>
       <div class="deadlines-list" id="deadlinesList">
         <!-- Rendu dynamiquement -->
@@ -1205,7 +1281,7 @@
       <div class="empty-state" id="emptyDeadlines" style="display:none">
         <div class="empty-icon">📅</div>
         <div class="empty-title">Aucune échéance</div>
-        <div class="empty-sub">Les échéances seront extraites automatiquement de vos contrats analysés.</div>
+        <div class="empty-sub">Les échéances sont extraites automatiquement lors de l'analyse de vos contrats.<br>Vous pouvez aussi en ajouter manuellement.</div>
       </div>
     </div>
 
@@ -1316,7 +1392,7 @@
 
       <!-- KPIs tâches -->
       <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">
-        <div class="kpi-card" style="border-left:3px solid var(--indigo)">
+        <div class="kpi-card">
           <div class="kpi-label">Tâches ouvertes</div>
           <div class="kpi-val" id="kpiTasksOpen">—</div>
           <div class="kpi-sub">à traiter</div>
@@ -1401,6 +1477,78 @@
   </div>
 </div>
 
+<!-- MODAL: NOUVELLE ÉCHÉANCE -->
+<!-- ══════════ MODAL: PARTAGER UN DOSSIER ══════════ -->
+<div class="modal-overlay" id="shareModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeShareModal()">×</button>
+    <div class="modal-title" id="shareModalTitle">Partager le dossier</div>
+    <div class="modal-sub">Le dossier, ses sous-dossiers, documents, risques et échéances suivent ces accès.</div>
+    <div class="share-vis-row" id="shareVisRow"></div>
+    <div id="shareMembersList"></div>
+    <div class="share-add-row" id="shareAddRow">
+      <select class="form-input" id="shareAddSelect"></select>
+      <select class="form-input" id="shareAddRole" style="flex:0 0 110px">
+        <option value="viewer">Lecteur</option>
+        <option value="editor">Éditeur</option>
+      </select>
+      <button class="btn-primary" style="white-space:nowrap" onclick="shareAddMember()">Inviter</button>
+    </div>
+    <span class="share-history-toggle" onclick="toggleShareHistory()">🕐 Historique des accès</span>
+    <div class="share-history" id="shareHistory" style="display:none"></div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: PARTAGER UNE CONTREPARTIE ══════════ -->
+<div class="modal-overlay" id="cpShareModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeCpShareModal()">×</button>
+    <div class="modal-title" id="cpShareModalTitle">Partager la contrepartie</div>
+    <div class="modal-sub">Donne accès à <b>tous les dossiers et documents</b> de cette contrepartie — présents et à venir.</div>
+    <div id="cpShareMembersList"></div>
+    <div class="share-add-row" id="cpShareAddRow">
+      <select class="form-input" id="cpShareAddSelect"></select>
+      <select class="form-input" id="cpShareAddRole" style="flex:0 0 110px">
+        <option value="viewer">Lecteur</option>
+        <option value="editor">Éditeur</option>
+      </select>
+      <button class="btn-primary" style="white-space:nowrap" onclick="cpShareAddMember()">Inviter</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="deadlineModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeDeadlineModal()">×</button>
+    <div class="modal-title">Ajouter une échéance</div>
+    <div class="modal-sub">Date butoir, préavis, obligation périodique…</div>
+    <div class="form-group">
+      <label class="form-label">Description *</label>
+      <input type="text" class="form-input" id="deadlineDesc" placeholder="Ex : Préavis de renouvellement du bail commercial"/>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Date</label>
+        <input type="date" class="form-input" id="deadlineDate"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Criticité</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:9px 0;font-size:13px;color:var(--slate-700);cursor:pointer">
+          <input type="checkbox" id="deadlineCritical"/> Critique (résiliation, pénalité…)
+        </label>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Document lié (facultatif)</label>
+      <select class="form-input" id="deadlineDoc"></select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeDeadlineModal()">Annuler</button>
+      <button class="btn-confirm" onclick="saveDeadline()">Ajouter</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: NOUVEAU DOSSIER -->
 <div class="modal-overlay" id="folderModal">
   <div class="modal">
@@ -1450,6 +1598,7 @@
 
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeFolderModal()">Annuler</button>
+      <button class="btn-danger" id="folderDeleteBtn" style="display:none" onclick="deleteFolder(editingFolderId)">🗑 Supprimer</button>
       <button class="btn-confirm" onclick="createFolder()">Créer le dossier</button>
     </div>
   </div>
@@ -1737,29 +1886,31 @@ async function init() {
   document.getElementById('sidebarAvatar').textContent = name.charAt(0).toUpperCase();
   document.getElementById('sidebarName').textContent = name;
 
-  // Charger le profil — table centralisée dans PROFILE_TABLE (bootstrap.js)
-  let profile = null;
-  const _profileTable = (typeof PROFILE_TABLE !== 'undefined') ? PROFILE_TABLE : 'user_profiles_compat';
-  const { data: _profileData, error: _profileErr } = await _sb
-    .from(_profileTable)
-    .select('plan, organization_id')
-    .eq('id', currentUser.id)
-    .single();
-  if (!_profileErr && _profileData) profile = _profileData;
-  else console.warn('[init] Profil non trouvé dans', _profileTable, ':', _profileErr?.message);
-  if (profile) {
-    const planMap = { trial:'Essai gratuit', essential:'Essentiel', pro:'Pro', cabinet:'Cabinet' };
-    document.getElementById('sidebarPlan').textContent = planMap[profile.plan] || 'Essai gratuit';
-  }
+  // L'organisation active : organization_users est la SOURCE DE VÉRITÉ.
+  // (user_profiles_compat, vue legacy, pouvait renvoyer une org périmée →
+  // currentOrgId pointait une org où l'utilisateur n'est pas membre →
+  // toutes les écritures refusées par la RLS en 42501 et lectures vides.)
+  const { data: orgRow } = await _sb.from('organization_users')
+    .select('organization_id')
+    .eq('user_id', currentUser.id)
+    .eq('is_active', true)
+    .limit(1)
+    .maybeSingle();
+  currentOrgId = orgRow?.organization_id || null;
+  if (!currentOrgId) console.warn('[init] Aucune appartenance active pour', currentUser.email);
 
-  // Récupérer l'orgId
-  let orgId = profile?.organization_id || null;
-  if (!orgId) {
-    const { data: orgRow } = await _sb.from('organization_users')
-      .select('organization_id').eq('user_id', currentUser.id).single();
-    orgId = orgRow?.organization_id || null;
+  // Le profil legacy ne sert plus qu'à l'affichage du plan.
+  const _profileTable = (typeof PROFILE_TABLE !== 'undefined') ? PROFILE_TABLE : 'user_profiles_compat';
+  const { data: _profileData } = await _sb
+    .from(_profileTable)
+    .select('plan')
+    .eq('id', currentUser.id)
+    .maybeSingle();
+  if (_profileData) {
+    const planMap = { trial:'', essential:'Essentiel', pro:'Pro', cabinet:'Cabinet' };
+    document.getElementById('sidebarPlan').textContent = planMap[_profileData.plan] || '';
   }
-  currentOrgId = orgId;
+  const orgId = currentOrgId;
 
   // Initialiser Store + Services
   if (typeof Store !== 'undefined') {
@@ -1834,6 +1985,9 @@ async function loadData() {
     }
   }
 
+  await loadSharingData();
+  loadNotifications(); // non bloquant : le badge apparaît dès la réponse
+
   initRiskStatuses();
   updateNavCounts();
   renderDashboard();
@@ -1866,10 +2020,8 @@ function renderDashboard() {
     : '—';
   const now = new Date();
   const in30 = new Date(now.getTime() + 30 * 86400000);
-  const _deadlines = (typeof Store !== 'undefined' && Store.state.deadlines.length)
-    ? Store.state.deadlines
-    : (typeof getDemoDeadlines !== 'undefined' ? getDemoDeadlines() : []);
-  const deadlines30 = _deadlines.filter(d => new Date(d.date) <= in30).length;
+  const _deadlines = (typeof Store !== 'undefined') ? Store.state.deadlines : [];
+  const deadlines30 = _deadlines.filter(d => d.date && new Date(d.date) >= now && new Date(d.date) <= in30).length;
 
   _safeSet('kpiTotal', 'textContent', total);
   _safeSet('kpiAnalysed', 'textContent', analysed);
@@ -1904,8 +2056,8 @@ function renderDashboard() {
     : '<div style="font-size:13px;color:var(--slate-400);padding:8px 0">Aucun risque élevé détecté.</div>';
 
   // Échéances dans dashboard
-  const dl = getDemoDeadlines().slice(0, 4);
-  ((document.getElementById('dashDeadlines') || {})['innerHTML']) = dl.map(d => {
+  const dl = _deadlines.filter(d => d.date && new Date(d.date) >= now).slice(0, 4);
+  ((document.getElementById('dashDeadlines') || {})['innerHTML']) = dl.length ? dl.map(d => {
     const date = new Date(d.date);
     const diff = Math.round((date - now) / 86400000);
     const label = diff <= 7 ? `<span style="color:var(--red);font-weight:700">J-${diff}</span>` : `J-${diff}`;
@@ -1913,7 +2065,7 @@ function renderDashboard() {
       <div class="deadline-mini-date">${label}</div>
       <div class="deadline-mini-text">${escHtml(d.event)}<br><span style="font-size:11px;color:var(--slate-400)">${escHtml(d.doc)}</span></div>
     </div>`;
-  }).join('');
+  }).join('') : '<div style="font-size:13px;color:var(--slate-400);padding:8px 0">Aucune échéance à venir.</div>';
 
   // Contreparties critiques
   const critCp = allCounterparties.filter(cp => cp.risk_level === 'high').slice(0, 4);
@@ -2000,6 +2152,564 @@ let wsSortDir = _wsInit.sortDir || 'asc';               // asc|desc
 let wsTreeInitialized = false;
 
 /**
+ * ══════════════════════════════════════════════
+ *  PARTAGE DE DOSSIERS (Phase 2 — UI)
+ *  La vérité d'accès reste la RLS serveur ; ces helpers ne font
+ *  que refléter fn_folder_access côté client pour l'affichage.
+ * ══════════════════════════════════════════════
+ */
+let allFolderMembers = [];
+let folderMembersByFolder = {};
+let cpMembersByCp = {};       // counterparty_id -> [{user_id, role, ...}]
+let allOrgMembers = [];
+let myOrgRole = 'member';
+let shareFolderId = null;
+let shareCpId = null;
+
+async function loadSharingData() {
+  try {
+    const [fmRes, cmRes, members] = await Promise.all([
+      _sb.from('folder_members').select('folder_id, user_id, role, granted_by, created_at'),
+      _sb.from('counterparty_members').select('counterparty_id, user_id, role, granted_by, created_at'),
+      Services?.organizations ? Services.organizations.getMembers(currentOrgId) : Promise.resolve([]),
+    ]);
+    allFolderMembers = fmRes?.data || [];
+    folderMembersByFolder = {};
+    allFolderMembers.forEach(m => {
+      (folderMembersByFolder[m.folder_id] = folderMembersByFolder[m.folder_id] || []).push(m);
+    });
+    cpMembersByCp = {};
+    (cmRes?.data || []).forEach(m => {
+      (cpMembersByCp[m.counterparty_id] = cpMembersByCp[m.counterparty_id] || []).push(m);
+    });
+    allOrgMembers = (members || []).filter(m => m.is_active);
+    myOrgRole = allOrgMembers.find(m => m.user_id === currentUser?.id)?.role || 'member';
+  } catch (e) { console.warn('[Partage] chargement échoué:', e?.message); }
+}
+
+/** Mon accès hérité d'un partage de contrepartie ('editor'|'viewer'|null). */
+function myCpAccess(counterpartyId) {
+  if (!counterpartyId) return null;
+  const m = (cpMembersByCp[counterpartyId] || []).find(x => x.user_id === currentUser?.id);
+  return m ? m.role : null;
+}
+
+/** Dossier racine (l'unité de partage), en suivant parent_id. */
+function rootFolderOf(folderId) {
+  let f = allFolders.find(x => x.id === folderId);
+  let depth = 0;
+  while (f && f.parent_id && depth++ < 10) {
+    f = allFolders.find(x => x.id === f.parent_id);
+  }
+  return f || null;
+}
+
+/** Miroir client de fn_folder_access : 'owner' | 'editor' | 'viewer' | null. */
+function folderAccess(folderId) {
+  const root = rootFolderOf(folderId);
+  if (!root) return null;
+  if (myOrgRole === 'owner' || myOrgRole === 'admin') return 'owner';
+  if (root.created_by === currentUser?.id) return 'owner';
+  // Le rôle le plus permissif l'emporte entre partage de dossier et de contrepartie.
+  const fm = (folderMembersByFolder[root.id] || []).find(m => m.user_id === currentUser?.id);
+  const cp = myCpAccess(root.counterparty_id);
+  if (fm?.role === 'editor' || cp === 'editor') return 'editor';
+  if (fm?.role === 'viewer' || cp === 'viewer') return 'viewer';
+  // visibility absente = données démo / fallback : comportement historique
+  if (root.visibility === 'org' || !root.visibility) return myOrgRole === 'reader' ? 'viewer' : 'editor';
+  return null;
+}
+
+/** État de partage pour l'affichage (badges, sections de l'arbre). */
+function folderShareState(folder) {
+  const root = rootFolderOf(folder.id) || folder;
+  if (!root.visibility) return 'org'; // données démo / fallback
+  const members = folderMembersByFolder[root.id] || [];
+  if (root.created_by === currentUser?.id) {
+    if (root.visibility === 'org') return 'org';
+    return (members.length || (cpMembersByCp[root.counterparty_id] || []).length) ? 'mine-shared' : 'mine-private';
+  }
+  // Partagé avec moi : soit le dossier directement, soit sa contrepartie.
+  if (members.some(m => m.user_id === currentUser?.id) || myCpAccess(root.counterparty_id)) return 'shared-with-me';
+  if (root.visibility === 'org') return 'org';
+  return 'supervision'; // visible uniquement grâce au rôle admin/owner d'org
+}
+
+function memberLabel(userId) {
+  const m = allOrgMembers.find(x => x.user_id === userId);
+  if (!m) return '—';
+  const n = [m.first_name, m.last_name].filter(Boolean).join(' ').trim();
+  return n || (m.email || '').split('@')[0] || '—';
+}
+
+function memberInitials(userId) {
+  const n = memberLabel(userId);
+  return (n.split(/\s+/).map(w => w[0]).slice(0, 2).join('') || '?').toUpperCase();
+}
+
+function folderShareBadge(folder) {
+  const st = folderShareState(folder);
+  if (st === 'mine-private') return '<span class="tree-share" title="Privé — visible par vous seul">🔒</span>';
+  if (st === 'mine-shared') {
+    const n = (folderMembersByFolder[folder.id] || []).length;
+    return `<span class="tree-share" title="Partagé avec ${n} personne${n > 1 ? 's' : ''}">👥</span>`;
+  }
+  if (st === 'org') return '<span class="tree-share" title="Visible par toute l\'organisation">🏢</span>';
+  return '';
+}
+
+function shareAvatarsHtml(folderId) {
+  const root = rootFolderOf(folderId);
+  if (!root) return '';
+  const members = folderMembersByFolder[root.id] || [];
+  if (!members.length) return '';
+  const shown = members.slice(0, 4);
+  let html = shown.map(m =>
+    `<span class="sh-av" title="${escHtml(memberLabel(m.user_id))} · ${m.role === 'editor' ? 'éditeur' : 'lecteur'}">${escHtml(memberInitials(m.user_id))}</span>`
+  ).join('');
+  if (members.length > shown.length) html += `<span class="sh-av more">+${members.length - shown.length}</span>`;
+  return html;
+}
+
+// ── Modal de partage ──────────────────────────
+function openShareModal(folderId) {
+  const root = rootFolderOf(folderId);
+  if (!root) return;
+  if (folderAccess(root.id) !== 'owner') { showToast('Seul le propriétaire du dossier gère ses accès.', 'error'); return; }
+  shareFolderId = root.id;
+  renderShareModal();
+  document.getElementById('shareModal').classList.add('show');
+}
+
+function closeShareModal() {
+  document.getElementById('shareModal').classList.remove('show');
+  shareFolderId = null;
+}
+
+function renderShareModal() {
+  const folder = allFolders.find(f => f.id === shareFolderId);
+  if (!folder) return;
+  const members = folderMembersByFolder[shareFolderId] || [];
+
+  document.getElementById('shareModalTitle').textContent = `Partager « ${folder.name} »`;
+  const hist = document.getElementById('shareHistory');
+  if (hist) { hist.style.display = 'none'; hist.innerHTML = ''; }
+
+  // Visibilité : privé (+ invitations) ou organisation
+  const vis = folder.visibility || 'private';
+  document.getElementById('shareVisRow').innerHTML = `
+    <div class="share-vis-opt ${vis === 'private' ? 'active' : ''}" onclick="shareSetVisibility('private')">
+      <b>🔒 Privé</b>Vous${members.length ? ' + ' + members.length + ' invité' + (members.length > 1 ? 's' : '') : ' seul'} (et l'admin)
+    </div>
+    <div class="share-vis-opt ${vis === 'org' ? 'active' : ''}" onclick="shareSetVisibility('org')">
+      <b>🏢 Organisation</b>Visible et modifiable par tous les membres
+    </div>`;
+
+  // Liste : propriétaire d'abord, puis les invités
+  const ownerRow = `
+    <div class="share-member-row">
+      <span class="sh-av">${escHtml(memberInitials(folder.created_by))}</span>
+      <div class="share-member-info">
+        <div class="share-member-name">${escHtml(memberLabel(folder.created_by))}${folder.created_by === currentUser?.id ? ' (vous)' : ''}</div>
+        <div class="share-member-email">${escHtml(allOrgMembers.find(m => m.user_id === folder.created_by)?.email || '')}</div>
+      </div>
+      <span class="share-owner-tag">Propriétaire</span>
+    </div>`;
+
+  const memberRows = members.map(m => `
+    <div class="share-member-row">
+      <span class="sh-av">${escHtml(memberInitials(m.user_id))}</span>
+      <div class="share-member-info">
+        <div class="share-member-name">${escHtml(memberLabel(m.user_id))}</div>
+        <div class="share-member-email">${escHtml(allOrgMembers.find(x => x.user_id === m.user_id)?.email || '')}</div>
+      </div>
+      <select class="share-role-select" onchange="shareChangeRole('${m.user_id}', this.value)">
+        <option value="viewer" ${m.role === 'viewer' ? 'selected' : ''}>Lecteur</option>
+        <option value="editor" ${m.role === 'editor' ? 'selected' : ''}>Éditeur</option>
+      </select>
+      <button class="action-btn danger" title="Révoquer l'accès" onclick="shareRemoveMember('${m.user_id}')">✕</button>
+    </div>`).join('');
+
+  document.getElementById('shareMembersList').innerHTML = ownerRow + memberRows;
+
+  // Sélecteur d'invitation : membres actifs non encore invités, hors
+  // propriétaire et hors admins (qui voient déjà tout).
+  const invitable = allOrgMembers.filter(m =>
+    m.user_id !== folder.created_by &&
+    m.role !== 'owner' && m.role !== 'admin' &&
+    !members.some(x => x.user_id === m.user_id)
+  );
+  const addRow = document.getElementById('shareAddRow');
+  if (invitable.length) {
+    addRow.style.display = '';
+    document.getElementById('shareAddSelect').innerHTML =
+      invitable.map(m => `<option value="${m.user_id}">${escHtml(memberLabel(m.user_id))} — ${escHtml(m.email || '')}</option>`).join('');
+  } else {
+    addRow.style.display = 'none';
+  }
+}
+
+function _shareRefreshUI() {
+  renderTree();
+  if (wsSelectedFolderId && wsSelectedFolderId !== '__all__') renderFolderDetail(wsSelectedFolderId);
+  if (shareFolderId) renderShareModal();
+}
+
+async function shareAddMember() {
+  const userId = document.getElementById('shareAddSelect').value;
+  const role = document.getElementById('shareAddRole').value;
+  if (!userId || !shareFolderId) return;
+  const { error } = await _sb.from('folder_members').insert({
+    folder_id: shareFolderId, user_id: userId, role, granted_by: currentUser.id,
+  });
+  if (error) { showToast('Erreur : ' + error.message, 'error'); return; }
+  (folderMembersByFolder[shareFolderId] = folderMembersByFolder[shareFolderId] || [])
+    .push({ folder_id: shareFolderId, user_id: userId, role, granted_by: currentUser.id });
+  _shareRefreshUI();
+  showToast(`${memberLabel(userId)} a maintenant accès au dossier.`, 'success');
+}
+
+async function shareChangeRole(userId, role) {
+  const { error } = await _sb.from('folder_members')
+    .update({ role }).eq('folder_id', shareFolderId).eq('user_id', userId);
+  if (error) { showToast('Erreur : ' + error.message, 'error'); renderShareModal(); return; }
+  const m = (folderMembersByFolder[shareFolderId] || []).find(x => x.user_id === userId);
+  if (m) m.role = role;
+  _shareRefreshUI();
+}
+
+async function shareRemoveMember(userId) {
+  if (!confirm(`Révoquer l'accès de ${memberLabel(userId)} ?`)) return;
+  const { error } = await _sb.from('folder_members')
+    .delete().eq('folder_id', shareFolderId).eq('user_id', userId);
+  if (error) { showToast('Erreur : ' + error.message, 'error'); return; }
+  folderMembersByFolder[shareFolderId] =
+    (folderMembersByFolder[shareFolderId] || []).filter(x => x.user_id !== userId);
+  _shareRefreshUI();
+  showToast('Accès révoqué.', 'success');
+}
+
+async function shareSetVisibility(vis) {
+  const folder = allFolders.find(f => f.id === shareFolderId);
+  if (!folder || folder.visibility === vis) return;
+  const { error } = await _sb.from('folders')
+    .update({ visibility: vis }).eq('id', shareFolderId);
+  if (error) { showToast('Erreur : ' + error.message, 'error'); return; }
+  folder.visibility = vis;
+  _shareRefreshUI();
+  showToast(vis === 'org' ? 'Dossier visible par toute l\'organisation.' : 'Dossier repassé en privé.', 'success');
+}
+
+// ══════════════════════════════════════════════
+//  PARTAGE D'UNE CONTREPARTIE ENTIÈRE
+//  Donne accès à tous les dossiers (présents + futurs) de la contrepartie.
+// ══════════════════════════════════════════════
+function cpIsManager(cpId) {
+  if (myOrgRole === 'owner' || myOrgRole === 'admin') return true;
+  const cp = allCounterparties.find(c => c.id === cpId);
+  return !!cp && cp.created_by === currentUser?.id;
+}
+
+function openCpShareModal(cpId) {
+  if (!cpIsManager(cpId)) { showToast('Seul le propriétaire de la contrepartie gère ses accès.', 'error'); return; }
+  shareCpId = cpId;
+  renderCpShareModal();
+  document.getElementById('cpShareModal').classList.add('show');
+}
+
+/**
+ * Supprime une contrepartie (non destructif) : ses dossiers et documents sont
+ * conservés mais détachés (deviennent « sans contrepartie »). RLS : créateur/admin.
+ */
+async function deleteCounterparty(cpId) {
+  const cp = allCounterparties.find(c => c.id === cpId);
+  if (!cp) return;
+  if (!cpIsManager(cpId)) { showToast('Seul le propriétaire de la contrepartie peut la supprimer.', 'error'); return; }
+
+  const nbFolders = allFolders.filter(f => f.counterparty_id === cpId).length;
+  const nbDocs = allDocs.filter(d => d.counterparty_id === cpId).length;
+  const parts = [];
+  if (nbFolders) parts.push(`${nbFolders} dossier${nbFolders > 1 ? 's' : ''}`);
+  if (nbDocs) parts.push(`${nbDocs} document${nbDocs > 1 ? 's' : ''}`);
+  const detail = parts.length
+    ? `\n\n${parts.join(' et ')} seront conservés mais détachés (deviennent « sans contrepartie »).`
+    : '';
+  if (!confirm(`Supprimer la contrepartie « ${cp.name} » ?${detail}`)) return;
+
+  const { error } = await _sb.from('counterparties').delete().eq('id', cpId).eq('organization_id', currentOrgId);
+  if (error) { showToast('Erreur : ' + error.message, 'error'); return; }
+
+  // Reflet local : retirer la CP, détacher ses dossiers/documents
+  allCounterparties = allCounterparties.filter(c => c.id !== cpId);
+  if (typeof Store !== 'undefined') Store.setCounterparties(allCounterparties);
+  allFolders.forEach(f => { if (f.counterparty_id === cpId) f.counterparty_id = null; });
+  if (typeof Store !== 'undefined') Store.setFolders(allFolders);
+  allDocs.forEach(d => { if (d.counterparty_id === cpId) d.counterparty_id = null; });
+  delete cpMembersByCp[cpId];
+
+  renderTree();
+  if (typeof renderCounterparties === 'function') renderCounterparties();
+  updateNavCounts();
+  showToast('Contrepartie supprimée.', 'success');
+}
+
+function closeCpShareModal() {
+  document.getElementById('cpShareModal').classList.remove('show');
+  shareCpId = null;
+}
+
+function renderCpShareModal() {
+  const cp = allCounterparties.find(c => c.id === shareCpId);
+  if (!cp) return;
+  const members = cpMembersByCp[shareCpId] || [];
+  document.getElementById('cpShareModalTitle').textContent = `Partager « ${cp.name} »`;
+
+  const ownerRow = `
+    <div class="share-member-row">
+      <span class="sh-av">${escHtml(memberInitials(cp.created_by))}</span>
+      <div class="share-member-info">
+        <div class="share-member-name">${escHtml(memberLabel(cp.created_by))}${cp.created_by === currentUser?.id ? ' (vous)' : ''}</div>
+        <div class="share-member-email">${escHtml(allOrgMembers.find(m => m.user_id === cp.created_by)?.email || '')}</div>
+      </div>
+      <span class="share-owner-tag">Propriétaire</span>
+    </div>`;
+
+  const memberRows = members.map(m => `
+    <div class="share-member-row">
+      <span class="sh-av">${escHtml(memberInitials(m.user_id))}</span>
+      <div class="share-member-info">
+        <div class="share-member-name">${escHtml(memberLabel(m.user_id))}</div>
+        <div class="share-member-email">${escHtml(allOrgMembers.find(x => x.user_id === m.user_id)?.email || '')}</div>
+      </div>
+      <select class="share-role-select" onchange="cpShareChangeRole('${m.user_id}', this.value)">
+        <option value="viewer" ${m.role === 'viewer' ? 'selected' : ''}>Lecteur</option>
+        <option value="editor" ${m.role === 'editor' ? 'selected' : ''}>Éditeur</option>
+      </select>
+      <button class="action-btn danger" title="Révoquer l'accès" onclick="cpShareRemoveMember('${m.user_id}')">✕</button>
+    </div>`).join('');
+
+  document.getElementById('cpShareMembersList').innerHTML = ownerRow + memberRows;
+
+  const invitable = allOrgMembers.filter(m =>
+    m.user_id !== cp.created_by &&
+    m.role !== 'owner' && m.role !== 'admin' &&
+    !members.some(x => x.user_id === m.user_id)
+  );
+  const addRow = document.getElementById('cpShareAddRow');
+  if (invitable.length) {
+    addRow.style.display = '';
+    document.getElementById('cpShareAddSelect').innerHTML =
+      invitable.map(m => `<option value="${m.user_id}">${escHtml(memberLabel(m.user_id))} — ${escHtml(m.email || '')}</option>`).join('');
+  } else {
+    addRow.style.display = 'none';
+  }
+}
+
+function _cpShareRefreshUI() {
+  renderTree();
+  if (typeof renderCounterparties === 'function') renderCounterparties();
+  if (shareCpId) renderCpShareModal();
+}
+
+async function cpShareAddMember() {
+  const userId = document.getElementById('cpShareAddSelect').value;
+  const role = document.getElementById('cpShareAddRole').value;
+  if (!userId || !shareCpId) return;
+  const { error } = await _sb.from('counterparty_members').insert({
+    counterparty_id: shareCpId, user_id: userId, role, granted_by: currentUser.id,
+  });
+  if (error) { showToast('Erreur : ' + error.message, 'error'); return; }
+  (cpMembersByCp[shareCpId] = cpMembersByCp[shareCpId] || [])
+    .push({ counterparty_id: shareCpId, user_id: userId, role, granted_by: currentUser.id });
+  _cpShareRefreshUI();
+  showToast(`${memberLabel(userId)} a maintenant accès à toute la contrepartie.`, 'success');
+}
+
+async function cpShareChangeRole(userId, role) {
+  const { error } = await _sb.from('counterparty_members')
+    .update({ role }).eq('counterparty_id', shareCpId).eq('user_id', userId);
+  if (error) { showToast('Erreur : ' + error.message, 'error'); renderCpShareModal(); return; }
+  const m = (cpMembersByCp[shareCpId] || []).find(x => x.user_id === userId);
+  if (m) m.role = role;
+  _cpShareRefreshUI();
+}
+
+async function cpShareRemoveMember(userId) {
+  if (!confirm(`Révoquer l'accès de ${memberLabel(userId)} à toute la contrepartie ?`)) return;
+  const { error } = await _sb.from('counterparty_members')
+    .delete().eq('counterparty_id', shareCpId).eq('user_id', userId);
+  if (error) { showToast('Erreur : ' + error.message, 'error'); return; }
+  cpMembersByCp[shareCpId] = (cpMembersByCp[shareCpId] || []).filter(x => x.user_id !== userId);
+  _cpShareRefreshUI();
+  showToast('Accès révoqué.', 'success');
+}
+
+// ── Historique des accès (journal folder_access_log) ─────────────────
+async function toggleShareHistory() {
+  const wrap = document.getElementById('shareHistory');
+  if (!wrap) return;
+  if (wrap.style.display !== 'none') { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  wrap.innerHTML = '<div class="notif-empty">Chargement…</div>';
+  const { data, error } = await _sb
+    .from('folder_access_log')
+    .select('action, target_user, actor, detail, created_at')
+    .eq('folder_id', shareFolderId)
+    .order('created_at', { ascending: false })
+    .limit(50);
+  if (error) { wrap.innerHTML = `<div class="notif-empty">Erreur : ${escHtml(error.message)}</div>`; return; }
+  if (!data?.length) { wrap.innerHTML = '<div class="notif-empty">Aucune action enregistrée.</div>'; return; }
+  const roleFr = r => r === 'editor' ? 'éditeur' : r === 'viewer' ? 'lecteur' : r;
+  const line = l => {
+    const who = l.actor ? memberLabel(l.actor) : 'Système';
+    const target = l.target_user ? memberLabel(l.target_user) : '';
+    switch (l.action) {
+      case 'granted':            return `<b>${escHtml(who)}</b> a invité <b>${escHtml(target)}</b> (${roleFr(l.detail)})`;
+      case 'role_changed':       return `<b>${escHtml(who)}</b> a passé <b>${escHtml(target)}</b> en ${roleFr(l.detail)}`;
+      case 'revoked':            return `<b>${escHtml(who)}</b> a révoqué l'accès de <b>${escHtml(target)}</b>`;
+      case 'visibility_changed': return `<b>${escHtml(who)}</b> a passé le dossier en ${l.detail === 'org' ? 'visibilité organisation' : 'privé'}`;
+      default:                   return escHtml(l.action);
+    }
+  };
+  wrap.innerHTML = data.map(l => `
+    <div class="share-history-row">
+      <span class="h-date">${new Date(l.created_at).toLocaleDateString('fr-MA', { day: '2-digit', month: '2-digit' })} ${new Date(l.created_at).toLocaleTimeString('fr-MA', { hour: '2-digit', minute: '2-digit' })}</span>
+      <span>${line(l)}</span>
+    </div>`).join('');
+}
+
+/*
+ * ══════════════════════════════════════════════
+ *  NOTIFICATIONS (Phase 3)
+ *  Créées côté serveur par triggers sur folder_members —
+ *  le client ne fait que lire, marquer lu et naviguer.
+ * ══════════════════════════════════════════════
+ */
+let allNotifs = [];
+
+async function loadNotifications() {
+  try {
+    const { data, error } = await _sb
+      .from('notifications')
+      .select('id, type, payload, is_read, created_at')
+      .order('created_at', { ascending: false })
+      .limit(30);
+    if (error) { console.warn('[Notifs]', error.message); return; }
+    allNotifs = data || [];
+    renderNotifBadge();
+  } catch (e) { console.warn('[Notifs]', e?.message); }
+}
+
+function renderNotifBadge() {
+  const unread = allNotifs.filter(n => !n.is_read).length;
+  const badge = document.getElementById('notifBadge');
+  if (!badge) return;
+  badge.textContent = unread > 9 ? '9+' : unread;
+  badge.style.display = unread ? '' : 'none';
+}
+
+function notifText(n) {
+  const p = n.payload || {};
+  const by = p.by ? memberLabel(p.by) : 'Un collègue';
+  const name = p.folder_name || 'un dossier';
+  const cpName = p.counterparty_name || 'une contrepartie';
+  const role = p.role === 'editor' ? 'éditeur' : 'lecteur';
+  switch (n.type) {
+    case 'folder_shared':             return `<b>${escHtml(by)}</b> vous a donné accès au dossier <b>${escHtml(name)}</b> (${role})`;
+    case 'folder_role_changed':       return `<b>${escHtml(by)}</b> vous a passé en ${role} sur <b>${escHtml(name)}</b>`;
+    case 'folder_revoked':            return `<b>${escHtml(by)}</b> a révoqué votre accès au dossier <b>${escHtml(name)}</b>`;
+    case 'counterparty_shared':       return `<b>${escHtml(by)}</b> vous a donné accès à toute la contrepartie <b>${escHtml(cpName)}</b> (${role})`;
+    case 'counterparty_role_changed': return `<b>${escHtml(by)}</b> vous a passé en ${role} sur la contrepartie <b>${escHtml(cpName)}</b>`;
+    case 'counterparty_revoked':      return `<b>${escHtml(by)}</b> a révoqué votre accès à la contrepartie <b>${escHtml(cpName)}</b>`;
+    default:                          return escHtml(n.type);
+  }
+}
+
+function notifIcon(n) {
+  return {
+    folder_shared: '📁', folder_role_changed: '✏️', folder_revoked: '🚫',
+    counterparty_shared: '🏢', counterparty_role_changed: '✏️', counterparty_revoked: '🚫',
+  }[n.type] || '🔔';
+}
+
+function notifTimeAgo(iso) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const h = Math.round(diff / 3600000);
+  if (h < 1) return 'À l\'instant';
+  if (h < 24) return `Il y a ${h}h`;
+  const d = Math.round(h / 24);
+  return d === 1 ? 'Hier' : `Il y a ${d} jours`;
+}
+
+function renderNotifList() {
+  const list = document.getElementById('notifList');
+  if (!list) return;
+  if (!allNotifs.length) {
+    list.innerHTML = '<div class="notif-empty">Aucune notification.<br>Vous serez prévenu quand un collègue vous partagera un dossier.</div>';
+    return;
+  }
+  list.innerHTML = allNotifs.map(n => `
+    <div class="notif-item ${n.is_read ? '' : 'unread'}" onclick="notifClick('${n.id}')">
+      <span class="n-icon">${notifIcon(n)}</span>
+      <div class="n-body">
+        <div class="n-text">${notifText(n)}</div>
+        <div class="n-time">${notifTimeAgo(n.created_at)}</div>
+      </div>
+      ${n.is_read ? '' : '<span class="n-dot"></span>'}
+    </div>`).join('');
+}
+
+function toggleNotifDropdown(event) {
+  event?.stopPropagation();
+  const dd = document.getElementById('notifDropdown');
+  if (!dd) return;
+  const opening = !dd.classList.contains('show');
+  dd.classList.toggle('show');
+  if (opening) {
+    loadNotifications().then(renderNotifList);
+    renderNotifList();
+    document.addEventListener('click', _notifOutsideClose);
+  } else {
+    document.removeEventListener('click', _notifOutsideClose);
+  }
+}
+
+function _notifOutsideClose(e) {
+  const dd = document.getElementById('notifDropdown');
+  if (dd && !dd.contains(e.target) && e.target?.id !== 'notifBell') {
+    dd.classList.remove('show');
+    document.removeEventListener('click', _notifOutsideClose);
+  }
+}
+
+async function notifClick(id) {
+  const n = allNotifs.find(x => x.id === id);
+  if (!n) return;
+  if (!n.is_read) {
+    n.is_read = true;
+    renderNotifBadge(); renderNotifList();
+    _sb.from('notifications').update({ is_read: true }).eq('id', id)
+      .then(({ error }) => { if (error) console.warn('[Notifs]', error.message); });
+  }
+  // Ouvrir le dossier concerné s'il est encore accessible
+  const folderId = n.payload?.folder_id;
+  if (folderId && n.type !== 'folder_revoked' && allFolders.find(f => f.id === folderId)) {
+    document.getElementById('notifDropdown')?.classList.remove('show');
+    showPage('dossiers');
+    selectFolder(folderId);
+  }
+}
+
+async function markAllNotifsRead() {
+  const unreadIds = allNotifs.filter(n => !n.is_read).map(n => n.id);
+  if (!unreadIds.length) return;
+  allNotifs.forEach(n => { n.is_read = true; });
+  renderNotifBadge(); renderNotifList();
+  const { error } = await _sb.from('notifications').update({ is_read: true }).in('id', unreadIds);
+  if (error) showToast('Erreur : ' + error.message, 'error');
+}
+
+/**
  * Point d'entrée : rend l'arborescence. Remplace l'ancien renderFolders.
  */
 function renderFolders() {
@@ -2044,13 +2754,18 @@ function renderTree(searchFilter) {
     return { docCount: docs.length, highRisks: highR, subCount: subs.length };
   }
 
-  // Dossiers principaux (parent_id null)
+  // Dossiers principaux (parent_id null), répartis par provenance :
+  // les miens + visibles org restent groupés par contrepartie ; ceux
+  // qui me sont partagés (et la supervision admin) ont leurs sections.
   const mainFolders = allFolders.filter(f => !f.parent_id);
+  const sharedWithMe = mainFolders.filter(f => folderShareState(f) === 'shared-with-me');
+  const supervision  = mainFolders.filter(f => folderShareState(f) === 'supervision');
+  const ownFolders   = mainFolders.filter(f => !sharedWithMe.includes(f) && !supervision.includes(f));
 
   // Grouper par contrepartie
   const byCounterparty = {};
   const noCp = [];
-  mainFolders.forEach(f => {
+  ownFolders.forEach(f => {
     if (f.counterparty_id) {
       (byCounterparty[f.counterparty_id] = byCounterparty[f.counterparty_id] || []).push(f);
     } else {
@@ -2089,13 +2804,23 @@ function renderTree(searchFilter) {
     let cpDocCount = 0;
     folders.forEach(f => { cpDocCount += folderStats(f.id, f.name).docCount; });
 
+    const cpShareCount = (cpMembersByCp[cpId] || []).length;
+    const cpShareBadge = cpShareCount ? `<span class="tree-share" title="Contrepartie partagée avec ${cpShareCount} personne${cpShareCount > 1 ? 's' : ''}">👥</span>` : '';
+    const cpShareAction = cpIsManager(cpId)
+      ? `<span class="tree-actions">
+           <button class="tree-action" onclick="event.stopPropagation();openCpShareModal('${cpId}')" title="Partager toute la contrepartie">👥</button>
+           <button class="tree-action" onclick="event.stopPropagation();deleteCounterparty('${cpId}')" title="Supprimer la contrepartie">🗑</button>
+         </span>`
+      : '';
     html += `
       <div class="tree-node" data-level="0">
         <div class="tree-row" onclick="toggleTreeNode('${cpNodeId}')">
           <span class="tree-caret ${expanded ? 'expanded' : ''}">▶</span>
           <span class="tree-icon">🏢</span>
           <span class="tree-name">${escHtml(cpName)}</span>
+          ${cpShareBadge}
           <span class="tree-badge">${cpDocCount}</span>
+          ${cpShareAction}
         </div>
         <div class="tree-children ${expanded ? '' : 'collapsed'}">
           ${folders.map(f => renderTreeFolder(f, 1, q, folderStats)).join('')}
@@ -2113,6 +2838,75 @@ function renderTree(searchFilter) {
     }
   }
 
+  // Dossiers que des collègues m'ont partagés.
+  // Hiérarchie à 3 niveaux : Partagé par <personne> → Contrepartie → Dossier.
+  if (sharedWithMe.length) {
+    const filtered = sharedWithMe.filter(f => !q || f.name.toLowerCase().includes(q) ||
+      getSubFoldersFast(f.id).some(s => s.name.toLowerCase().includes(q)));
+    if (filtered.length) {
+      html += `<div class="tree-section-label">Partagés avec moi</div>`;
+
+      // Niveau 1 : regrouper par personne qui a partagé (le propriétaire du dossier)
+      const bySharer = {};
+      filtered.forEach(f => { (bySharer[f.created_by] = bySharer[f.created_by] || []).push(f); });
+
+      Object.entries(bySharer).forEach(([sharerId, sharerFolders]) => {
+        const sharerNodeId = 'shared-by-' + sharerId;
+        const sharerOpen = wsExpandedNodes.has(sharerNodeId);
+        html += `
+          <div class="tree-node" data-level="0">
+            <div class="tree-row" onclick="toggleTreeNode('${sharerNodeId}')">
+              <span class="tree-caret ${sharerOpen ? 'expanded' : ''}">▶</span>
+              <span class="tree-icon">👤</span>
+              <span class="tree-name">${escHtml(memberLabel(sharerId))}</span>
+              <span class="tree-badge">${sharerFolders.length}</span>
+            </div>
+            <div class="tree-children ${sharerOpen ? '' : 'collapsed'}">`;
+
+        // Niveau 2 : regrouper les dossiers de cette personne par contrepartie
+        const byCp = {};
+        const noCpFolders = [];
+        sharerFolders.forEach(f => {
+          if (f.counterparty_id) (byCp[f.counterparty_id] = byCp[f.counterparty_id] || []).push(f);
+          else noCpFolders.push(f);
+        });
+
+        Object.entries(byCp).forEach(([cpId, cpFolders]) => {
+          const cp = allCounterparties.find(c => c.id === cpId);
+          const cpNodeId = sharerNodeId + '-cp-' + cpId;
+          const cpOpen = wsExpandedNodes.has(cpNodeId);
+          html += `
+            <div class="tree-node" data-level="1">
+              <div class="tree-row" onclick="toggleTreeNode('${cpNodeId}')">
+                <span class="tree-caret ${cpOpen ? 'expanded' : ''}">▶</span>
+                <span class="tree-icon">🏢</span>
+                <span class="tree-name">${escHtml(cp?.name || 'Contrepartie')}</span>
+                <span class="tree-badge">${cpFolders.length}</span>
+              </div>
+              <div class="tree-children ${cpOpen ? '' : 'collapsed'}">
+                ${cpFolders.map(f => renderTreeFolder(f, 2, q, folderStats)).join('')}
+              </div>
+            </div>`;
+        });
+
+        // Dossiers partagés sans contrepartie : directement sous la personne
+        noCpFolders.forEach(f => { html += renderTreeFolder(f, 1, q, folderStats); });
+
+        html += `</div></div>`;
+      });
+    }
+  }
+
+  // Vue de supervision de l'admin : dossiers privés des autres membres
+  if (supervision.length) {
+    const filtered = supervision.filter(f => !q || f.name.toLowerCase().includes(q) ||
+      getSubFoldersFast(f.id).some(s => s.name.toLowerCase().includes(q)));
+    if (filtered.length) {
+      html += `<div class="tree-section-label" title="Visibles uniquement grâce à votre rôle d'administrateur">Supervision (admin)</div>`;
+      filtered.forEach(f => { html += renderTreeFolder(f, 0, q, folderStats, memberLabel(f.created_by)); });
+    }
+  }
+
   // Bouton nouveau dossier client
   html += `<div class="ws-tree-newclient" onclick="openFolderModal()">+ Nouveau dossier client</div>`;
 
@@ -2122,13 +2916,15 @@ function renderTree(searchFilter) {
 /**
  * Rend un dossier principal + ses sous-dossiers dans l'arbre.
  */
-function renderTreeFolder(folder, level, q, folderStats) {
+function renderTreeFolder(folder, level, q, folderStats, ownerLabel) {
   const subs = getSubFoldersFast(folder.id);
   const nodeId = folder.id;
   const expanded = wsExpandedNodes.has(nodeId);
   const hasChildren = subs.length > 0;
   const stats = folderStats(folder.id, folder.name);
   const selected = wsSelectedFolderId === folder.id;
+  const access = folderAccess(folder.id);
+  const canEdit = access === 'owner' || access === 'editor';
 
   const riskBadge = stats.highRisks > 0
     ? `<span class="tree-badge-risk">${stats.highRisks}</span>` : '';
@@ -2137,18 +2933,23 @@ function renderTreeFolder(folder, level, q, folderStats) {
   const caretClick = hasChildren
     ? `onclick="event.stopPropagation();toggleTreeNode('${nodeId}')"` : '';
 
+  const actions = canEdit ? `
+        <span class="tree-actions">
+          <button class="tree-action" onclick="event.stopPropagation();openSubFolderModal('${folder.id}')" title="Sous-dossier">+</button>
+          <button class="tree-action" onclick="event.stopPropagation();editFolder('${folder.id}')" title="Modifier">✏️</button>
+        </span>` : '';
+
   let html = `
     <div class="tree-node" data-level="${level}">
       <div class="tree-row ${selected ? 'selected' : ''}" onclick="selectFolder('${folder.id}')">
         <span class="tree-caret ${caretClass}" ${caretClick}>▶</span>
         <span class="tree-icon">📁</span>
         <span class="tree-name">${escHtml(folder.name)}</span>
+        ${folderShareBadge(folder)}
+        ${ownerLabel ? `<span class="tree-owner" title="Propriétaire : ${escHtml(ownerLabel)}">· ${escHtml(ownerLabel)}</span>` : ''}
         ${riskBadge}
         <span class="tree-badge">${stats.docCount}</span>
-        <span class="tree-actions">
-          <button class="tree-action" onclick="event.stopPropagation();openSubFolderModal('${folder.id}')" title="Sous-dossier">+</button>
-          <button class="tree-action" onclick="event.stopPropagation();editFolder('${folder.id}')" title="Modifier">✏️</button>
-        </span>
+        ${actions}
       </div>`;
 
   if (hasChildren) {
@@ -2166,9 +2967,9 @@ function renderTreeFolder(folder, level, q, folderStats) {
             <span class="tree-name">${escHtml(sf.name)}</span>
             ${subRiskBadge}
             <span class="tree-badge">${subDocs.length}</span>
-            <span class="tree-actions">
+            ${canEdit ? `<span class="tree-actions">
               <button class="tree-action" onclick="event.stopPropagation();editFolder('${sf.id}')" title="Modifier">✏️</button>
-            </span>
+            </span>` : ''}
           </div>
         </div>`;
       }).join('')}
@@ -2292,11 +3093,31 @@ function renderFolderDetail(folderId) {
   crumbs.push(`<span class="current">${escHtml(folder.name)}</span>`);
   document.getElementById('wsBreadcrumb').innerHTML = crumbs.join('<span class="sep">›</span>');
 
-  // Titre + badge
+  // Titre + badge (état de partage inclus)
+  const access = folderAccess(folderId);
+  const canEdit = access === 'owner' || access === 'editor';
+  const shareState = folderShareState(folder);
+  const root = rootFolderOf(folderId) || folder;
+  const stateLabel = {
+    'mine-private':   '🔒 Privé',
+    'mine-shared':    '👥 Partagé',
+    'org':            '🏢 Organisation',
+    'shared-with-me': `👥 Partagé par ${memberLabel(root.created_by)} · ${access === 'editor' ? 'éditeur' : 'lecteur'}`,
+    'supervision':    `🔒 Privé de ${memberLabel(root.created_by)} · vue admin`,
+  }[shareState] || '';
   document.getElementById('wsDetailIcon').textContent = isMain ? '📁' : '📂';
   document.getElementById('wsDetailName').textContent = folder.name;
-  document.getElementById('wsDetailBadge').textContent = isMain ? 'Dossier' : 'Sous-dossier';
-  document.getElementById('wsAddSubBtn').style.display = isMain ? '' : 'none';
+  document.getElementById('wsDetailBadge').textContent =
+    (isMain ? 'Dossier' : 'Sous-dossier') + (stateLabel ? ' · ' + stateLabel : '');
+
+  // Boutons selon l'accès (la RLS reste la vérité côté serveur)
+  document.getElementById('wsAddSubBtn').style.display = (isMain && canEdit) ? '' : 'none';
+  document.getElementById('wsImportBtn').style.display = canEdit ? '' : 'none';
+  document.getElementById('wsEditBtn').style.display = canEdit ? '' : 'none';
+  const shareBtn = document.getElementById('wsShareBtn');
+  if (shareBtn) shareBtn.style.display = (access === 'owner' && !root.parent_id) ? '' : 'none';
+  const avatars = document.getElementById('wsShareAvatars');
+  if (avatars) avatars.innerHTML = shareAvatarsHtml(folderId);
 
   // KPIs
   document.getElementById('wsKpiDocs').textContent = docsInFolder.length;
@@ -2335,7 +3156,10 @@ function wsSwitchTab(tabName) {
   }
 
   if (tabName === 'docs') {
-    document.getElementById('wsTab-docs').innerHTML = renderWsDocsTable(docsInScope, subs);
+    const canEditScope = (wsSelectedFolderId === '__all__')
+      ? true
+      : !!(folder && ['owner', 'editor'].includes(folderAccess(folder.id)));
+    document.getElementById('wsTab-docs').innerHTML = renderWsDocsTable(docsInScope, subs, canEditScope);
   } else if (tabName === 'subs') {
     document.getElementById('wsTab-subs').innerHTML = renderWsSubfolders(folder, subs);
   } else if (tabName === 'risks') {
@@ -2355,7 +3179,7 @@ function wsSwitchTab(tabName) {
 /**
  * Table de documents moderne (style NetDocuments / iManage).
  */
-function renderWsDocsTable(docs, subs) {
+function renderWsDocsTable(docs, subs, canEdit = false) {
   subs = subs || [];
   if (!docs.length && !subs.length) {
     return wsEmptyTab('📄', 'Aucun document', 'Importez des documents ou créez des sous-dossiers pour organiser ce dossier.');
@@ -2422,7 +3246,10 @@ function renderWsDocsTable(docs, subs) {
       <td>${fileBadge(d.file_type)}</td>
       <td style="color:var(--slate-500)">${fmtDate(d.created_at)}</td>
       <td style="color:var(--slate-500)">${fmtSize(d.file_size)}</td>
-      <td style="text-align:right"><button class="tree-action" onclick="event.stopPropagation();openDoc('${d.id}')" title="Ouvrir">⋯</button></td>
+      <td style="text-align:right;white-space:nowrap">
+        <button class="tree-action" onclick="event.stopPropagation();openDoc('${d.id}')" title="Ouvrir">⋯</button>
+        ${canEdit ? `<button class="tree-action" onclick="event.stopPropagation();deleteDoc('${d.id}')" title="Supprimer">🗑</button>` : ''}
+      </td>
     </tr>`).join('');
 
   return `<table class="ws-doctable">
@@ -2645,8 +3472,10 @@ function filterDocs() {
 
 function renderDocsTable(docs) {
   return `<table class="docs-table">
-    <thead><tr><th>Document</th><th>Date</th><th>Score</th><th>Statut</th></tr></thead>
-    <tbody>${docs.map(doc => `
+    <thead><tr><th>Document</th><th>Date</th><th>Score</th><th>Statut</th><th></th></tr></thead>
+    <tbody>${docs.map(doc => {
+      const canDel = ['owner', 'editor'].includes(folderAccess(doc.folder_id));
+      return `
     <tr onclick="openDoc('${doc.id}')">
       <td><div class="doc-cell">
         <div class="doc-icon ${doc.file_type === 'pdf' ? 'pdf' : 'docx'}">${doc.file_type === 'pdf' ? '📕' : '📘'}</div>
@@ -2655,7 +3484,12 @@ function renderDocsTable(docs) {
       <td style="font-size:13px;color:var(--slate-400)">${new Date(doc.created_at).toLocaleDateString('fr-MA',{day:'numeric',month:'short'})}</td>
       <td>${getScoreChip(doc.score)}</td>
       <td>${getStatusBadge(doc.status)}</td>
-    </tr>`).join('')}
+      <td style="text-align:right;white-space:nowrap">
+        <button class="tree-action" onclick="event.stopPropagation();openDoc('${doc.id}')" title="Ouvrir">⋯</button>
+        ${canDel ? `<button class="tree-action" onclick="event.stopPropagation();deleteDoc('${doc.id}')" title="Supprimer">🗑</button>` : ''}
+      </td>
+    </tr>`;
+    }).join('')}
     </tbody></table>`;
 }
 
@@ -2669,8 +3503,11 @@ function populateFolderFilter() {
 }
 
 function populateFolderSelect() {
-  // Afficher les dossiers principaux avec leurs sous-dossiers indentés
-  const mainFolders = allFolders.filter(f => !f.parent_id);
+  // Dossiers principaux + sous-dossiers indentés — uniquement ceux où
+  // l'utilisateur peut écrire (un import dans un dossier en lecture seule
+  // serait refusé par la RLS de toute façon).
+  const mainFolders = allFolders.filter(f => !f.parent_id)
+    .filter(f => ['owner', 'editor'].includes(folderAccess(f.id)));
   let optionsHtml = '';
   mainFolders.forEach(f => {
     optionsHtml += `<option value="${f.id}">${escHtml(f.name)}</option>`;
@@ -3025,32 +3862,109 @@ function renderRiskTabReporting() {
 function renderDeadlines() {
   const list = document.getElementById('deadlinesList');
   const empty = document.getElementById('emptyDeadlines');
-  const demos = getDemoDeadlines();
-  if (!demos.length) {
+  const deadlines = (typeof Store !== 'undefined') ? Store.state.deadlines : [];
+  if (!deadlines.length) {
     list.innerHTML = '';
     empty.style.display = 'block';
     return;
   }
   empty.style.display = 'none';
-  list.innerHTML = demos.map(d => {
-    const date = new Date(d.date);
-    const day = date.getDate();
-    const month = date.toLocaleDateString('fr-MA', { month: 'short' }).replace('.','');
-    const prioMap = { high: ['priority-high','Urgent'], medium: ['priority-med','Important'], low: ['priority-low','Normal'] };
+  // Datées d'abord (par date croissante), puis les échéances sans date
+  const sorted = [...deadlines].sort((a, b) => {
+    if (!a.date && !b.date) return 0;
+    if (!a.date) return 1;
+    if (!b.date) return -1;
+    return new Date(a.date) - new Date(b.date);
+  });
+  list.innerHTML = sorted.map(d => {
+    const date = d.date ? new Date(d.date) : null;
+    const isPast = date && date < new Date(new Date().toDateString());
+    const prioMap = { high: ['priority-high','Critique'], medium: ['priority-med','Important'], low: ['priority-low','Normal'] };
     const [prioCls, prioLabel] = prioMap[d.priority] || ['priority-low','Normal'];
-    return `<div class="deadline-card">
+    const meta = [d.doc, d.folder].filter(Boolean).join(' · ');
+    return `<div class="deadline-card" style="${isPast ? 'opacity:0.55' : ''}">
       <div class="deadline-date">
-        <div class="deadline-day">${day}</div>
-        <div class="deadline-month">${month}</div>
+        <div class="deadline-day">${date ? date.getDate() : '—'}</div>
+        <div class="deadline-month">${date ? date.toLocaleDateString('fr-MA', { month: 'short', year: '2-digit' }).replace('.','') : 'sans date'}</div>
       </div>
       <div class="deadline-sep"></div>
       <div class="deadline-body">
-        <div class="deadline-event">${escHtml(d.event)}</div>
-        <div class="deadline-doc">${escHtml(d.doc)} ${d.folder ? '· ' + escHtml(d.folder) : ''}</div>
+        <div class="deadline-event">${escHtml(d.event)} ${d.source === 'manual' ? '<span class="tag" style="margin-left:4px">manuel</span>' : ''}</div>
+        <div class="deadline-doc">${escHtml(meta || 'Échéance libre')}${isPast ? ' · passée' : ''}</div>
       </div>
       <span class="deadline-priority ${prioCls}">${prioLabel}</span>
+      <button class="action-btn danger" title="Supprimer l'échéance" onclick="deleteDeadline('${d.id}')">🗑</button>
     </div>`;
   }).join('');
+}
+
+// ── ÉCHÉANCES : AJOUT / SUPPRESSION ──────────
+function openDeadlineModal() {
+  // Peuple le select des documents (facultatif)
+  const sel = document.getElementById('deadlineDoc');
+  if (sel) {
+    sel.innerHTML = '<option value="">Aucun (échéance libre)</option>' +
+      allDocs.map(doc => `<option value="${doc.id}">${escHtml(doc.name)}</option>`).join('');
+  }
+  document.getElementById('deadlineDesc').value = '';
+  document.getElementById('deadlineDate').value = '';
+  document.getElementById('deadlineCritical').checked = false;
+  document.getElementById('deadlineModal').classList.add('show');
+}
+
+function closeDeadlineModal() {
+  document.getElementById('deadlineModal').classList.remove('show');
+}
+
+async function saveDeadline() {
+  const description = document.getElementById('deadlineDesc').value.trim();
+  const dueDate = document.getElementById('deadlineDate').value || null;
+  const isCritical = document.getElementById('deadlineCritical').checked;
+  const documentId = document.getElementById('deadlineDoc').value || null;
+  if (!description) { showToast('Décrivez l\'échéance.', 'error'); return; }
+  if (!currentOrgId) { showToast('Aucune organisation active.', 'error'); return; }
+
+  const { data, error } = await _sb
+    .from('document_obligations')
+    .insert({
+      organization_id: currentOrgId,
+      document_id: documentId,
+      description,
+      due_date: dueDate,
+      is_critical: isCritical,
+      source: 'manual',
+      created_by: currentUser?.id || null,
+    })
+    .select('id, created_at')
+    .single();
+
+  if (error) { showToast('Erreur : ' + error.message, 'error'); return; }
+
+  const doc = documentId ? allDocs.find(d => d.id === documentId) : null;
+  Store.setDeadlines([...Store.state.deadlines, {
+    id: data.id,
+    document_id: documentId,
+    source: 'manual',
+    created_at: data.created_at,
+    date: dueDate,
+    event: description,
+    doc: doc?.name || '',
+    folder: doc?.folder_id ? (Store.indexes.foldersById[doc.folder_id]?.name || '') : '',
+    priority: isCritical ? 'high' : 'medium',
+  }]);
+  closeDeadlineModal();
+  renderDeadlines();
+  if (typeof renderDashboard === 'function' && document.getElementById('page-dashboard').classList.contains('active')) renderDashboard();
+  showToast('Échéance ajoutée.', 'success');
+}
+
+async function deleteDeadline(id) {
+  if (!confirm('Supprimer cette échéance ?')) return;
+  const { error } = await _sb.from('document_obligations').delete().eq('id', id);
+  if (error) { showToast('Erreur : ' + error.message, 'error'); return; }
+  Store.setDeadlines(Store.state.deadlines.filter(d => d.id !== id));
+  renderDeadlines();
+  showToast('Échéance supprimée.', 'success');
 }
 
 // ── DOSSIER MODAL ─────────────────────────────
@@ -3128,6 +4042,8 @@ function openFolderModal() {
   document.getElementById('folderName').value = '';
   document.getElementById('folderDesc').value = '';
   document.getElementById('folderCounterparty').value = '';
+  const delBtn = document.getElementById('folderDeleteBtn');
+  if (delBtn) delBtn.style.display = 'none'; // pas de suppression en création
   document.getElementById('folderModal').classList.add('show');
 }
 function closeFolderModal() {
@@ -3140,6 +4056,39 @@ function closeFolderModal() {
  * - Dossier principal : nom, description, contrepartie modifiables
  * - Sous-dossier : nom, description seulement (contrepartie héritée, non modifiable)
  */
+/**
+ * Supprime un dossier (non destructif) : documents conservés (déplacés en
+ * « sans dossier »), sous-dossiers supprimés, tâches détachées. RLS : owner.
+ */
+async function deleteFolder(folderId) {
+  const folder = allFolders.find(f => f.id === folderId);
+  if (!folder) return;
+  const subs = getSubFoldersFast(folderId);
+  const subIds = [folderId, ...subs.map(s => s.id)];
+  const docCount = allDocs.filter(d => subIds.includes(d.folder_id)).length;
+
+  const parts = [];
+  if (docCount) parts.push(`${docCount} document${docCount > 1 ? 's' : ''} sera conservé${docCount > 1 ? 's' : ''} et déplacé${docCount > 1 ? 's' : ''} en « sans dossier »`);
+  if (subs.length) parts.push(`${subs.length} sous-dossier${subs.length > 1 ? 's' : ''} sera supprimé${subs.length > 1 ? 's' : ''}`);
+  const detail = parts.length ? '\n\n' + parts.join('.\n') + '.' : '';
+  if (!confirm(`Supprimer le dossier « ${folder.name} » ?${detail}`)) return;
+
+  const { error } = await _sb.from('folders').delete().eq('id', folderId).eq('organization_id', currentOrgId);
+  if (error) { showToast('Erreur : ' + error.message, 'error'); return; }
+
+  // Reflet local : retirer le dossier + ses sous-dossiers, détacher leurs docs
+  allFolders = allFolders.filter(f => !subIds.includes(f.id));
+  if (typeof Store !== 'undefined') Store.setFolders(allFolders);
+  allDocs.forEach(d => { if (subIds.includes(d.folder_id)) { d.folder_id = null; d.folder = '—'; } });
+  if (wsSelectedFolderId === folderId || subIds.includes(wsSelectedFolderId)) wsSelectedFolderId = '__all__';
+
+  closeFolderModal();
+  renderTree();
+  if (typeof selectAllFolders === 'function') selectAllFolders();
+  updateNavCounts();
+  showToast('Dossier supprimé.', 'success');
+}
+
 function editFolder(folderId) {
   const folder = allFolders.find(f => f.id === folderId);
   if (!folder) return;
@@ -3157,6 +4106,10 @@ function editFolder(folderId) {
 
   document.getElementById('folderName').value = folder.name || '';
   document.getElementById('folderDesc').value = folder.description || '';
+
+  // Suppression réservée au propriétaire du dossier (la RLS l'exige aussi)
+  const delBtn = document.getElementById('folderDeleteBtn');
+  if (delBtn) delBtn.style.display = (folderAccess(folderId) === 'owner') ? '' : 'none';
 
   const cpGroup = document.getElementById('counterpartyGroup');
   if (isSubFolder) {
@@ -3393,8 +4346,8 @@ function openUploadModal(preselectFolderId) {
   // Pré-sélection du dossier si fourni (ex: on est déjà dans un dossier)
   if (preselectFolderId && preselectFolderId !== '__all__' && fs) {
     fs.value = preselectFolderId;
-    onUploadFolderChange();  // hérite la contrepartie du dossier
   }
+  onUploadFolderChange();  // hérite la contrepartie + indice de visibilité
   document.getElementById('uploadModal').classList.add('show');
 }
 function closeUploadModal() {
@@ -3408,6 +4361,32 @@ function closeUploadModal() {
  */
 function onUploadFolderChange() {
   const folderId = document.getElementById('folderSelect').value;
+
+  // Avertir sur qui verra le document selon le dossier choisi
+  const sel = document.getElementById('folderSelect');
+  let hint = document.getElementById('folderShareHint');
+  if (!hint && sel) {
+    sel.insertAdjacentHTML('afterend', '<div class="share-hint" id="folderShareHint" style="display:none"></div>');
+    hint = document.getElementById('folderShareHint');
+  }
+  if (hint) {
+    let msg = '';
+    if (folderId) {
+      const folder = allFolders.find(f => f.id === folderId);
+      const st = folder ? folderShareState(folder) : null;
+      const root = folder ? (rootFolderOf(folderId) || folder) : null;
+      if (st === 'org') msg = '🏢 Ce dossier est visible par toute l\'organisation — le document le sera aussi.';
+      else if (st === 'mine-shared') {
+        const n = (folderMembersByFolder[root.id] || []).length;
+        msg = `👥 Ce dossier est partagé — le document sera visible par ${n} personne${n > 1 ? 's' : ''} invitée${n > 1 ? 's' : ''}.`;
+      } else if (st === 'shared-with-me') msg = `👥 Dossier de ${memberLabel(root.created_by)} — le document sera visible par ses membres.`;
+    } else {
+      msg = '🔒 Sans dossier, le document ne sera visible que par vous (et l\'admin).';
+    }
+    hint.textContent = msg;
+    hint.style.display = msg ? '' : 'none';
+  }
+
   const cpSelect = document.getElementById('counterpartySelect');
   if (!folderId || !cpSelect) return;
 
@@ -3600,16 +4579,28 @@ async function deleteDoc(id) {
   const doc = allDocs.find(d => d.id === id);
   if (!doc || !confirm('Supprimer « ' + doc.name + ' » ?')) return;
 
+  let ok = false;
   if (Services?.documents) {
-    const ok = await Services.documents.archiveDocument(id, currentOrgId, true);
+    ok = await Services.documents.archiveDocument(id, currentOrgId, true);
     if (ok) allDocs = Store.state.documents;
   } else {
-    try { await _sb.from('documents').delete().eq('id', id).eq('organization_id', currentOrgId); } catch(e) {}
-    allDocs = allDocs.filter(d => d.id !== id);
+    try {
+      const { error } = await _sb.from('documents').delete().eq('id', id).eq('organization_id', currentOrgId);
+      ok = !error;
+    } catch(e) { ok = false; }
+    if (ok) allDocs = allDocs.filter(d => d.id !== id);
   }
+
+  if (!ok) { showToast('Suppression impossible. Réessayez.', 'error'); return; }
   updateNavCounts();
   filterDocs();
-  showToast('Document supprimé.', '');
+  // Rafraîchir aussi les vues « Dossiers » et « Contrepartie » si ouvertes.
+  try {
+    if (wsSelectedFolderId === '__all__') wsSwitchTab(wsActiveTab);
+    else if (wsSelectedFolderId) renderFolderDetail(wsSelectedFolderId);
+  } catch (e) {}
+  try { if (currentDetailCpId) openCpDetail(currentDetailCpId); } catch (e) {}
+  showToast('Document supprimé.', 'success');
 }
 
 // ── BADGES & HELPERS ──────────────────────────
@@ -3665,19 +4656,6 @@ function getDemoRisks() {
     { id:'r5', document_id:'6', severity:'medium', risk_type:'CHANGE_OF_CONTROL', title:'Résiliation automatique en cas de changement de contrôle', clause_reference:'Clause 12.3', docName:'Contrat SaaS - Oracle.pdf', folderName:'—', status:'open', assignee:null, extract:'"In the event of a Change of Control of either Party, the other Party may terminate this Agreement upon written notice..."', created_at: new Date(Date.now()-10*86400000).toISOString() },
   ];
 }
-function getDemoDeadlines() {
-  const now = new Date();
-  const d = (offset) => new Date(now.getTime() + offset * 86400000).toISOString();
-  return [
-    { date: d(7), event: 'Préavis de renouvellement — SHA Fertinagro', doc: 'SHA Fertinagro - OCP.pdf', folder: 'OCP - JV Fertinagro', priority: 'high' },
-    { date: d(15), event: 'Date butoir satisfaction conditions (Long Stop Date)', doc: 'SHA Fertinagro - OCP.pdf', folder: 'OCP - JV Fertinagro', priority: 'high' },
-    { date: d(30), event: 'Approbation plan d\'affaires annuel', doc: 'SHA Fertinagro - OCP.pdf', folder: 'OCP - JV Fertinagro', priority: 'medium' },
-    { date: d(45), event: 'Rapport financier trimestriel à soumettre', doc: 'Contrat SaaS - Oracle.pdf', folder: '—', priority: 'low' },
-    { date: d(90), event: 'Expiration NDA bilatéral', doc: 'NDA bilatéral - TotalEnergies.pdf', folder: 'Client ABC - Acquisition', priority: 'medium' },
-  ];
-}
-
-
 // ══════════════════════════════════════════════
 //  CONTREPARTIES
 // ══════════════════════════════════════════════
@@ -3727,7 +4705,8 @@ function openCpDetail(cpId) {
   const cpRisks = allRisks.filter(r => cpDocs.find(d => d.id === r.document_id));
   const cpFoldersList = allFolders.filter(f => f.counterparty === cp.name || f.counterparty_id === cp.id);
   const highR = cpRisks.filter(r => r.severity === 'high' || r.severity === 'critical').length;
-  const cpDeadlines = getDemoDeadlines().filter(d => cpDocs.find(doc => doc.name === d.doc)).length;
+  const cpDeadlines = ((typeof Store !== 'undefined') ? Store.state.deadlines : [])
+    .filter(d => d.document_id && cpDocs.find(doc => doc.id === d.document_id)).length;
   const { score } = computeRiskScore(cpRisks);
   const scoreCls = getRiskScoreClass(score);
 
@@ -3852,7 +4831,7 @@ async function createCounterparty() {
   try {
     // ✅ Sauvegarder en base via le service
     if (Services?.counterparties) {
-      const saved = await Services.counterparties.saveCounterparty(payload, currentOrgId);
+      const saved = await Services.counterparties.saveCounterparty(payload, currentOrgId, currentUser?.id);
       if (!saved) throw new Error('Sauvegarde échouée');
       
       // Le service appelle déjà upsertCounterparty, mais on force une sync
@@ -4100,7 +5079,7 @@ function renderScoreTab(cpId) {
       </div>
     </div>
     <div class="dash-card">
-      <div class="dash-card-title">📊 Répartition par type</div>
+      <div class="dash-card-title">Répartition par type</div>
       <div class="risk-bars" style="margin-top:8px">
         ${RISK_FACTORS.filter(f => cpRisks.some(r => (r.risk_type||'OTHER') === f.key)).map(f => {
           const count = cpRisks.filter(r => (r.risk_type||'OTHER') === f.key).length;
@@ -4170,29 +5149,80 @@ function renderCounterpartiesWithScore() {
 // ══════════════════════════════════════════════
 let activeTimelineFilter = 'all';
 
-function getDemoTimeline() {
-  const now = new Date();
-  const t = (offset, unit='day') => {
-    const ms = unit === 'hour' ? offset * 3600000 : offset * 86400000;
-    return new Date(now - ms);
-  };
-  return [
-    { type:'analyse', icon:'⚡', date:t(2,'hour'),  event:'SHA Fertinagro analysé',           detail:'5 risques identifiés · Score 6/10', tag:'OCP - JV Fertinagro', doc:'SHA Fertinagro - OCP.pdf' },
-    { type:'risk',    icon:'⚠️', date:t(3,'hour'),  event:'Risque ÉLEVÉ détecté',              detail:'EVENT_OF_DEFAULT · Clause 15.8',    tag:'SHA Fertinagro', doc:'SHA Fertinagro - OCP.pdf' },
-    { type:'risk',    icon:'⚠️', date:t(3,'hour'),  event:'Risque ÉLEVÉ détecté',              detail:'TERMINATION · Clause 2.5',          tag:'SHA Fertinagro', doc:'SHA Fertinagro - OCP.pdf' },
-    { type:'import',  icon:'📄', date:t(5,'hour'),  event:'SHA Fertinagro importé',            detail:'560 KB · PDF',                      tag:'OCP - JV Fertinagro', doc:'SHA Fertinagro - OCP.pdf' },
-    { type:'folder',  icon:'📁', date:t(1),         event:'Dossier créé',                      detail:'OCP - JV Fertinagro',               tag:'Client: OCP', doc:null },
-    { type:'analyse', icon:'⚡', date:t(3),         event:'Amendement SHA n°1 analysé',        detail:'2 risques identifiés · Score 7/10', tag:'OCP - JV Fertinagro', doc:'Amendement SHA n°1.pdf' },
-    { type:'import',  icon:'📄', date:t(3),         event:'Amendement SHA n°1 importé',        detail:'245 KB · PDF',                      tag:'OCP - JV Fertinagro', doc:'Amendement SHA n°1.pdf' },
-    { type:'analyse', icon:'⚡', date:t(5),         event:'NDA TotalEnergies analysé',         detail:'0 risque élevé · Score 8/10',       tag:'Client ABC - Acquisition', doc:'NDA bilatéral - TotalEnergies.pdf' },
-    { type:'import',  icon:'📄', date:t(5),         event:'NDA TotalEnergies importé',         detail:'128 KB · PDF',                      tag:'Client ABC - Acquisition', doc:'NDA bilatéral - TotalEnergies.pdf' },
-    { type:'folder',  icon:'📁', date:t(6),         event:'Dossier créé',                      detail:'Client ABC - Acquisition',          tag:'Client: Client ABC', doc:null },
-    { type:'deadline',icon:'📅', date:t(7),         event:'Échéance ajoutée',                  detail:'Préavis renouvellement — J-7',      tag:'SHA Fertinagro', doc:'SHA Fertinagro - OCP.pdf' },
-    { type:'import',  icon:'📄', date:t(7),         event:'SPA Acquisition Ciment Atlas importé','detail':'820 KB · PDF',                  tag:'Client ABC - Acquisition', doc:'SPA - Acquisition Ciment Atlas.pdf' },
-    { type:'import',  icon:'📄', date:t(10),        event:'Contrat EPC Projet solaire importé','detail':'310 KB · DOCX',                  tag:'Sans dossier', doc:'Contrat EPC - Projet solaire.docx' },
-    { type:'analyse', icon:'⚡', date:t(14),        event:'Contrat SaaS Oracle analysé',       detail:'1 risque moyen · Score 5/10',       tag:'Oracle', doc:'Contrat SaaS - Oracle.pdf' },
-    { type:'import',  icon:'📄', date:t(14),        event:'Contrat SaaS Oracle importé',       detail:'195 KB · PDF',                      tag:'Oracle', doc:'Contrat SaaS - Oracle.pdf' },
-  ].sort((a,b) => b.date - a.date);
+/**
+ * Timeline dérivée des données réelles déjà chargées dans le Store
+ * (aucune requête supplémentaire). Événements couverts :
+ * import/analyse de documents, risques élevés+, échéances, dossiers.
+ */
+function buildTimelineFromStore() {
+  if (typeof Store === 'undefined') return [];
+  const { documents = [], risks = [], deadlines = [], folders = [] } = Store.state;
+  const foldersById = Store.indexes.foldersById || {};
+  const risksByDocument = Store.indexes.risksByDocument || {};
+  const folderName = (id) => (id && foldersById[id]?.name) || null;
+  const items = [];
+
+  documents.forEach(d => {
+    if (d.created_at) {
+      items.push({
+        type:'import', icon:'📄', date:new Date(d.created_at),
+        event:`${d.name} importé`,
+        detail:[formatSize(d.file_size), (d.file_type || '').toUpperCase()].filter(Boolean).join(' · '),
+        tag:folderName(d.folder_id), doc:d.name,
+      });
+    }
+    const analyzed = d.status === 'analyzed' || d.status === 'analysé' || d.latest_analysis_id;
+    if (analyzed) {
+      // Approximation : updated_at est rafraîchi en fin d'analyse.
+      const when = d.updated_at || d.created_at;
+      const nbRisks = (risksByDocument[d.id] || []).length;
+      const score = d.compliance_score ?? d.score;
+      if (when) items.push({
+        type:'analyse', icon:'⚡', date:new Date(when),
+        event:`${d.name} analysé`,
+        detail:[
+          nbRisks ? `${nbRisks} risque${nbRisks > 1 ? 's' : ''} identifié${nbRisks > 1 ? 's' : ''}` : 'Aucun risque identifié',
+          score != null ? `Score ${score}/10` : null,
+        ].filter(Boolean).join(' · '),
+        tag:folderName(d.folder_id), doc:d.name,
+      });
+    }
+  });
+
+  // Seuls les risques élevés/critiques ont leur propre événement
+  // (le total par document figure déjà dans l'événement « analysé »).
+  risks.forEach(r => {
+    if (!r.created_at || !['critical', 'high'].includes(r.severity)) return;
+    items.push({
+      type:'risk', icon:'⚠️', date:new Date(r.created_at),
+      event:r.severity === 'critical' ? 'Risque CRITIQUE détecté' : 'Risque ÉLEVÉ détecté',
+      detail:[r.risk_type, r.clause_reference].filter(v => v && v !== '—').join(' · '),
+      tag:r.folderName !== '—' ? r.folderName : null,
+      doc:r.docName !== '—' ? r.docName : null,
+    });
+  });
+
+  deadlines.forEach(dl => {
+    if (!dl.created_at) return;
+    items.push({
+      type:'deadline', icon:'📅', date:new Date(dl.created_at),
+      event:dl.source === 'manual' ? 'Échéance ajoutée' : 'Échéance extraite à l\'analyse',
+      detail:dl.event, tag:dl.folder || null, doc:dl.doc || null,
+    });
+  });
+
+  folders.forEach(f => {
+    if (!f.created_at) return;
+    items.push({
+      type:'folder', icon:'📁', date:new Date(f.created_at),
+      event:'Dossier créé', detail:f.name, tag:null, doc:null,
+    });
+  });
+
+  return items
+    .filter(i => !isNaN(i.date))
+    .sort((a, b) => b.date - a.date)
+    .slice(0, 150);
 }
 
 function renderTimeline(filter) {
@@ -4200,7 +5230,7 @@ function renderTimeline(filter) {
   const list = document.getElementById('timelineList');
   const empty = document.getElementById('emptyTimeline');
 
-  let items = getDemoTimeline();
+  let items = buildTimelineFromStore();
   if (filter !== 'all') items = items.filter(i => i.type === filter);
 
   if (!items.length) {
@@ -4635,17 +5665,17 @@ function renderRiskKPIs() {
   const grid = document.getElementById('riskKpiGrid');
   if (!grid) return;
   grid.innerHTML = `
-    <div class="kpi-card" style="border-left:3px solid var(--red)">
+    <div class="kpi-card">
       <div class="kpi-label">Open</div>
       <div class="kpi-val" style="color:var(--red)">${byStatus.open || 0}</div>
       <div class="kpi-sub">non traités</div>
     </div>
-    <div class="kpi-card" style="border-left:3px solid var(--amber)">
+    <div class="kpi-card">
       <div class="kpi-label">Under Review</div>
       <div class="kpi-val" style="color:var(--amber)">${byStatus.review || 0}</div>
       <div class="kpi-sub">en cours</div>
     </div>
-    <div class="kpi-card" style="border-left:3px solid var(--blue)">
+    <div class="kpi-card">
       <div class="kpi-label">Mitigated</div>
       <div class="kpi-val" style="color:var(--blue)">${byStatus.mitigated || 0}</div>
       <div class="kpi-sub">atténués</div>
@@ -4913,7 +5943,14 @@ document.getElementById('btnLogout').addEventListener('click', async () => { awa
   document.getElementById(id).addEventListener('click', function(e) { if (e.target === this) this.classList.remove('show'); });
 });
 
-init();
+// Deep-link : documents.html?page=echeances ouvre directement la vue interne.
+// Les sidebars des autres pages pointent ici (Contreparties, Dossiers,
+// Risques, Échéances, Timeline, Tâches) — sans ce paramètre, ces liens
+// retombaient tous sur le dashboard, donnant l'impression de liens morts.
+init().then(function() {
+  var pageParam = new URLSearchParams(window.location.search).get('page');
+  if (pageParam && document.getElementById('page-' + pageParam)) showPage(pageParam);
+});
 </script>
 </body>
 </html>

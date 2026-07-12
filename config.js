@@ -13,4 +13,5 @@ const JURIA_CONFIG = {
   INVITE_USER_URL:        'https://dnrudcpaqcqyybpbbrum.supabase.co/functions/v1/invite-user',
   LINK_USER_TO_ORG_URL:   'https://dnrudcpaqcqyybpbbrum.supabase.co/functions/v1/link-user-to-org',
   SYNTHESIS_URL:          'https://dnrudcpaqcqyybpbbrum.supabase.co/functions/v1/generate-synthesis',
+  SUPERADMIN_URL:         'https://dnrudcpaqcqyybpbbrum.supabase.co/functions/v1/superadmin',
 };
