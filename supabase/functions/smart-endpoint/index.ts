@@ -388,19 +388,20 @@ serve(async (req) => {
       }
 
       const compareSystemFor = (part: number, total: number) => [
-        "Tu es expert juridique marocain. Compare LIGNE PAR LIGNE ces deux versions de contrat.",
+        "Tu es expert juridique marocain senior. Compare ces deux versions d'un même contrat et identifie CHAQUE différence réelle de fond.",
         total > 1
-          ? `\n⚠️ Tu reçois la PARTIE ${part}/${total} de chaque version, alignées approximativement. Les bords peuvent couper une clause en deux : une clause TRONQUÉE en début ou fin de partie ne doit PAS être signalée comme supprimée ou ajoutée.\n`
+          ? `\n⚠️ Tu reçois la PARTIE ${part}/${total} de chaque version, alignées approximativement. Une clause TRONQUÉE au bord d'une partie ne doit PAS être signalée comme supprimée ou ajoutée.\n`
           : "",
         "",
-        "🔴 PRIORITÉ ABSOLUE - DÉTECTER LES SUPPRESSIONS:",
-        "- Identifie CHAQUE clause, paragraphe ou section présent en V1 mais ABSENT en V2",
-        "- Les suppressions incluent: clauses de confidentialité, délais de préavis, congés payés, assurances, responsabilités, durée du contrat, salaire, conditions de résiliation, garanties, conditions d'emploi",
-        "- Si V1 contient une clause et V2 ne la contient pas (même reformulée), c'est une SUPPRESSION",
+        "CLASSIFICATION DU TYPE — applique STRICTEMENT ces définitions :",
+        "- 'modification' : la clause existe dans V1 ET dans V2 mais son texte diffère (montant, date, durée, portée, bénéficiaire…). v1 ET v2 sont remplis.",
+        "- 'suppression' : clause présente dans V1 et TOTALEMENT ABSENTE de V2. v2 est vide.",
+        "- 'ajout' : clause ABSENTE de V1 et présente dans V2. v1 est vide.",
+        "RÈGLE ANTI-ERREUR : si V2 contient encore la clause (même reformulée), ce n'est JAMAIS une 'suppression' → c'est une 'modification'. Une clause présente uniquement dans V2 est un 'ajout', jamais une 'suppression'. Le 'type' DOIT être cohérent avec v1/v2 (suppression ⇒ v2 vide ; ajout ⇒ v1 vide ; modification ⇒ les deux remplis).",
         "",
         perspClause,
         persp
-          ? `Pour CHAQUE changement, ajoute "sens" = "favorable" / "défavorable" / "neutre" DU POINT DE VUE de « ${persp} ». Pour tout changement "défavorable", ajoute "suggestion" = une contre-proposition de rédaction concrète (le texte exact à proposer) pour rétablir ou protéger la position de « ${persp} ». Pour les autres, "suggestion": "".`
+          ? `Détermine "sens" en RAISONNANT EN 2 TEMPS pour chaque changement : (1) identifie QUELLE partie est TENUE par l'obligation/la contrainte et QUELLE partie en BÉNÉFICIE — lis attentivement : « le salarié se déplace / exécute / paie » = obligation DU SALARIÉ (donc favorable à l'employeur), pas une charge de l'employeur. (2) Déduis pour « ${persp} » : "favorable" si le changement renforce ses droits/protections OU impose une charge à l'AUTRE partie ; "défavorable" s'il le contraint, réduit ses droits ou lui impose une charge ; "neutre" sinon. La "description" DOIT dire quelle partie est tenue et pourquoi c'est (dé)favorable à « ${persp} ». Pour un "défavorable" : "suggestion" = une rédaction concrète protégeant « ${persp} » ; sinon "suggestion": "".`
           : 'Ajoute "sens": "neutre" et "suggestion": "" à chaque changement (aucune partie choisie).',
         "",
         "📝 FORMAT REQUIS - Retourne UNIQUEMENT JSON valide:",
@@ -541,7 +542,7 @@ serve(async (req) => {
         "Tu es Juria, expert juridique marocain senior specialise en droit des contrats.",
         perspClause,
         persp
-          ? `Pour CHAQUE "issue", ajoute "sens" = "favorable" / "défavorable" / "neutre" DU POINT DE VUE de « ${persp} » : une clause qui expose, contraint ou réduit les droits de « ${persp} » est "défavorable" ; une clause qui le protège est "favorable". Signale en priorité les points défavorables à « ${persp} », et oriente chaque "suggestion" pour protéger ses intérêts.`
+          ? `Pour CHAQUE "issue", détermine "sens" en 2 temps : (1) identifie QUELLE partie est TENUE par la clause et QUELLE partie en BÉNÉFICIE — « le salarié se déplace / exécute / paie » = obligation DU SALARIÉ (favorable à l'employeur), pas une charge de l'employeur. (2) Déduis pour « ${persp} » : "favorable" si la clause le protège ou impose une charge à l'AUTRE partie ; "défavorable" si elle l'expose, le contraint ou réduit ses droits ; "neutre" sinon. Signale en priorité les points défavorables à « ${persp} », précise dans "problem" quelle partie est tenue, et oriente chaque "suggestion" pour protéger « ${persp} ».`
           : 'Ajoute "sens": "neutre" à chaque issue (aucune partie choisie).',
         total > 1
           ? `Tu recois la PARTIE ${part}/${total} d'un contrat plus long (decoupage avec chevauchement). Analyse UNIQUEMENT ce qui figure dans cette partie ; les clauses manquantes seront recoupees avec les autres parties.`
