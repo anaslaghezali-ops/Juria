@@ -539,6 +539,10 @@ serve(async (req) => {
         : "";
       const analyzeSystemFor = (part: number, total: number) => [
         "Tu es Juria, expert juridique marocain senior specialise en droit des contrats.",
+        perspClause,
+        persp
+          ? `Pour CHAQUE "issue", ajoute "sens" = "favorable" / "défavorable" / "neutre" DU POINT DE VUE de « ${persp} » : une clause qui expose, contraint ou réduit les droits de « ${persp} » est "défavorable" ; une clause qui le protège est "favorable". Signale en priorité les points défavorables à « ${persp} », et oriente chaque "suggestion" pour protéger ses intérêts.`
+          : 'Ajoute "sens": "neutre" à chaque issue (aucune partie choisie).',
         total > 1
           ? `Tu recois la PARTIE ${part}/${total} d'un contrat plus long (decoupage avec chevauchement). Analyse UNIQUEMENT ce qui figure dans cette partie ; les clauses manquantes seront recoupees avec les autres parties.`
           : "",
@@ -557,7 +561,7 @@ serve(async (req) => {
         "5. Score: 10=parfaitement conforme, 1=illegal selon le droit marocain applicable.",
         "6. Extrais aussi les OBLIGATIONS ET ECHEANCES du contrat : toute date butoir, delai de preavis, date de renouvellement, obligation periodique (rapport, paiement, declaration) ou condition a satisfaire avant une date. due_date au format YYYY-MM-DD si la date est determinable (calcule-la a partir des dates du contrat si necessaire), sinon null. is_critical=true si le non-respect entraine resiliation, penalite ou perte de droit.",
         "Articles de reference: " + articlesContext,
-        "Retourne UNIQUEMENT un JSON: {contract_type: string, score: number, summary: string, issues: [{paragraph_id: number, severity: string, clause: string, problem: string, suggestion: string}], missing_clauses: [string], obligations: [{description: string, due_date: string|null, is_critical: boolean}]}. paragraph_id = le numero entre crochets [N] du paragraphe concerne dans le contrat fourni.",
+        "Retourne UNIQUEMENT un JSON: {contract_type: string, score: number, summary: string, parties: [string], issues: [{paragraph_id: number, severity: string, clause: string, problem: string, suggestion: string, sens: string}], missing_clauses: [string], obligations: [{description: string, due_date: string|null, is_critical: boolean}]}. parties = les parties nommees au contrat (telles qu'ecrites). sens parmi favorable/défavorable/neutre. paragraph_id = le numero entre crochets [N] du paragraphe concerne dans le contrat fourni.",
       ].filter(Boolean).join(" ");
 
       // MAP : analyse de chaque fenetre. Concurrence limitee a 2 (au lieu de 4)
@@ -585,12 +589,15 @@ serve(async (req) => {
           "Tu es Juria, expert juridique marocain senior. On te donne les analyses partielles d'un MEME contrat, decoupe en parties avec chevauchement.",
           "Fusionne-les en UNE analyse globale coherente :",
           "- contract_type : le type identifie par la majorite des parties.",
-          "- issues : rassemble toutes les issues ; DEDOUBLONNE celles qui decrivent la meme clause (le chevauchement fait qu'une clause peut apparaitre dans deux parties) ; conserve le paragraph_id d'origine et la severity la plus haute en cas de doublon.",
+          "- parties : les parties nommees au contrat (union des parties detectees).",
+          "- issues : rassemble toutes les issues ; DEDOUBLONNE celles qui decrivent la meme clause (le chevauchement fait qu'une clause peut apparaitre dans deux parties) ; conserve le paragraph_id d'origine, la severity la plus haute et le champ 'sens' en cas de doublon.",
           "- missing_clauses : une clause n'est manquante que si AUCUNE partie ne la contient. Retire toute clause signalee manquante par une partie mais presente ou traitee dans une autre.",
           "- obligations : rassemble toutes les obligations/echeances ; dedoublonne celles qui decrivent la meme obligation (garde is_critical=true et la due_date la plus precise en cas de doublon).",
           "- score : score global 1-10 du contrat ENTIER (10 = parfaitement conforme), coherent avec la gravite cumulee des issues retenues.",
           "- summary : synthese globale en 2-4 phrases.",
-          "Retourne UNIQUEMENT un JSON: {contract_type: string, score: number, summary: string, issues: [{paragraph_id: number, severity: string, clause: string, problem: string, suggestion: string}], missing_clauses: [string], obligations: [{description: string, due_date: string|null, is_critical: boolean}]}",
+          perspClause,
+          "Conserve le champ 'sens' (favorable/défavorable/neutre) de chaque issue.",
+          "Retourne UNIQUEMENT un JSON: {contract_type: string, score: number, summary: string, parties: [string], issues: [{paragraph_id: number, severity: string, clause: string, problem: string, suggestion: string, sens: string}], missing_clauses: [string], obligations: [{description: string, due_date: string|null, is_critical: boolean}]}",
         ].join(" ");
         analysis = await callOpenAI(
           mergeSystem,
