@@ -257,7 +257,7 @@
     <!-- Loading comparaison -->
     <div id="loadingCompare" style="display:none;text-align:center;padding:48px;">
       <div style="width:40px;height:40px;border:3px solid var(--indigo-bg);border-top-color:var(--indigo);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px;"></div>
-      <div style="font-size:14px;color:var(--slate-500);">Analyse comparative en cours...</div>
+      <div id="loadingCompareStep" style="font-size:14px;color:var(--slate-500);">Analyse comparative en cours...</div>
     </div>
 
     <!-- Résultats comparaison -->
@@ -423,50 +423,116 @@ document.addEventListener('DOMContentLoaded', function() {
   setupDropZone('dropZone2', 'fileInput2', 'dropLabel2', function(t) { contractText2 = t; }, 'btnCompare');
 });
 
+async function _compareToken() {
+  var s = await _sb.auth.getSession();
+  if (!s.data.session) { alert('Session expirée'); window.location.href = 'auth.html'; throw new Error('no session'); }
+  return s.data.session.access_token;
+}
+
+// Extraction légère des parties pour proposer le point de vue (bon marché).
+async function _extractParties(token, text) {
+  try {
+    var res = await fetch(EDGE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ question: 'Extraire les parties', mode: 'parties', contract_v1: text, history: [] }),
+    });
+    if (!res.ok) return [];
+    var d = await res.json();
+    return Array.isArray(d.parties) ? d.parties.filter(function(p){ return p && p.trim(); }) : [];
+  } catch (e) { return []; }
+}
+
+// Étape 1 : identifier les parties, puis demander le camp avant de comparer.
 window.startComparison = async function startComparison() {
   if (!contractText1 || !contractText2) return;
-  
-  document.getElementById('loadingCompare').style.display = 'block';
   document.getElementById('compareResults').style.display = 'none';
+  document.getElementById('loadingCompare').style.display = 'block';
+  var stepEl = document.getElementById('loadingCompareStep');
+  if (stepEl) stepEl.textContent = 'Identification des parties…';
   document.getElementById('btnCompare').disabled = true;
-  
   try {
-    var sessionData = await _sb.auth.getSession();
-    if (!sessionData.data.session) { alert('Session expirée'); window.location.href = 'auth.html'; return; }
-    var token = sessionData.data.session.access_token;
-    
+    var token = await _compareToken();
+    var parties = await _extractParties(token, contractText1);
+    document.getElementById('loadingCompare').style.display = 'none';
+    renderPerspectivePicker(parties);
+  } catch (e) {
+    document.getElementById('loadingCompare').style.display = 'none';
+    document.getElementById('btnCompare').disabled = false;
+    alert(e.message || 'Erreur pendant la préparation de la comparaison.');
+  }
+};
+
+// Étape 2 : le sélecteur « Je défends : [X] / [Y] / neutre ».
+function renderPerspectivePicker(parties) {
+  var results = document.getElementById('compareResults');
+  results.innerHTML = '';
+  results.style.display = 'block';
+  var box = document.createElement('div');
+  box.style.cssText = 'background:var(--white);border:1px solid var(--border);border-radius:16px;padding:24px;';
+  box.innerHTML = '<div style="font-size:15px;font-weight:600;color:var(--slate-900);margin-bottom:6px;">Depuis quel point de vue comparer ?</div>'
+    + '<div style="font-size:13px;color:var(--slate-500);margin-bottom:16px;">Juria indiquera si chaque changement est <strong>favorable</strong> ou <strong>défavorable</strong> à la partie choisie, et proposera une contre-rédaction pour les changements défavorables.</div>';
+  var row = document.createElement('div');
+  row.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;';
+  var options = parties.slice(0, 4).map(function(p){ return { label: '🛡️ Je défends : ' + p, value: p }; });
+  options.push({ label: '⚖️ Analyse neutre', value: '' });
+  options.forEach(function(opt) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = opt.label;
+    b.style.cssText = 'padding:12px 16px;border:1px solid var(--border);border-radius:10px;background:var(--white);cursor:pointer;font-family:var(--font);font-size:14px;font-weight:600;color:var(--slate-700);transition:all .15s;';
+    b.onmouseenter = function(){ b.style.borderColor = '#4f46e5'; b.style.color = '#4f46e5'; };
+    b.onmouseleave = function(){ b.style.borderColor = 'var(--border)'; b.style.color = 'var(--slate-700)'; };
+    b.onclick = function(){ runComparison(opt.value); };
+    row.appendChild(b);
+  });
+  box.appendChild(row);
+  results.appendChild(box);
+  document.getElementById('btnCompare').disabled = false;
+}
+
+// Étape 3 : comparaison effective depuis le point de vue choisi.
+async function runComparison(perspective) {
+  document.getElementById('compareResults').style.display = 'none';
+  document.getElementById('loadingCompare').style.display = 'block';
+  var stepEl = document.getElementById('loadingCompareStep');
+  if (stepEl) stepEl.textContent = perspective ? ('Comparaison du point de vue de ' + perspective + '…') : 'Comparaison en cours…';
+  document.getElementById('btnCompare').disabled = true;
+  try {
+    var token = await _compareToken();
     var res = await fetch(EDGE_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
       body: JSON.stringify({
         question: 'Comparer les deux versions de contrat',
-        // Champs séparés : l'ancien transport concaténé "V1 --- V2" cassait
-        // si un contrat contenait lui-même "---". Le serveur compare
-        // désormais les versions INTÉGRALES (diff aligné par fenêtres).
         contract_v1: contractText1,
         contract_v2: contractText2,
         mode: 'compare',
+        perspective: perspective || 'neutre',
         history: []
       }),
     });
-    
-    if (!res.ok) throw new Error('Erreur: ' + res.status);
-    var result = await res.json();
-    console.log('COMPARE RESULT', result);
-    
-    // Compare mode retourne JSON directement
-    var compareData = result;
-    if (!compareData.changes) {
-      compareData = { summary: result.answer || 'Erreur', changes: [] };
+    if (!res.ok) {
+      var msg = 'Erreur serveur (' + res.status + ').';
+      try { var b = await res.json(); if (b && b.error) msg = b.error; } catch (e) {}
+      throw new Error(msg);
     }
-    
+    var result = await res.json();
+    var compareData = (result && result.changes) ? result : { summary: (result && result.answer) || 'Erreur', changes: [] };
+    compareData._perspective = perspective || '';
     renderComparison(compareData);
-  } catch(e) {
-    alert('Erreur: ' + e.message);
+  } catch (e) {
+    alert(e.message || 'Erreur pendant la comparaison.');
   } finally {
     document.getElementById('loadingCompare').style.display = 'none';
     document.getElementById('btnCompare').disabled = false;
   }
+}
+
+function escHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
+    return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+  });
 }
 
 function renderComparison(result) {
@@ -476,12 +542,37 @@ function renderComparison(result) {
     if (c.type === 'addition' || c.type === 'added' || c.type === 'add') c.type = 'ajout';
     if (c.type === 'deletion' || c.type === 'removed' || c.type === 'remove' || c.type === 'deleted') c.type = 'suppression';
     if (c.type === 'change' || c.type === 'changed' || c.type === 'update' || c.type === 'updated') c.type = 'modification';
+    // Normaliser le sens (favorable / défavorable / neutre) pour la perspective.
+    var s = (c.sens || '').toString().toLowerCase();
+    if (s.indexOf('defav') >= 0 || s.indexOf('défav') >= 0 || s.indexOf('unfav') >= 0 || s.indexOf('contre') >= 0) c.sens = 'défavorable';
+    else if (s.indexOf('fav') >= 0) c.sens = 'favorable';
+    else c.sens = 'neutre';
   });
+  var persp = result._perspective || '';
+  var sensColors = { favorable: '#10b981', 'défavorable': '#ef4444', neutre: '#94a3b8' };
+  var sensLabels = { favorable: '👍 Favorable', 'défavorable': '⚠️ Défavorable', neutre: '• Neutre' };
   var typeColors = { ajout: '#10b981', suppression: '#ef4444', modification: '#f59e0b' };
   var typeLabels = { ajout: '➕ Ajout', suppression: '➖ Suppression', modification: '✏️ Modification' };
   var impactColors = { majeur: '#fef2f2', mineur: '#fffbeb', neutre: '#f9fafb' };
 
-  var html = '<div style="background:var(--white);border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:16px;">';
+  var defav = changes.filter(function(c) { return c.sens === 'défavorable'; }).length;
+  var fav = changes.filter(function(c) { return c.sens === 'favorable'; }).length;
+
+  var html = '';
+  // Bandeau de perspective : le vrai « wow » — combien de changements vous desservent.
+  if (persp) {
+    html += '<div style="background:' + (defav ? '#fef2f2' : '#ecfdf5') + ';border:1px solid ' + (defav ? '#fecaca' : '#a7f3d0') + ';border-radius:16px;padding:20px 24px;margin-bottom:16px;">';
+    html += '<div style="font-size:13px;color:var(--slate-500);margin-bottom:6px;">Point de vue : <strong style="color:var(--slate-800);">' + escHtml(persp) + '</strong></div>';
+    if (defav) {
+      html += '<div style="font-size:20px;font-weight:700;color:#991b1b;">⚠️ ' + defav + ' changement' + (defav > 1 ? 's' : '') + ' vous ' + (defav > 1 ? 'sont' : 'est') + ' défavorable' + (defav > 1 ? 's' : '') + '</div>';
+    } else {
+      html += '<div style="font-size:20px;font-weight:700;color:#065f46;">✓ Aucun changement défavorable détecté</div>';
+    }
+    html += '<div style="font-size:13px;color:var(--slate-600);margin-top:4px;">' + fav + ' favorable' + (fav > 1 ? 's' : '') + ' · ' + defav + ' défavorable' + (defav > 1 ? 's' : '') + ' · ' + (changes.length - fav - defav) + ' neutre(s)</div>';
+    html += '</div>';
+  }
+
+  html += '<div style="background:var(--white);border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:16px;">';
   html += '<div style="font-size:15px;font-weight:600;color:var(--slate-900);margin-bottom:8px;">📊 Résumé de la comparaison</div>';
   html += '<div style="font-size:14px;color:var(--slate-500);">' + (result.summary || '') + '</div>';
   html += '<div style="display:flex;gap:16px;margin-top:16px;flex-wrap:wrap;">';
@@ -494,6 +585,11 @@ function renderComparison(result) {
   html += '</div></div>';
 
   if (changes.length > 0) {
+    // Avec une perspective : les changements défavorables remontent en tête.
+    if (persp) {
+      var rank = { 'défavorable': 0, neutre: 1, favorable: 2 };
+      changes.sort(function(a, b) { return (rank[a.sens] ?? 1) - (rank[b.sens] ?? 1); });
+    }
     html += '<div style="background:var(--white);border:1px solid var(--border);border-radius:16px;padding:24px;">';
     html += '<div style="font-size:15px;font-weight:600;color:var(--slate-900);margin-bottom:16px;">📋 Détail des changements</div>';
     changes.forEach(function(change, i) {
@@ -504,11 +600,22 @@ function renderComparison(result) {
       html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">';
       html += '<span style="font-size:12px;font-weight:700;color:' + color + ';">' + label + '</span>';
       html += '<span style="font-size:12px;font-weight:600;color:var(--slate-700);">' + (change.clause || '') + '</span>';
+      // Badge favorable / défavorable (seulement si un camp est choisi).
+      if (persp && change.sens && change.sens !== 'neutre') {
+        html += '<span style="font-size:11px;background:' + (change.sens === 'défavorable' ? '#fef2f2' : '#ecfdf5') + ';color:' + sensColors[change.sens] + ';padding:2px 8px;border-radius:99px;font-weight:700;">' + sensLabels[change.sens] + '</span>';
+      }
       if (change.impact === 'majeur') html += '<span style="font-size:11px;background:#fef2f2;color:#991b1b;padding:2px 8px;border-radius:99px;font-weight:600;">Impact majeur</span>';
       html += '</div>';
       if (change.description) html += '<div style="font-size:12px;color:var(--slate-600);margin-bottom:8px;font-style:italic;">' + change.description + '</div>';
       if (change.v1) html += '<div style="font-size:12px;color:var(--slate-500);margin-bottom:4px;white-space:pre-wrap;line-height:1.6;"><strong>V1:</strong> ' + change.v1 + '</div>';
       if (change.v2) html += '<div style="font-size:12px;color:var(--slate-700);white-space:pre-wrap;line-height:1.6;"><strong>V2:</strong> ' + change.v2 + '</div>';
+      // Contre-rédaction proposée pour les changements défavorables.
+      if (persp && change.sens === 'défavorable' && change.suggestion) {
+        html += '<div style="margin-top:10px;padding:12px;background:#eef2ff;border:1px solid #c7d2fe;border-radius:8px;">';
+        html += '<div style="font-size:11px;font-weight:700;color:#4338ca;margin-bottom:4px;">✍️ Rédaction suggérée</div>';
+        html += '<div style="font-size:12px;color:var(--slate-700);white-space:pre-wrap;line-height:1.6;">' + change.suggestion + '</div>';
+        html += '</div>';
+      }
       html += '</div>';
     });
     html += '</div>';
@@ -532,18 +639,21 @@ window.exportComparePDF = function exportComparePDF() {
   var changesHtml = changes.map(function(c) {
     var color = c.type === 'ajout' ? '#10b981' : c.type === 'suppression' ? '#ef4444' : '#f59e0b';
     var label = c.type === 'ajout' ? 'Ajout' : c.type === 'suppression' ? 'Suppression' : 'Modification';
+    var sensBadge = (c.sens === 'défavorable') ? ' <span style="background:#fef2f2;color:#991b1b;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:700;">Défavorable</span>'
+      : (c.sens === 'favorable') ? ' <span style="background:#ecfdf5;color:#065f46;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:700;">Favorable</span>' : '';
     return '<div style="padding:14px;border-left:4px solid ' + color + ';margin-bottom:12px;background:#f9fafb;">' +
-      '<strong style="color:' + color + '">[' + label + ']</strong> ' + (c.clause || '') +
+      '<strong style="color:' + color + '">[' + label + ']</strong> ' + (c.clause || '') + sensBadge +
       (c.impact === 'majeur' ? ' <span style="background:#fef2f2;color:#991b1b;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600;">Impact majeur</span>' : '') +
       (c.description ? '<div style="font-size:12px;color:#555;margin-top:6px;font-style:italic;">' + c.description + '</div>' : '') +
       (c.v1 ? '<div style="font-size:12px;color:#666;margin-top:6px;white-space:pre-wrap;"><strong>V1:</strong> ' + c.v1 + '</div>' : '') +
       (c.v2 ? '<div style="font-size:12px;color:#333;margin-top:4px;white-space:pre-wrap;"><strong>V2:</strong> ' + c.v2 + '</div>' : '') +
+      (c.sens === 'défavorable' && c.suggestion ? '<div style="font-size:12px;color:#3730a3;margin-top:8px;padding:10px;background:#eef2ff;border-radius:6px;white-space:pre-wrap;"><strong>✍️ Rédaction suggérée :</strong> ' + c.suggestion + '</div>' : '') +
       '</div>';
   }).join('');
-  
+
   win.document.write('<html><head><title>Comparaison Juria</title><style>body{font-family:Arial,sans-serif;max-width:800px;margin:40px auto;padding:0 24px;color:#0f1117}h1{color:#4f46e5}</style></head><body>');
   win.document.write('<h1>⚖️ Rapport de comparaison — Juria</h1>');
-  win.document.write('<p style="color:#6b7280">' + new Date().toLocaleDateString('fr-MA') + '</p>');
+  win.document.write('<p style="color:#6b7280">' + new Date().toLocaleDateString('fr-MA') + (result._perspective ? ' · Point de vue : ' + result._perspective : '') + '</p>');
   win.document.write('<h2>Résumé</h2><p>' + (result.summary || '') + '</p>');
   win.document.write('<h2>Changements détectés</h2>' + changesHtml);
   win.document.write('<div style="margin-top:40px;padding-top:16px;border-top:1px solid #e5e7eb;color:#9ca3af;font-size:12px;text-align:center">Rapport généré par Juria · À titre indicatif uniquement</div>');

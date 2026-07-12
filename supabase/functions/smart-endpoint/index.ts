@@ -99,8 +99,17 @@ serve(async (req) => {
     // est supprimé : la consommation est régie par le quota v2 en crédits
     // d'ORGANISATION (checkOrgQuota/logQuotaUsage), vérifié par mode.
     const body = await req.json();
-    const { question, contract_to_analyze, mode, history, document_context, conversation_context } = body;
+    const { question, contract_to_analyze, mode, history, document_context, conversation_context, perspective } = body;
     const conversationHistory: any[] = history || [];
+
+    // Perspective d'analyse : la partie que défend l'utilisateur (nom libre issu
+    // du contrat). Vide / "neutre" => analyse impartiale (comportement historique).
+    // On ne DÉDUIT jamais le camp : il est fourni explicitement par le client.
+    const perspRaw = typeof perspective === "string" ? perspective.trim() : "";
+    const persp = /^(neutre|neutral|)$/i.test(perspRaw) ? "" : perspRaw.slice(0, 120);
+    const perspClause = persp
+      ? `POINT DE VUE : tu conseilles « ${persp} » (une des parties au contrat). Juge chaque point du point de vue de SES intérêts : ce qui protège ou avantage « ${persp} » est favorable ; ce qui l'expose, le contraint ou réduit ses droits est défavorable.`
+      : "";
 
     if (!question || typeof question !== "string" || question.length > 600) {
       return new Response(JSON.stringify({ error: "Question invalide" }), {
@@ -248,6 +257,33 @@ serve(async (req) => {
       });
     }
 
+    // ---- MODE PARTIES (extraction légère pour le sélecteur de perspective) ----
+    // Renvoie juste les parties nommées au contrat. Bon marché (petit prompt),
+    // non facturé : sert à proposer « Je représente : [X] / [Y] » avant l'analyse.
+    if (mode === "parties") {
+      const sample = String(contract_to_analyze || body.contract_v1 || document_context || "").slice(0, 8000);
+      if (!sample.trim()) {
+        return new Response(JSON.stringify({ parties: [] }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      try {
+        const out = await callOpenAI(
+          "Tu es juriste. Identifie les parties nommées à ce contrat (bailleur/preneur, employeur/salarié, vendeur/acheteur, sociétés…). Retourne UNIQUEMENT un JSON {\"parties\": [\"...\", \"...\"]} avec leur désignation telle qu'écrite (max 4).",
+          sample,
+          200,
+        );
+        const parties = Array.isArray(out?.parties) ? out.parties.filter((p: any) => typeof p === "string" && p.trim()).slice(0, 4) : [];
+        return new Response(JSON.stringify({ parties }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (_e) {
+        return new Response(JSON.stringify({ parties: [] }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     // ---- MODE QUESTION SUR DOCUMENT ----
     if (mode === "document_question" && document_context) {
       // Check quota v2 if organization is available (chat = 0.1 credit per message, rounded to 1 for simplicity)
@@ -362,15 +398,21 @@ serve(async (req) => {
         "- Les suppressions incluent: clauses de confidentialité, délais de préavis, congés payés, assurances, responsabilités, durée du contrat, salaire, conditions de résiliation, garanties, conditions d'emploi",
         "- Si V1 contient une clause et V2 ne la contient pas (même reformulée), c'est une SUPPRESSION",
         "",
+        perspClause,
+        persp
+          ? `Pour CHAQUE changement, ajoute "sens" = "favorable" / "défavorable" / "neutre" DU POINT DE VUE de « ${persp} ». Pour tout changement "défavorable", ajoute "suggestion" = une contre-proposition de rédaction concrète (le texte exact à proposer) pour rétablir ou protéger la position de « ${persp} ». Pour les autres, "suggestion": "".`
+          : 'Ajoute "sens": "neutre" et "suggestion": "" à chaque changement (aucune partie choisie).',
+        "",
         "📝 FORMAT REQUIS - Retourne UNIQUEMENT JSON valide:",
-        '{"summary": "résumé global", "changes": [',
-        '  {"type": "suppression", "clause": "Nom clause", "v1": "texte V1", "v2": "", "impact": "majeur", "description": "Explication"},',
-        '  {"type": "modification", "clause": "Nom clause", "v1": "texte V1", "v2": "texte V2", "impact": "majeur", "description": "Explication"},',
-        '  {"type": "ajout", "clause": "Nom clause", "v1": "", "v2": "texte V2", "impact": "mineur", "description": "Explication"}',
+        '{"summary": "résumé global", "parties": ["Nom partie 1", "Nom partie 2"], "changes": [',
+        '  {"type": "suppression", "clause": "Nom clause", "v1": "texte V1", "v2": "", "impact": "majeur", "sens": "défavorable", "description": "Explication", "suggestion": "Texte à proposer"},',
+        '  {"type": "modification", "clause": "Nom clause", "v1": "texte V1", "v2": "texte V2", "impact": "majeur", "sens": "favorable", "description": "Explication", "suggestion": ""},',
+        '  {"type": "ajout", "clause": "Nom clause", "v1": "", "v2": "texte V2", "impact": "mineur", "sens": "neutre", "description": "Explication", "suggestion": ""}',
         "]}",
         "",
-        "Types UNIQUEMENT: ajout, suppression, modification. Impact: majeur, mineur, neutre. PAS de 'deletion', 'added', 'changed'.",
-        "Chaque changement DOIT avoir: type, clause, v1, v2, impact, description",
+        '"parties" = les 2 (ou plus) parties nommées au contrat, telles qu\'écrites (ex: "le Bailleur", "OCP SA"). Toujours renseigné.',
+        "Types UNIQUEMENT: ajout, suppression, modification. Impact: majeur, mineur, neutre. sens: favorable, défavorable, neutre. PAS de 'deletion', 'added', 'changed'.",
+        "Chaque changement DOIT avoir: type, clause, v1, v2, impact, sens, description, suggestion",
         "",
         "🔴 RÈGLE SUR v1 ET v2: cite le TEXTE INTÉGRAL de la clause concernée, mot pour mot, tel qu'il apparaît dans le contrat. NE RÉSUME PAS, NE PARAPHRASE PAS, NE TRONQUE PAS. Pour une suppression: v1 = texte complet de la clause supprimée. Pour un ajout: v2 = texte complet de la clause ajoutée. Pour une modification: cite les passages complets concernés dans v1 et v2.",
         "Si aucune différence trouvée: {\"summary\": \"Aucune différence\", \"changes\": []}",
@@ -418,9 +460,10 @@ serve(async (req) => {
               "Tu es expert juridique marocain. On te donne les changements détectés sur les parties successives d'une comparaison de deux versions d'un MEME contrat.",
               "Fusionne en un résultat global : DÉDOUBLONNE les changements qui décrivent la même clause (les zones se chevauchent aux bords), en conservant la version la plus complète.",
               "Écris un summary global (2-4 phrases) hiérarchisant les changements majeurs.",
-              "Types UNIQUEMENT: ajout, suppression, modification. Impact: majeur, mineur, neutre.",
-              'Retourne UNIQUEMENT un JSON: {"summary": "...", "changes": [{"type","clause","v1","v2","impact","description"}]}',
-              "Conserve les textes v1/v2 INTÉGRAUX tels que fournis, ne les résume pas.",
+              perspClause,
+              "Types UNIQUEMENT: ajout, suppression, modification. Impact: majeur, mineur, neutre. sens: favorable, défavorable, neutre.",
+              'Retourne UNIQUEMENT un JSON: {"summary": "...", "parties": ["...","..."], "changes": [{"type","clause","v1","v2","impact","sens","description","suggestion"}]}',
+              "Conserve INTÉGRALEMENT chaque champ fourni (v1, v2, sens, suggestion) sans le résumer ni le vider.",
             ].join("\n"),
           },
           { role: "user", content: "Résumés partiels: " + partSummaries + "\n\nChangements détectés: " + JSON.stringify(allChanges).slice(0, 90000) },
@@ -429,6 +472,11 @@ serve(async (req) => {
         if (!Array.isArray(compareData.changes) || (compareData.changes.length === 0 && allChanges.length > 0)) {
           // Filet de sécurité : si la fusion échoue, renvoyer la concaténation brute
           compareData = { summary: partSummaries, changes: allChanges };
+        }
+        // Les parties peuvent manquer après fusion : reprendre celles d'une partie.
+        if (!Array.isArray(compareData.parties) || compareData.parties.length === 0) {
+          const firstParties = pairResults.find((r) => Array.isArray(r?.parties) && r.parties.length)?.parties;
+          if (firstParties) compareData.parties = firstParties;
         }
       }
 
