@@ -130,50 +130,67 @@ serve(async (req) => {
       console.warn("[smart-endpoint] Failed to get org_id:", e);
     }
 
-    const callOpenAI = async (systemPrompt: string, userContent: string, maxTokens: number, jsonMode = true) => {
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    // Appel OpenAI avec retries + backoff exponentiel. Les 429 (rate limit)
+    // et 5xx transitoires sont réessayés (en respectant Retry-After) au lieu
+    // de faire échouer toute l'analyse. Après épuisement des tentatives, on
+    // lève une erreur porteuse du statut (aiStatus) pour un message client clair.
+    const openaiFetch = async (url: string, body: unknown, attempt = 0): Promise<Response> => {
+      const res = await fetch(url, {
         method: "POST",
         headers: { "Authorization": "Bearer " + openaiKey, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userContent },
-          ],
-          max_tokens: maxTokens,
-          temperature: 0.1,
-          ...(jsonMode ? { response_format: { type: "json_object" } } : {}),
-        }),
+        body: JSON.stringify(body),
       });
-      if (!res.ok) throw new Error("OpenAI error: " + res.status);
+      if ((res.status === 429 || res.status >= 500) && attempt < 4) {
+        const retryAfter = Number(res.headers.get("retry-after"));
+        const waitMs = retryAfter > 0 ? retryAfter * 1000 : Math.min(1000 * 2 ** attempt, 8000);
+        await new Promise((r) => setTimeout(r, waitMs + Math.random() * 300));
+        return openaiFetch(url, body, attempt + 1);
+      }
+      return res;
+    };
+
+    const chatBody = (messages: any[], maxTokens: number, jsonMode: boolean) => ({
+      model: "gpt-4o-mini",
+      messages,
+      max_tokens: maxTokens,
+      temperature: 0.1,
+      ...(jsonMode ? { response_format: { type: "json_object" } } : {}),
+    });
+
+    const throwAiError = (res: Response) => {
+      const e: any = new Error("OpenAI error: " + res.status);
+      e.aiStatus = res.status;
+      throw e;
+    };
+
+    const callOpenAI = async (systemPrompt: string, userContent: string, maxTokens: number, jsonMode = true) => {
+      const res = await openaiFetch(
+        "https://api.openai.com/v1/chat/completions",
+        chatBody([
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userContent },
+        ], maxTokens, jsonMode),
+      );
+      if (!res.ok) throwAiError(res);
       const data = await res.json();
       const text = data.choices[0].message.content;
       return jsonMode ? JSON.parse(text) : text;
     };
 
     const callOpenAIMessages = async (messages: any[], maxTokens: number, jsonMode = true) => {
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: { "Authorization": "Bearer " + openaiKey, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages,
-          max_tokens: maxTokens,
-          temperature: 0.1,
-          ...(jsonMode ? { response_format: { type: "json_object" } } : {}),
-        }),
-      });
-      if (!res.ok) throw new Error("OpenAI error: " + res.status);
+      const res = await openaiFetch(
+        "https://api.openai.com/v1/chat/completions",
+        chatBody(messages, maxTokens, jsonMode),
+      );
+      if (!res.ok) throwAiError(res);
       const data = await res.json();
       const text = data.choices[0].message.content;
       return jsonMode ? JSON.parse(text) : text;
     };
 
     const vectorSearch = async (query: string, count = 30, codes: string[] = []) => {
-      const embRes = await fetch("https://api.openai.com/v1/embeddings", {
-        method: "POST",
-        headers: { "Authorization": "Bearer " + openaiKey, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "text-embedding-3-small", input: query }),
+      const embRes = await openaiFetch("https://api.openai.com/v1/embeddings", {
+        model: "text-embedding-3-small", input: query,
       });
       if (!embRes.ok) return [];
       const embData = await embRes.json();
@@ -453,10 +470,15 @@ serve(async (req) => {
       if (orgId) {
         const quotaCheck = await checkOrgQuota(orgId, "risk_analysis", windows.length);
         if (!quotaCheck.allowed) {
+          // Message actionnable : le cout depend de la taille du document
+          // (1 credit par fenetre de ~3 pages), ce que l'utilisateur ne peut
+          // pas deviner depuis un simple "quota atteint".
+          const remaining = quotaCheck.remaining_credits ?? 0;
           return new Response(JSON.stringify({
-            error: quotaCheck.reason || "Quota organisation atteint pour les analyses de risques",
+            error: `Crédits insuffisants : ce document nécessite ${windows.length} crédit${windows.length > 1 ? "s" : ""} d'analyse (1 par tranche d'environ 3 pages) et il en reste ${remaining}. Augmentez le quota mensuel ou analysez un document plus court.`,
             code: "QUOTA_EXCEEDED",
-            remaining_credits: quotaCheck.remaining,
+            required_credits: windows.length,
+            remaining_credits: remaining,
           }), {
             status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
@@ -490,11 +512,13 @@ serve(async (req) => {
         "Retourne UNIQUEMENT un JSON: {contract_type: string, score: number, summary: string, issues: [{paragraph_id: number, severity: string, clause: string, problem: string, suggestion: string}], missing_clauses: [string], obligations: [{description: string, due_date: string|null, is_critical: boolean}]}. paragraph_id = le numero entre crochets [N] du paragraphe concerne dans le contrat fourni.",
       ].filter(Boolean).join(" ");
 
-      // MAP : analyse de chaque fenetre, 4 appels OpenAI en parallele maximum
+      // MAP : analyse de chaque fenetre. Concurrence limitee a 2 (au lieu de 4)
+      // pour ne pas saturer le rate limit OpenAI ; le backoff d'openaiFetch
+      // absorbe les 429 residuels.
       const partResults: any[] = new Array(windows.length);
       let nextWindow = 0;
       await Promise.all(
-        Array.from({ length: Math.min(4, windows.length) }, async () => {
+        Array.from({ length: Math.min(2, windows.length) }, async () => {
           while (nextWindow < windows.length) {
             const i = nextWindow++;
             partResults[i] = await callOpenAI(
@@ -757,6 +781,13 @@ serve(async (req) => {
 
   } catch (err) {
     console.error("Edge Function error:", err);
+    // Rate limit OpenAI persistant après retries : message clair + 429.
+    if ((err as any)?.aiStatus === 429) {
+      return new Response(JSON.stringify({
+        error: "Le service d'analyse est momentanément surchargé. Patientez un instant puis réessayez.",
+        code: "AI_RATE_LIMITED",
+      }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
     return new Response(JSON.stringify({ error: "Erreur serveur inattendue" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
