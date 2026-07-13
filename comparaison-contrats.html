@@ -289,8 +289,39 @@ async function init() {
   const session = await requireAuth();
   if (!session) return;
 
-  // NOTE : l'ancien pré-chargement mono-document (?doc_id=) appartenait à
-  // la page analyse ; la comparaison charge ses deux contrats via les zones.
+  // Pré-chargement « comparer deux versions » : la fiche document dépose les
+  // deux textes figés dans sessionStorage puis nous redirige ici. On garnit
+  // directement les deux zones — le reste du flux (parties, point de vue,
+  // comparaison LLM) est identique à un import manuel.
+  preloadFromVersions();
+}
+
+function preloadFromVersions() {
+  var raw = null;
+  try { raw = sessionStorage.getItem('juria_compare_versions'); } catch (e) {}
+  if (!raw) return;
+  sessionStorage.removeItem('juria_compare_versions');
+  var v;
+  try { v = JSON.parse(raw); } catch (e) { return; }
+  if (!v || !v.text1 || !v.text2) return;
+
+  contractText1 = v.text1;
+  contractText2 = v.text2;
+
+  var fill = function(labelId, label, text) {
+    var el = document.getElementById(labelId);
+    if (!el) return;
+    el.innerHTML = '<strong>' + (v.doc_name ? v.doc_name + ' — ' : '') + label + '</strong> chargée (' + Math.round(text.length / 1000) + 'k car.)';
+    if (el.parentElement) {
+      el.parentElement.style.borderColor = '#10b981';
+      el.parentElement.style.background = '#ecfdf5';
+    }
+  };
+  fill('dropLabel1', v.label1 || 'Version antérieure', v.text1);
+  fill('dropLabel2', v.label2 || 'Version récente', v.text2);
+
+  var btn = document.getElementById('btnCompare');
+  if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
 }
 // NOTE: init() est appelé à la fin du script (voir tout en bas)
 

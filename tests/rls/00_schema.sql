@@ -11,6 +11,9 @@
 
 DO $$ BEGIN CREATE ROLE authenticated NOLOGIN; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE ROLE anon NOLOGIN; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+-- service_role : présent en prod Supabase (edge functions). Certaines migrations
+-- lui accordent EXECUTE sur des fonctions SECURITY DEFINER (ex. quota stockage).
+DO $$ BEGIN CREATE ROLE service_role NOLOGIN; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 CREATE SCHEMA auth;
 GRANT USAGE ON SCHEMA auth TO authenticated, anon;

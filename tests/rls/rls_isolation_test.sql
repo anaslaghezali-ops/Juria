@@ -9,7 +9,7 @@
 -- (propriétaire UB, autre tenant). Org A possède deux dossiers privés — F1
 -- (sera partagé avec UC) et F2 (jamais partagé) — chacun avec un document et
 -- ses enfants (risque, échéance, analyse, contenu, chunk, résumé, commentaire
--- de risque), plus une contrepartie, une tâche, une notification.
+-- de risque, version archivée), plus une contrepartie, une tâche, une notification.
 --
 -- Attendu :
 --   Phase 1  — Isolation tenant : UB (Org B) et l'anonyme voient ZÉRO ligne
@@ -38,6 +38,7 @@ DELETE FROM public.document_chunks      WHERE organization_id IN ('a0000000-0000
 DELETE FROM public.document_analyses    WHERE organization_id IN ('a0000000-0000-4000-a000-000000000001','b0000000-0000-4000-a000-000000000001');
 DELETE FROM public.document_obligations WHERE organization_id IN ('a0000000-0000-4000-a000-000000000001','b0000000-0000-4000-a000-000000000001');
 DELETE FROM public.document_risks       WHERE organization_id IN ('a0000000-0000-4000-a000-000000000001','b0000000-0000-4000-a000-000000000001');
+DELETE FROM public.document_versions    WHERE organization_id IN ('a0000000-0000-4000-a000-000000000001','b0000000-0000-4000-a000-000000000001');
 DELETE FROM public.document_content     WHERE document_id IN (SELECT id FROM public.documents WHERE organization_id IN ('a0000000-0000-4000-a000-000000000001','b0000000-0000-4000-a000-000000000001'));
 DELETE FROM public.documents            WHERE organization_id IN ('a0000000-0000-4000-a000-000000000001','b0000000-0000-4000-a000-000000000001');
 DELETE FROM public.folders              WHERE organization_id IN ('a0000000-0000-4000-a000-000000000001','b0000000-0000-4000-a000-000000000001');
@@ -77,6 +78,10 @@ INSERT INTO public.document_analyses (id, document_id, organization_id) VALUES
 INSERT INTO public.document_content (document_id, extracted_text) VALUES
   ('a0000000-0000-4000-a000-0000000000d1','texte A1'),
   ('a0000000-0000-4000-a000-0000000000d2','texte A2');
+-- Une version archivée par document (d1 dans F1 partageable, d2 dans F2 privé).
+INSERT INTO public.document_versions (id, document_id, organization_id, version_number, name, file_size, extracted_text, created_by) VALUES
+  ('a0000000-0000-4000-a000-0000000000f7','a0000000-0000-4000-a000-0000000000d1','a0000000-0000-4000-a000-000000000001',1,'Doc A1 v1',1000,'texte A1 v1','a0000000-0000-4000-a000-0000000000a1'),
+  ('a0000000-0000-4000-a000-0000000000f8','a0000000-0000-4000-a000-0000000000d2','a0000000-0000-4000-a000-000000000001',1,'Doc A2 v1',2000,'texte A2 v1','a0000000-0000-4000-a000-0000000000a1');
 INSERT INTO public.document_chunks (id, document_id, organization_id, chunk_index, content) VALUES
   ('a0000000-0000-4000-a000-0000000000e4','a0000000-0000-4000-a000-0000000000d1','a0000000-0000-4000-a000-000000000001',0,'chunk A1');
 INSERT INTO public.document_summaries (id, document_id, organization_id, section_index) VALUES
@@ -98,6 +103,7 @@ INSERT INTO public.rls_results SELECT 'P1_B_voit_documents_A',      0, count(*):
 INSERT INTO public.rls_results SELECT 'P1_B_voit_counterparties_A', 0, count(*)::int, CASE WHEN count(*)=0 THEN 'PASS' ELSE 'FAIL' END FROM public.counterparties       WHERE organization_id='a0000000-0000-4000-a000-000000000001';
 INSERT INTO public.rls_results SELECT 'P1_B_voit_tasks_A',          0, count(*)::int, CASE WHEN count(*)=0 THEN 'PASS' ELSE 'FAIL' END FROM public.tasks                WHERE organization_id='a0000000-0000-4000-a000-000000000001';
 INSERT INTO public.rls_results SELECT 'P1_B_voit_risks_A',          0, count(*)::int, CASE WHEN count(*)=0 THEN 'PASS' ELSE 'FAIL' END FROM public.document_risks       WHERE organization_id='a0000000-0000-4000-a000-000000000001';
+INSERT INTO public.rls_results SELECT 'P1_B_voit_versions_A',       0, count(*)::int, CASE WHEN count(*)=0 THEN 'PASS' ELSE 'FAIL' END FROM public.document_versions    WHERE organization_id='a0000000-0000-4000-a000-000000000001';
 INSERT INTO public.rls_results SELECT 'P1_B_voit_obligations_A',    0, count(*)::int, CASE WHEN count(*)=0 THEN 'PASS' ELSE 'FAIL' END FROM public.document_obligations WHERE organization_id='a0000000-0000-4000-a000-000000000001';
 INSERT INTO public.rls_results SELECT 'P1_B_voit_analyses_A',       0, count(*)::int, CASE WHEN count(*)=0 THEN 'PASS' ELSE 'FAIL' END FROM public.document_analyses    WHERE organization_id='a0000000-0000-4000-a000-000000000001';
 INSERT INTO public.rls_results SELECT 'P1_B_voit_chunks_A',         0, count(*)::int, CASE WHEN count(*)=0 THEN 'PASS' ELSE 'FAIL' END FROM public.document_chunks      WHERE organization_id='a0000000-0000-4000-a000-000000000001';
@@ -120,6 +126,7 @@ SELECT set_config('request.jwt.claims','{"sub":"a0000000-0000-4000-a000-00000000
 SET ROLE authenticated;
 INSERT INTO public.rls_results SELECT 'P1_UA_voit_ses_folders',   2, count(*)::int, CASE WHEN count(*)=2 THEN 'PASS' ELSE 'FAIL' END FROM public.folders   WHERE organization_id='a0000000-0000-4000-a000-000000000001';
 INSERT INTO public.rls_results SELECT 'P1_UA_voit_ses_documents', 2, count(*)::int, CASE WHEN count(*)=2 THEN 'PASS' ELSE 'FAIL' END FROM public.documents WHERE organization_id='a0000000-0000-4000-a000-000000000001';
+INSERT INTO public.rls_results SELECT 'P1_UA_voit_ses_versions',  2, count(*)::int, CASE WHEN count(*)=2 THEN 'PASS' ELSE 'FAIL' END FROM public.document_versions WHERE organization_id='a0000000-0000-4000-a000-000000000001';
 RESET ROLE;
 
 -- ════════════════════ PHASE 1b — COMPARTIMENTAGE INTRA-ORG ════════════
@@ -130,6 +137,7 @@ SET ROLE authenticated;
 INSERT INTO public.rls_results SELECT 'P1b_UC_voit_F1_avant_partage', 0, count(*)::int, CASE WHEN count(*)=0 THEN 'PASS' ELSE 'FAIL' END FROM public.folders   WHERE id='a0000000-0000-4000-a000-0000000000f1';
 INSERT INTO public.rls_results SELECT 'P1b_UC_voit_F2_avant_partage', 0, count(*)::int, CASE WHEN count(*)=0 THEN 'PASS' ELSE 'FAIL' END FROM public.folders   WHERE id='a0000000-0000-4000-a000-0000000000f2';
 INSERT INTO public.rls_results SELECT 'P1b_UC_voit_docF1_avant',      0, count(*)::int, CASE WHEN count(*)=0 THEN 'PASS' ELSE 'FAIL' END FROM public.documents WHERE id='a0000000-0000-4000-a000-0000000000d1';
+INSERT INTO public.rls_results SELECT 'P1b_UC_voit_versionF1_avant',  0, count(*)::int, CASE WHEN count(*)=0 THEN 'PASS' ELSE 'FAIL' END FROM public.document_versions WHERE document_id='a0000000-0000-4000-a000-0000000000d1';
 RESET ROLE;
 
 -- ════════════════════ PHASE 2 — PARTAGE BORNÉ (intra-org) ═════════════
@@ -148,6 +156,9 @@ INSERT INTO public.rls_results SELECT 'P2_UC_voit_docF2',         0, count(*)::i
 -- enfants du doc de F1 visibles (via l'accès au document), enfants de F2 non
 INSERT INTO public.rls_results SELECT 'P2_UC_voit_risqueF1',      1, count(*)::int, CASE WHEN count(*)=1 THEN 'PASS' ELSE 'FAIL' END FROM public.document_risks   WHERE id='a0000000-0000-4000-a000-0000000000e1';
 INSERT INTO public.rls_results SELECT 'P2_UC_voit_contenuF2',     0, count(*)::int, CASE WHEN count(*)=0 THEN 'PASS' ELSE 'FAIL' END FROM public.document_content WHERE document_id='a0000000-0000-4000-a000-0000000000d2';
+-- Les versions héritent de l'accès au document : F1 partagé → visible ; F2 privé → non.
+INSERT INTO public.rls_results SELECT 'P2_UC_voit_versionF1',     1, count(*)::int, CASE WHEN count(*)=1 THEN 'PASS' ELSE 'FAIL' END FROM public.document_versions WHERE document_id='a0000000-0000-4000-a000-0000000000d1';
+INSERT INTO public.rls_results SELECT 'P2_UC_voit_versionF2',     0, count(*)::int, CASE WHEN count(*)=0 THEN 'PASS' ELSE 'FAIL' END FROM public.document_versions WHERE document_id='a0000000-0000-4000-a000-0000000000d2';
 -- Et surtout : partager dans Org A ne fait JAMAIS fuiter vers Org B.
 RESET ROLE;
 SELECT set_config('request.jwt.claims','{"sub":"b0000000-0000-4000-a000-0000000000b1","role":"authenticated"}', false);
@@ -166,6 +177,7 @@ DELETE FROM public.document_chunks      WHERE organization_id IN ('a0000000-0000
 DELETE FROM public.document_analyses    WHERE organization_id IN ('a0000000-0000-4000-a000-000000000001','b0000000-0000-4000-a000-000000000001');
 DELETE FROM public.document_obligations WHERE organization_id IN ('a0000000-0000-4000-a000-000000000001','b0000000-0000-4000-a000-000000000001');
 DELETE FROM public.document_risks       WHERE organization_id IN ('a0000000-0000-4000-a000-000000000001','b0000000-0000-4000-a000-000000000001');
+DELETE FROM public.document_versions    WHERE organization_id IN ('a0000000-0000-4000-a000-000000000001','b0000000-0000-4000-a000-000000000001');
 DELETE FROM public.document_content     WHERE document_id IN (SELECT id FROM public.documents WHERE organization_id IN ('a0000000-0000-4000-a000-000000000001','b0000000-0000-4000-a000-000000000001'));
 DELETE FROM public.documents            WHERE organization_id IN ('a0000000-0000-4000-a000-000000000001','b0000000-0000-4000-a000-000000000001');
 DELETE FROM public.folders              WHERE organization_id IN ('a0000000-0000-4000-a000-000000000001','b0000000-0000-4000-a000-000000000001');

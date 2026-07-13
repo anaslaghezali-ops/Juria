@@ -61,7 +61,8 @@ jobs:
           for m in 12_document_obligations 13_folder_sharing 14_performance_indexes \
                    15_sharing_notifications 16_fix_insert_returning_rls \
                    17_counterparty_compartmentalization 18_counterparty_sharing \
-                   19_fk_indexes 20_safe_deletes 21_safe_document_delete; do
+                   19_fk_indexes 20_safe_deletes 21_safe_document_delete \
+                   22_document_versioning; do
             echo "▶ applying $m"
             psql -v ON_ERROR_STOP=1 -q -f "supabase/migrations/$m.sql" >/dev/null
           done
