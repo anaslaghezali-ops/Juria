@@ -36,12 +36,25 @@ class DocumentService extends BaseService {
 
   async loadDocuments(orgId) {
     try {
-      const { data, error } = await this._sb
+      let { data, error } = await this._sb
         .from('documents')
         .select(DocumentService.SELECT)
         .eq('organization_id', orgId)
         .eq('is_archived', false)
         .order('created_at', { ascending: false });
+
+      // Tolérance de migration : si current_version (migration 22) n'est pas
+      // encore appliquée, la colonne manque → on recharge SANS elle plutôt que
+      // de vider la liste. Le badge de version restera simplement absent.
+      if (error && this._isMissingColumn(error, 'current_version')) {
+        const base = DocumentService.SELECT.replace(', current_version', '');
+        ({ data, error } = await this._sb
+          .from('documents')
+          .select(base)
+          .eq('organization_id', orgId)
+          .eq('is_archived', false)
+          .order('created_at', { ascending: false }));
+      }
 
       if (error) {
         if (this._isTableMissing(error)) {

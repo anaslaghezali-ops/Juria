@@ -204,6 +204,20 @@ class BaseService {
   _isTableMissing(error) {
     return error?.code === '42P01' || error?.message?.includes('does not exist');
   }
+
+  /**
+   * Vérifie qu'une erreur signale une COLONNE manquante (42703) — typiquement
+   * une migration pas encore appliquée. Permet de recharger sans cette colonne
+   * au lieu de casser toute la requête.
+   * @param {Object} error
+   * @param {string} [column]  — si fourni, restreint au nom de colonne donné
+   */
+  _isMissingColumn(error, column) {
+    if (error?.code !== '42703' && !/column .* does not exist/i.test(error?.message || '')) {
+      return false;
+    }
+    return column ? (error?.message || '').includes(column) : true;
+  }
 }
 
 if (typeof window !== 'undefined') window.BaseService = BaseService;

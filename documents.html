@@ -1972,10 +1972,18 @@ async function loadData() {
       allFolders        = foldersRes.data        || [];
       allCounterparties = cpRes.data             || [];
 
-      const { data: docs } = await _sb.from('documents')
-        .select('id, name, file_type, file_size, document_type, status, compliance_score, risk_level, created_at, updated_at, latest_analysis_id, tags, is_starred, is_archived, folder_id, counterparty_id, current_version')
+      const DOC_COLS_BASE = 'id, name, file_type, file_size, document_type, status, compliance_score, risk_level, created_at, updated_at, latest_analysis_id, tags, is_starred, is_archived, folder_id, counterparty_id';
+      let { data: docs, error: docsErr } = await _sb.from('documents')
+        .select(DOC_COLS_BASE + ', current_version')
         .eq('organization_id', currentOrgId).eq('is_archived', false)
         .order('created_at', { ascending: false });
+      // Tolérance migration 22 : colonne current_version absente → recharger sans elle.
+      if (docsErr && (docsErr.code === '42703' || /current_version/.test(docsErr.message || ''))) {
+        ({ data: docs } = await _sb.from('documents')
+          .select(DOC_COLS_BASE)
+          .eq('organization_id', currentOrgId).eq('is_archived', false)
+          .order('created_at', { ascending: false }));
+      }
 
       allDocs = (docs || []).map(d => ({
         ...d,
