@@ -187,6 +187,10 @@ class BaseService {
    * @param {Object} error
    */
   _handleError(method, error) {
+    // Conserver la dernière erreur brute : les méthodes qui renvoient null
+    // (create/update…) perdent sinon le message précis de la base (ex.
+    // STORAGE_QUOTA_EXCEEDED), que l'appelant a besoin de reconnaître.
+    this._lastError = error;
     const msg = `[${this._table}::${method}] ${error.message || JSON.stringify(error)}`;
     console.error(msg, error);
     // Hook extensible : les sous-classes peuvent surcharger

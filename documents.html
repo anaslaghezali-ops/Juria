@@ -4504,6 +4504,9 @@ async function confirmUpload() {
   document.getElementById('btnUploadText').textContent = 'Importation…';
   const folderId = document.getElementById('folderSelect')?.value || null;
   const counterpartyId = document.getElementById('counterpartySelect')?.value || null;
+  let importedCount = 0;
+  let quotaError = null;
+  const isQuotaErr = (e) => !!(e && (e.code === 'STORAGE_QUOTA_EXCEEDED' || String(e.message || '').includes('STORAGE_QUOTA_EXCEEDED')));
 
   // Si DocumentService disponible, l'utiliser
   if (Services?.documents) {
@@ -4518,8 +4521,11 @@ async function confirmUpload() {
           { folder_id: folderId || null, counterparty_id: counterpartyId || null },
           (pct) => { progressBar.style.width = pct + '%'; }
         );
+        importedCount++;
         await new Promise(r => setTimeout(r, 200));
       } catch(e) {
+        // Quota de stockage atteint : inutile de tenter les fichiers suivants.
+        if (isQuotaErr(e)) { quotaError = e; break; }
         showToast('Erreur import ' + file.name + ' : ' + e.message, 'error');
       }
     }
@@ -4557,8 +4563,10 @@ async function confirmUpload() {
         const { data: updated } = await _sb.from('documents').update({ storage_path: storagePath }).eq('id', inserted.id).select().single();
         progressBar.style.width = '100%';
         allDocs.unshift({ ...updated, score: null, folder: folderName, parties: '—', status: 'importé' });
+        importedCount++;
         await new Promise(r => setTimeout(r, 200));
       } catch(e) {
+        if (isQuotaErr(e)) { quotaError = e; break; }
         showToast('Erreur import ' + file.name + ' : ' + e.message, 'error');
       }
     }
@@ -4566,14 +4574,24 @@ async function confirmUpload() {
     allDocs = Store.state.documents || allDocs;
   }
 
-  const nbImported = pendingFiles.length;  // Sauvegarder avant de vider
   closeUploadModal();
   updateNavCounts();
   filterDocs();
   renderFolders();  // Actualiser l'affichage des dossiers
-  showToast(nbImported + ' document(s) importé(s).', 'success');
   pendingFiles = [];
   document.getElementById('btnUploadText').textContent = 'Importer';
+
+  // Message de fin : modale pro si quota dépassé, sinon toast de succès honnête.
+  if (quotaError) {
+    const lim = quotaError.limitMb ? ' (limite : ' + quotaError.limitMb + ' Mo)' : '';
+    await uiAlert(
+      '🗄️ Espace de stockage plein',
+      'Votre organisation a atteint sa limite de stockage' + lim + '.\n\n' +
+      'Impossible d\'importer de nouveaux documents pour le moment. Contactez votre administrateur pour libérer de l\'espace ou augmenter votre quota de stockage.'
+    );
+  } else if (importedCount) {
+    showToast(importedCount + ' document(s) importé(s).', 'success');
+  }
 }
 
 // ── GLOBAL SEARCH ─────────────────────────────
@@ -6016,7 +6034,9 @@ function uiConfirm({ title = 'Confirmer', message = '', confirmLabel = 'Confirme
     msgEl.textContent = message;
     msgEl.style.display = message ? '' : 'none';
     okBtn.textContent = confirmLabel;
-    cancelBtn.textContent = cancelLabel;
+    // cancelLabel null/'' => modale d'alerte à un seul bouton.
+    cancelBtn.style.display = cancelLabel ? '' : 'none';
+    cancelBtn.textContent = cancelLabel || '';
     // Bouton rouge en mode danger, mais gardé à droite (btn-danger a margin-right:auto).
     okBtn.className = danger ? 'btn-danger' : 'btn-confirm';
     okBtn.style.marginRight = '0';
@@ -6038,6 +6058,11 @@ function uiConfirm({ title = 'Confirmer', message = '', confirmLabel = 'Confirme
     overlay.classList.add('show');
     setTimeout(() => okBtn.focus(), 30);
   });
+}
+
+// Modale d'information (un seul bouton). Réutilise l'infrastructure d'uiConfirm.
+function uiAlert(title, message, confirmLabel) {
+  return uiConfirm({ title, message, confirmLabel: confirmLabel || 'J\'ai compris', cancelLabel: null });
 }
 
 // Documents en attente de suppression (fenêtre d'annulation) : masqués des vues.

@@ -107,7 +107,19 @@ class DocumentService extends BaseService {
     };
 
     const inserted = await this.create(docData);
-    if (!inserted) throw new Error('Échec de la création du document en base');
+    if (!inserted) {
+      // Le trigger de quota de stockage lève STORAGE_QUOTA_EXCEEDED : on le
+      // remonte comme erreur typée pour un message clair côté interface.
+      const dbMsg = this._lastError?.message || '';
+      if (dbMsg.includes('STORAGE_QUOTA_EXCEEDED')) {
+        const err = new Error(dbMsg);
+        err.code = 'STORAGE_QUOTA_EXCEEDED';
+        const mb = dbMsg.match(/de\s+(\d+)\s+Mo/);
+        if (mb) err.limitMb = Number(mb[1]);
+        throw err;
+      }
+      throw new Error('Échec de la création du document en base');
+    }
 
     onProgress?.(30);
 
