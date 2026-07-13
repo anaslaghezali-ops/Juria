@@ -187,6 +187,10 @@ class BaseService {
    * @param {Object} error
    */
   _handleError(method, error) {
+    // Conserver la dernière erreur brute : les méthodes qui renvoient null
+    // (create/update…) perdent sinon le message précis de la base (ex.
+    // STORAGE_QUOTA_EXCEEDED), que l'appelant a besoin de reconnaître.
+    this._lastError = error;
     const msg = `[${this._table}::${method}] ${error.message || JSON.stringify(error)}`;
     console.error(msg, error);
     // Hook extensible : les sous-classes peuvent surcharger
@@ -199,6 +203,20 @@ class BaseService {
    */
   _isTableMissing(error) {
     return error?.code === '42P01' || error?.message?.includes('does not exist');
+  }
+
+  /**
+   * Vérifie qu'une erreur signale une COLONNE manquante (42703) — typiquement
+   * une migration pas encore appliquée. Permet de recharger sans cette colonne
+   * au lieu de casser toute la requête.
+   * @param {Object} error
+   * @param {string} [column]  — si fourni, restreint au nom de colonne donné
+   */
+  _isMissingColumn(error, column) {
+    if (error?.code !== '42703' && !/column .* does not exist/i.test(error?.message || '')) {
+      return false;
+    }
+    return column ? (error?.message || '').includes(column) : true;
   }
 }
 

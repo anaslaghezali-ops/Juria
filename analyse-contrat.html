@@ -256,8 +256,18 @@
     <div class="loading-steps" id="loadingStep">Extraction du texte</div>
   </div>
 
+  <!-- SÉLECTEUR DE PERSPECTIVE (partie défendue) -->
+  <div id="perspPicker" style="display:none;background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:24px;margin-top:16px;">
+    <div style="font-size:16px;font-weight:600;color:#0f1117;margin-bottom:6px;">Depuis quel point de vue analyser ?</div>
+    <div style="font-size:13px;color:#64748b;margin-bottom:16px;">Juria signalera les clauses <strong>défavorables</strong> à la partie choisie et orientera ses suggestions en sa faveur.</div>
+    <div id="perspOptions" style="display:flex;gap:10px;flex-wrap:wrap;"></div>
+  </div>
+
   <!-- RESULTS -->
   <div class="results" id="results">
+
+    <!-- BANDEAU PERSPECTIVE -->
+    <div id="perspBanner" style="display:none;border-radius:16px;padding:20px 24px;margin-bottom:16px;"></div>
 
     <!-- SCORE -->
     <div class="score-card" id="scoreCard">
@@ -496,9 +506,16 @@ async function startAnalysis() {
       .filter(function(t) { return t.length > 2; })
       .map(function(t, i) { return { id: i + 1, text: t }; });
 
-    setStep('Analyse juridique en cours...');
     var session = await _sb.auth.getSession();
     var token = session.data.session.access_token;
+
+    // Choix du point de vue (partie défendue) avant l'analyse. Jamais déduit.
+    setStep('Identification des parties…');
+    var perspective = await askPerspective(token, extractedText);
+    _lastPerspective = perspective;
+
+    document.getElementById('loading').classList.add('show');
+    setStep(perspective ? ('Analyse du point de vue de ' + perspective + '…') : 'Analyse juridique en cours...');
 
     // Paragraphes numérotés INTÉGRAUX : le serveur découpe désormais en
     // fenêtres (map-reduce) et lit tout le contrat. L'ancienne coupe à
@@ -514,11 +531,22 @@ async function startAnalysis() {
         question: 'Analyse ce contrat',
         contract_to_analyze: paragraphsForGPT,
         mode: 'analyze',
+        perspective: perspective || 'neutre',
         history: []
       }),
     });
 
-    if (!res.ok) throw new Error('Erreur serveur: ' + res.status);
+    if (!res.ok) {
+      // Message serveur explicite s'il existe (quota, surcharge IA…), sinon générique.
+      var serverMsg = '';
+      try { var errBody = await res.json(); serverMsg = errBody && errBody.error ? errBody.error : ''; } catch (e) {}
+      if (!serverMsg) {
+        serverMsg = res.status === 429
+          ? "Le service d'analyse est momentanément surchargé. Réessayez dans un instant."
+          : 'Erreur serveur (' + res.status + '). Réessayez.';
+      }
+      throw new Error(serverMsg);
+    }
     analysisResult = await res.json();
 
     setStep('Finalisation...');
@@ -549,7 +577,7 @@ async function startAnalysis() {
 
 
   } catch(e) {
-    alert('Erreur: ' + e.message);
+    alert(e.message || 'Une erreur est survenue pendant l\'analyse.');
     document.getElementById('btnAnalyse').disabled = false;
   } finally {
     document.getElementById('loading').classList.remove('show');
@@ -558,6 +586,55 @@ async function startAnalysis() {
 
 function setStep(text) {
   document.getElementById('loadingStep').textContent = text;
+}
+
+var _lastPerspective = '';
+
+// Extraction légère des parties (petit appel, non facturé) pour le sélecteur.
+async function _extractParties(token, text) {
+  try {
+    var res = await fetch(EDGE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ question: 'Extraire les parties', mode: 'parties', contract_to_analyze: (text || '').slice(0, 8000), history: [] }),
+    });
+    if (!res.ok) return [];
+    var d = await res.json();
+    return Array.isArray(d.parties) ? d.parties.filter(function(p){ return p && p.trim(); }) : [];
+  } catch (e) { return []; }
+}
+
+// Demande le camp à défendre ; résout '' (neutre) si aucune partie détectée.
+function askPerspective(token, text) {
+  return new Promise(function(resolve) {
+    _extractParties(token, text).then(function(parties) {
+      if (!parties.length) { resolve(''); return; }
+      document.getElementById('loading').classList.remove('show');
+      var opts = document.getElementById('perspOptions');
+      opts.innerHTML = '';
+      var options = parties.slice(0, 4).map(function(p){ return { label: '🛡️ Je défends : ' + p, value: p }; });
+      options.push({ label: '⚖️ Analyse neutre', value: '' });
+      options.forEach(function(opt) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = opt.label;
+        b.style.cssText = 'padding:12px 16px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;cursor:pointer;font-family:inherit;font-size:14px;font-weight:600;color:#334155;transition:all .15s;';
+        b.onmouseenter = function(){ b.style.borderColor = '#4f46e5'; b.style.color = '#4f46e5'; };
+        b.onmouseleave = function(){ b.style.borderColor = '#e5e7eb'; b.style.color = '#334155'; };
+        b.onclick = function(){ document.getElementById('perspPicker').style.display = 'none'; resolve(opt.value); };
+        opts.appendChild(b);
+      });
+      document.getElementById('perspPicker').style.display = 'block';
+    });
+  });
+}
+
+// Normalise le sens renvoyé par l'IA.
+function _normSens(s) {
+  s = (s || '').toString().toLowerCase();
+  if (s.indexOf('defav') >= 0 || s.indexOf('défav') >= 0 || s.indexOf('unfav') >= 0 || s.indexOf('contre') >= 0) return 'défavorable';
+  if (s.indexOf('fav') >= 0) return 'favorable';
+  return 'neutre';
 }
 
 function showResults(result) {
@@ -572,14 +649,40 @@ function showResults(result) {
 
   document.getElementById('scoreSummary').textContent = result.summary || 'Analyse complète';
 
+  // Bandeau de perspective : combien de points desservent la partie défendue.
+  var persp = _lastPerspective || '';
+  var banner = document.getElementById('perspBanner');
+  if (persp && result.issues && result.issues.length) {
+    result.issues.forEach(function(it) { it.sens = _normSens(it.sens); });
+    var defav = result.issues.filter(function(it){ return it.sens === 'défavorable'; }).length;
+    banner.style.display = 'block';
+    banner.style.background = defav ? '#fef2f2' : '#ecfdf5';
+    banner.style.border = '1px solid ' + (defav ? '#fecaca' : '#a7f3d0');
+    banner.innerHTML = '<div style="font-size:13px;color:#64748b;margin-bottom:4px;">Point de vue : <strong style="color:#1e293b;">' + escapeHTML(persp) + '</strong></div>'
+      + (defav
+          ? '<div style="font-size:19px;font-weight:700;color:#991b1b;">⚠️ ' + defav + ' point' + (defav > 1 ? 's' : '') + ' vous ' + (defav > 1 ? 'sont' : 'est') + ' défavorable' + (defav > 1 ? 's' : '') + '</div>'
+          : '<div style="font-size:19px;font-weight:700;color:#065f46;">✓ Aucun point défavorable détecté</div>');
+  } else {
+    banner.style.display = 'none';
+  }
+
   // ✅ Fix #13: Escape HTML to prevent XSS
-  // Issues avec checkboxes
+  // Issues avec checkboxes (les défavorables d'abord si un camp est choisi)
   if (result.issues && result.issues.length > 0) {
+    var issues = result.issues.slice();
+    if (persp) {
+      var rank = { 'défavorable': 0, neutre: 1, favorable: 2 };
+      issues.sort(function(a, b) { return (rank[_normSens(a.sens)] ?? 1) - (rank[_normSens(b.sens)] ?? 1); });
+    }
     document.getElementById('issuesCard').style.display = 'block';
-    document.getElementById('issuesList').innerHTML = result.issues.map(function(issue, i) {
+    document.getElementById('issuesList').innerHTML = issues.map(function(issue, i) {
       var sev = issue.severity || 'medium';
       var sevLabel = sev === 'high' ? 'Critique' : sev === 'medium' ? 'Important' : 'Mineur';
-      return '<div class="issue-item"><div class="issue-header"><input type="checkbox" class="issue-checkbox" data-index="' + i + '" data-type="issue" style="width:16px;height:16px;cursor:pointer;accent-color:#4f46e5"/><span class="severity-badge severity-' + sev + '">' + sevLabel + '</span><span class="issue-clause">' + escapeHTML(issue.clause || '') + '</span></div><div class="issue-problem">' + escapeHTML(issue.problem || '') + '</div>' + (issue.suggestion ? '<div class="issue-suggestion">💡 ' + escapeHTML(issue.suggestion) + '</div>' : '') + '</div>';
+      var sens = _normSens(issue.sens);
+      var sensBadge = (persp && sens !== 'neutre')
+        ? '<span class="severity-badge" style="background:' + (sens === 'défavorable' ? '#fef2f2' : '#ecfdf5') + ';color:' + (sens === 'défavorable' ? '#991b1b' : '#065f46') + ';">' + (sens === 'défavorable' ? '⚠️ Défavorable' : '👍 Favorable') + '</span>'
+        : '';
+      return '<div class="issue-item"><div class="issue-header"><input type="checkbox" class="issue-checkbox" data-index="' + i + '" data-type="issue" style="width:16px;height:16px;cursor:pointer;accent-color:#4f46e5"/><span class="severity-badge severity-' + sev + '">' + sevLabel + '</span>' + sensBadge + '<span class="issue-clause">' + escapeHTML(issue.clause || '') + '</span></div><div class="issue-problem">' + escapeHTML(issue.problem || '') + '</div>' + (issue.suggestion ? '<div class="issue-suggestion">💡 ' + escapeHTML(issue.suggestion) + '</div>' : '') + '</div>';
     }).join('');
   }
 

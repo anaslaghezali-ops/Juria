@@ -99,8 +99,17 @@ serve(async (req) => {
     // est supprimé : la consommation est régie par le quota v2 en crédits
     // d'ORGANISATION (checkOrgQuota/logQuotaUsage), vérifié par mode.
     const body = await req.json();
-    const { question, contract_to_analyze, mode, history, document_context, conversation_context } = body;
+    const { question, contract_to_analyze, mode, history, document_context, conversation_context, perspective } = body;
     const conversationHistory: any[] = history || [];
+
+    // Perspective d'analyse : la partie que défend l'utilisateur (nom libre issu
+    // du contrat). Vide / "neutre" => analyse impartiale (comportement historique).
+    // On ne DÉDUIT jamais le camp : il est fourni explicitement par le client.
+    const perspRaw = typeof perspective === "string" ? perspective.trim() : "";
+    const persp = /^(neutre|neutral|)$/i.test(perspRaw) ? "" : perspRaw.slice(0, 120);
+    const perspClause = persp
+      ? `POINT DE VUE : tu conseilles « ${persp} » (une des parties au contrat). Juge chaque point du point de vue de SES intérêts : ce qui protège ou avantage « ${persp} » est favorable ; ce qui l'expose, le contraint ou réduit ses droits est défavorable.`
+      : "";
 
     if (!question || typeof question !== "string" || question.length > 600) {
       return new Response(JSON.stringify({ error: "Question invalide" }), {
@@ -130,50 +139,67 @@ serve(async (req) => {
       console.warn("[smart-endpoint] Failed to get org_id:", e);
     }
 
-    const callOpenAI = async (systemPrompt: string, userContent: string, maxTokens: number, jsonMode = true) => {
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    // Appel OpenAI avec retries + backoff exponentiel. Les 429 (rate limit)
+    // et 5xx transitoires sont réessayés (en respectant Retry-After) au lieu
+    // de faire échouer toute l'analyse. Après épuisement des tentatives, on
+    // lève une erreur porteuse du statut (aiStatus) pour un message client clair.
+    const openaiFetch = async (url: string, body: unknown, attempt = 0): Promise<Response> => {
+      const res = await fetch(url, {
         method: "POST",
         headers: { "Authorization": "Bearer " + openaiKey, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userContent },
-          ],
-          max_tokens: maxTokens,
-          temperature: 0.1,
-          ...(jsonMode ? { response_format: { type: "json_object" } } : {}),
-        }),
+        body: JSON.stringify(body),
       });
-      if (!res.ok) throw new Error("OpenAI error: " + res.status);
+      if ((res.status === 429 || res.status >= 500) && attempt < 4) {
+        const retryAfter = Number(res.headers.get("retry-after"));
+        const waitMs = retryAfter > 0 ? retryAfter * 1000 : Math.min(1000 * 2 ** attempt, 8000);
+        await new Promise((r) => setTimeout(r, waitMs + Math.random() * 300));
+        return openaiFetch(url, body, attempt + 1);
+      }
+      return res;
+    };
+
+    const chatBody = (messages: any[], maxTokens: number, jsonMode: boolean) => ({
+      model: "gpt-4o-mini",
+      messages,
+      max_tokens: maxTokens,
+      temperature: 0.1,
+      ...(jsonMode ? { response_format: { type: "json_object" } } : {}),
+    });
+
+    const throwAiError = (res: Response) => {
+      const e: any = new Error("OpenAI error: " + res.status);
+      e.aiStatus = res.status;
+      throw e;
+    };
+
+    const callOpenAI = async (systemPrompt: string, userContent: string, maxTokens: number, jsonMode = true) => {
+      const res = await openaiFetch(
+        "https://api.openai.com/v1/chat/completions",
+        chatBody([
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userContent },
+        ], maxTokens, jsonMode),
+      );
+      if (!res.ok) throwAiError(res);
       const data = await res.json();
       const text = data.choices[0].message.content;
       return jsonMode ? JSON.parse(text) : text;
     };
 
     const callOpenAIMessages = async (messages: any[], maxTokens: number, jsonMode = true) => {
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: { "Authorization": "Bearer " + openaiKey, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages,
-          max_tokens: maxTokens,
-          temperature: 0.1,
-          ...(jsonMode ? { response_format: { type: "json_object" } } : {}),
-        }),
-      });
-      if (!res.ok) throw new Error("OpenAI error: " + res.status);
+      const res = await openaiFetch(
+        "https://api.openai.com/v1/chat/completions",
+        chatBody(messages, maxTokens, jsonMode),
+      );
+      if (!res.ok) throwAiError(res);
       const data = await res.json();
       const text = data.choices[0].message.content;
       return jsonMode ? JSON.parse(text) : text;
     };
 
     const vectorSearch = async (query: string, count = 30, codes: string[] = []) => {
-      const embRes = await fetch("https://api.openai.com/v1/embeddings", {
-        method: "POST",
-        headers: { "Authorization": "Bearer " + openaiKey, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "text-embedding-3-small", input: query }),
+      const embRes = await openaiFetch("https://api.openai.com/v1/embeddings", {
+        model: "text-embedding-3-small", input: query,
       });
       if (!embRes.ok) return [];
       const embData = await embRes.json();
@@ -229,6 +255,33 @@ serve(async (req) => {
       return new Response(JSON.stringify({ answer: result.answer || "", citations: [], is_contract: false }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // ---- MODE PARTIES (extraction légère pour le sélecteur de perspective) ----
+    // Renvoie juste les parties nommées au contrat. Bon marché (petit prompt),
+    // non facturé : sert à proposer « Je représente : [X] / [Y] » avant l'analyse.
+    if (mode === "parties") {
+      const sample = String(contract_to_analyze || body.contract_v1 || document_context || "").slice(0, 8000);
+      if (!sample.trim()) {
+        return new Response(JSON.stringify({ parties: [] }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      try {
+        const out = await callOpenAI(
+          "Tu es juriste. Identifie les parties nommées à ce contrat (bailleur/preneur, employeur/salarié, vendeur/acheteur, sociétés…). Retourne UNIQUEMENT un JSON {\"parties\": [\"...\", \"...\"]} avec leur désignation telle qu'écrite (max 4).",
+          sample,
+          200,
+        );
+        const parties = Array.isArray(out?.parties) ? out.parties.filter((p: any) => typeof p === "string" && p.trim()).slice(0, 4) : [];
+        return new Response(JSON.stringify({ parties }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (_e) {
+        return new Response(JSON.stringify({ parties: [] }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     // ---- MODE QUESTION SUR DOCUMENT ----
@@ -335,25 +388,32 @@ serve(async (req) => {
       }
 
       const compareSystemFor = (part: number, total: number) => [
-        "Tu es expert juridique marocain. Compare LIGNE PAR LIGNE ces deux versions de contrat.",
+        "Tu es expert juridique marocain senior. Compare ces deux versions d'un même contrat et identifie CHAQUE différence réelle de fond.",
         total > 1
-          ? `\n⚠️ Tu reçois la PARTIE ${part}/${total} de chaque version, alignées approximativement. Les bords peuvent couper une clause en deux : une clause TRONQUÉE en début ou fin de partie ne doit PAS être signalée comme supprimée ou ajoutée.\n`
+          ? `\n⚠️ Tu reçois la PARTIE ${part}/${total} de chaque version, alignées approximativement. Une clause TRONQUÉE au bord d'une partie ne doit PAS être signalée comme supprimée ou ajoutée.\n`
           : "",
         "",
-        "🔴 PRIORITÉ ABSOLUE - DÉTECTER LES SUPPRESSIONS:",
-        "- Identifie CHAQUE clause, paragraphe ou section présent en V1 mais ABSENT en V2",
-        "- Les suppressions incluent: clauses de confidentialité, délais de préavis, congés payés, assurances, responsabilités, durée du contrat, salaire, conditions de résiliation, garanties, conditions d'emploi",
-        "- Si V1 contient une clause et V2 ne la contient pas (même reformulée), c'est une SUPPRESSION",
+        "CLASSIFICATION DU TYPE — applique STRICTEMENT ces définitions :",
+        "- 'modification' : la clause existe dans V1 ET dans V2 mais son texte diffère (montant, date, durée, portée, bénéficiaire…). v1 ET v2 sont remplis.",
+        "- 'suppression' : clause présente dans V1 et TOTALEMENT ABSENTE de V2. v2 est vide.",
+        "- 'ajout' : clause ABSENTE de V1 et présente dans V2. v1 est vide.",
+        "RÈGLE ANTI-ERREUR : si V2 contient encore la clause (même reformulée), ce n'est JAMAIS une 'suppression' → c'est une 'modification'. Une clause présente uniquement dans V2 est un 'ajout', jamais une 'suppression'. Le 'type' DOIT être cohérent avec v1/v2 (suppression ⇒ v2 vide ; ajout ⇒ v1 vide ; modification ⇒ les deux remplis).",
+        "",
+        perspClause,
+        persp
+          ? `Détermine "sens" en RAISONNANT EN 2 TEMPS pour chaque changement : (1) identifie QUELLE partie est TENUE par l'obligation/la contrainte et QUELLE partie en BÉNÉFICIE — « le salarié se déplace / exécute / paie / ne fait pas concurrence / garde le secret » = obligation DU SALARIÉ (favorable à l'employeur). (2) Déduis pour « ${persp} » : "favorable" si le changement renforce ses droits/protections OU restreint/oblige l'AUTRE partie ; "défavorable" seulement s'il le contraint, réduit ses droits ou lui impose une charge ; "neutre" sinon. RÈGLE CLÉ : une clause qui RESTREINT ou OBLIGE l'AUTRE partie (non-concurrence, confidentialité, pénalités, sûretés, exclusivité à la charge de l'autre) PROTÈGE « ${persp} » → "favorable", JAMAIS "défavorable". La "description" DOIT dire quelle partie est tenue et pourquoi c'est (dé)favorable à « ${persp} ». Pour un "défavorable" : "suggestion" = une rédaction concrète protégeant « ${persp} » ; sinon "suggestion": "".`
+          : 'Ajoute "sens": "neutre" et "suggestion": "" à chaque changement (aucune partie choisie).',
         "",
         "📝 FORMAT REQUIS - Retourne UNIQUEMENT JSON valide:",
-        '{"summary": "résumé global", "changes": [',
-        '  {"type": "suppression", "clause": "Nom clause", "v1": "texte V1", "v2": "", "impact": "majeur", "description": "Explication"},',
-        '  {"type": "modification", "clause": "Nom clause", "v1": "texte V1", "v2": "texte V2", "impact": "majeur", "description": "Explication"},',
-        '  {"type": "ajout", "clause": "Nom clause", "v1": "", "v2": "texte V2", "impact": "mineur", "description": "Explication"}',
+        '{"summary": "résumé global", "parties": ["Nom partie 1", "Nom partie 2"], "changes": [',
+        '  {"type": "suppression", "clause": "Nom clause", "v1": "texte V1", "v2": "", "impact": "majeur", "sens": "défavorable", "description": "Explication", "suggestion": "Texte à proposer"},',
+        '  {"type": "modification", "clause": "Nom clause", "v1": "texte V1", "v2": "texte V2", "impact": "majeur", "sens": "favorable", "description": "Explication", "suggestion": ""},',
+        '  {"type": "ajout", "clause": "Nom clause", "v1": "", "v2": "texte V2", "impact": "mineur", "sens": "neutre", "description": "Explication", "suggestion": ""}',
         "]}",
         "",
-        "Types UNIQUEMENT: ajout, suppression, modification. Impact: majeur, mineur, neutre. PAS de 'deletion', 'added', 'changed'.",
-        "Chaque changement DOIT avoir: type, clause, v1, v2, impact, description",
+        '"parties" = les 2 (ou plus) parties nommées au contrat, telles qu\'écrites (ex: "le Bailleur", "OCP SA"). Toujours renseigné.',
+        "Types UNIQUEMENT: ajout, suppression, modification. Impact: majeur, mineur, neutre. sens: favorable, défavorable, neutre. PAS de 'deletion', 'added', 'changed'.",
+        "Chaque changement DOIT avoir: type, clause, v1, v2, impact, sens, description, suggestion",
         "",
         "🔴 RÈGLE SUR v1 ET v2: cite le TEXTE INTÉGRAL de la clause concernée, mot pour mot, tel qu'il apparaît dans le contrat. NE RÉSUME PAS, NE PARAPHRASE PAS, NE TRONQUE PAS. Pour une suppression: v1 = texte complet de la clause supprimée. Pour un ajout: v2 = texte complet de la clause ajoutée. Pour une modification: cite les passages complets concernés dans v1 et v2.",
         "Si aucune différence trouvée: {\"summary\": \"Aucune différence\", \"changes\": []}",
@@ -401,9 +461,10 @@ serve(async (req) => {
               "Tu es expert juridique marocain. On te donne les changements détectés sur les parties successives d'une comparaison de deux versions d'un MEME contrat.",
               "Fusionne en un résultat global : DÉDOUBLONNE les changements qui décrivent la même clause (les zones se chevauchent aux bords), en conservant la version la plus complète.",
               "Écris un summary global (2-4 phrases) hiérarchisant les changements majeurs.",
-              "Types UNIQUEMENT: ajout, suppression, modification. Impact: majeur, mineur, neutre.",
-              'Retourne UNIQUEMENT un JSON: {"summary": "...", "changes": [{"type","clause","v1","v2","impact","description"}]}',
-              "Conserve les textes v1/v2 INTÉGRAUX tels que fournis, ne les résume pas.",
+              perspClause,
+              "Types UNIQUEMENT: ajout, suppression, modification. Impact: majeur, mineur, neutre. sens: favorable, défavorable, neutre.",
+              'Retourne UNIQUEMENT un JSON: {"summary": "...", "parties": ["...","..."], "changes": [{"type","clause","v1","v2","impact","sens","description","suggestion"}]}',
+              "Conserve INTÉGRALEMENT chaque champ fourni (v1, v2, sens, suggestion) sans le résumer ni le vider.",
             ].join("\n"),
           },
           { role: "user", content: "Résumés partiels: " + partSummaries + "\n\nChangements détectés: " + JSON.stringify(allChanges).slice(0, 90000) },
@@ -412,6 +473,11 @@ serve(async (req) => {
         if (!Array.isArray(compareData.changes) || (compareData.changes.length === 0 && allChanges.length > 0)) {
           // Filet de sécurité : si la fusion échoue, renvoyer la concaténation brute
           compareData = { summary: partSummaries, changes: allChanges };
+        }
+        // Les parties peuvent manquer après fusion : reprendre celles d'une partie.
+        if (!Array.isArray(compareData.parties) || compareData.parties.length === 0) {
+          const firstParties = pairResults.find((r) => Array.isArray(r?.parties) && r.parties.length)?.parties;
+          if (firstParties) compareData.parties = firstParties;
         }
       }
 
@@ -453,10 +519,15 @@ serve(async (req) => {
       if (orgId) {
         const quotaCheck = await checkOrgQuota(orgId, "risk_analysis", windows.length);
         if (!quotaCheck.allowed) {
+          // Message actionnable : le cout depend de la taille du document
+          // (1 credit par fenetre de ~3 pages), ce que l'utilisateur ne peut
+          // pas deviner depuis un simple "quota atteint".
+          const remaining = quotaCheck.remaining_credits ?? 0;
           return new Response(JSON.stringify({
-            error: quotaCheck.reason || "Quota organisation atteint pour les analyses de risques",
+            error: `Crédits insuffisants : ce document nécessite ${windows.length} crédit${windows.length > 1 ? "s" : ""} d'analyse (1 par tranche d'environ 3 pages) et il en reste ${remaining}. Augmentez le quota mensuel ou analysez un document plus court.`,
             code: "QUOTA_EXCEEDED",
-            remaining_credits: quotaCheck.remaining,
+            required_credits: windows.length,
+            remaining_credits: remaining,
           }), {
             status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
@@ -469,6 +540,10 @@ serve(async (req) => {
         : "";
       const analyzeSystemFor = (part: number, total: number) => [
         "Tu es Juria, expert juridique marocain senior specialise en droit des contrats.",
+        perspClause,
+        persp
+          ? `Pour CHAQUE "issue", détermine "sens" en 2 temps : (1) identifie QUELLE partie est TENUE par la clause et QUELLE partie en BÉNÉFICIE — « le salarié se déplace / exécute / paie / ne fait pas concurrence / garde le secret » = obligation DU SALARIÉ. (2) Déduis pour « ${persp} » : "favorable" si la clause protège « ${persp} » OU restreint/oblige l'AUTRE partie ; "défavorable" seulement si elle pèse réellement sur « ${persp} » ou réduit SES droits ; "neutre" sinon. RÈGLE CLÉ : une clause qui RESTREINT ou OBLIGE l'AUTRE partie (non-concurrence, confidentialité, pénalités, sûretés, exclusivité à la charge de l'autre) PROTÈGE « ${persp} » → "favorable", JAMAIS "défavorable". Ne force pas un angle défavorable : si une clause protège « ${persp} », marque-la "favorable" (ne l'invente pas comme problème). "problem" doit dire quelle partie est tenue ; oriente "suggestion" pour protéger « ${persp} ».`
+          : 'Ajoute "sens": "neutre" à chaque issue (aucune partie choisie).',
         total > 1
           ? `Tu recois la PARTIE ${part}/${total} d'un contrat plus long (decoupage avec chevauchement). Analyse UNIQUEMENT ce qui figure dans cette partie ; les clauses manquantes seront recoupees avec les autres parties.`
           : "",
@@ -487,14 +562,16 @@ serve(async (req) => {
         "5. Score: 10=parfaitement conforme, 1=illegal selon le droit marocain applicable.",
         "6. Extrais aussi les OBLIGATIONS ET ECHEANCES du contrat : toute date butoir, delai de preavis, date de renouvellement, obligation periodique (rapport, paiement, declaration) ou condition a satisfaire avant une date. due_date au format YYYY-MM-DD si la date est determinable (calcule-la a partir des dates du contrat si necessaire), sinon null. is_critical=true si le non-respect entraine resiliation, penalite ou perte de droit.",
         "Articles de reference: " + articlesContext,
-        "Retourne UNIQUEMENT un JSON: {contract_type: string, score: number, summary: string, issues: [{paragraph_id: number, severity: string, clause: string, problem: string, suggestion: string}], missing_clauses: [string], obligations: [{description: string, due_date: string|null, is_critical: boolean}]}. paragraph_id = le numero entre crochets [N] du paragraphe concerne dans le contrat fourni.",
+        "Retourne UNIQUEMENT un JSON: {contract_type: string, score: number, summary: string, parties: [string], issues: [{paragraph_id: number, severity: string, clause: string, problem: string, suggestion: string, sens: string}], missing_clauses: [string], obligations: [{description: string, due_date: string|null, is_critical: boolean}]}. parties = les parties nommees au contrat (telles qu'ecrites). sens parmi favorable/défavorable/neutre. paragraph_id = le numero entre crochets [N] du paragraphe concerne dans le contrat fourni.",
       ].filter(Boolean).join(" ");
 
-      // MAP : analyse de chaque fenetre, 4 appels OpenAI en parallele maximum
+      // MAP : analyse de chaque fenetre. Concurrence limitee a 2 (au lieu de 4)
+      // pour ne pas saturer le rate limit OpenAI ; le backoff d'openaiFetch
+      // absorbe les 429 residuels.
       const partResults: any[] = new Array(windows.length);
       let nextWindow = 0;
       await Promise.all(
-        Array.from({ length: Math.min(4, windows.length) }, async () => {
+        Array.from({ length: Math.min(2, windows.length) }, async () => {
           while (nextWindow < windows.length) {
             const i = nextWindow++;
             partResults[i] = await callOpenAI(
@@ -513,12 +590,15 @@ serve(async (req) => {
           "Tu es Juria, expert juridique marocain senior. On te donne les analyses partielles d'un MEME contrat, decoupe en parties avec chevauchement.",
           "Fusionne-les en UNE analyse globale coherente :",
           "- contract_type : le type identifie par la majorite des parties.",
-          "- issues : rassemble toutes les issues ; DEDOUBLONNE celles qui decrivent la meme clause (le chevauchement fait qu'une clause peut apparaitre dans deux parties) ; conserve le paragraph_id d'origine et la severity la plus haute en cas de doublon.",
+          "- parties : les parties nommees au contrat (union des parties detectees).",
+          "- issues : rassemble toutes les issues ; DEDOUBLONNE celles qui decrivent la meme clause (le chevauchement fait qu'une clause peut apparaitre dans deux parties) ; conserve le paragraph_id d'origine, la severity la plus haute et le champ 'sens' en cas de doublon.",
           "- missing_clauses : une clause n'est manquante que si AUCUNE partie ne la contient. Retire toute clause signalee manquante par une partie mais presente ou traitee dans une autre.",
           "- obligations : rassemble toutes les obligations/echeances ; dedoublonne celles qui decrivent la meme obligation (garde is_critical=true et la due_date la plus precise en cas de doublon).",
           "- score : score global 1-10 du contrat ENTIER (10 = parfaitement conforme), coherent avec la gravite cumulee des issues retenues.",
           "- summary : synthese globale en 2-4 phrases.",
-          "Retourne UNIQUEMENT un JSON: {contract_type: string, score: number, summary: string, issues: [{paragraph_id: number, severity: string, clause: string, problem: string, suggestion: string}], missing_clauses: [string], obligations: [{description: string, due_date: string|null, is_critical: boolean}]}",
+          perspClause,
+          "Conserve le champ 'sens' (favorable/défavorable/neutre) de chaque issue.",
+          "Retourne UNIQUEMENT un JSON: {contract_type: string, score: number, summary: string, parties: [string], issues: [{paragraph_id: number, severity: string, clause: string, problem: string, suggestion: string, sens: string}], missing_clauses: [string], obligations: [{description: string, due_date: string|null, is_critical: boolean}]}",
         ].join(" ");
         analysis = await callOpenAI(
           mergeSystem,
@@ -757,6 +837,13 @@ serve(async (req) => {
 
   } catch (err) {
     console.error("Edge Function error:", err);
+    // Rate limit OpenAI persistant après retries : message clair + 429.
+    if ((err as any)?.aiStatus === 429) {
+      return new Response(JSON.stringify({
+        error: "Le service d'analyse est momentanément surchargé. Patientez un instant puis réessayez.",
+        code: "AI_RATE_LIMITED",
+      }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
     return new Response(JSON.stringify({ error: "Erreur serveur inattendue" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

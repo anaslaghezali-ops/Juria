@@ -1,0 +1,83 @@
+name: RLS Isolation Tests
+
+# Vérifie, sur une base Postgres JETABLE (jamais la prod), que les politiques
+# Row Level Security isolent bien les organisations les unes des autres.
+# La base est reconstruite depuis tests/rls/00_schema.sql + les migrations RLS,
+# puis tests/rls/rls_isolation_test.sql tente des accès inter-tenants qui
+# doivent TOUS échouer. Un seul FAIL casse le build.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - claude/juria-code-analysis-qen2o7
+    paths:
+      - 'supabase/migrations/**'
+      - 'tests/rls/**'
+      - '.github/workflows/rls-tests.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'supabase/migrations/**'
+      - 'tests/rls/**'
+      - '.github/workflows/rls-tests.yml'
+
+jobs:
+  rls:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: rlsci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 15
+    env:
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: rlsci
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install psql client
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends postgresql-client
+
+      - name: Load base schema
+        run: psql -v ON_ERROR_STOP=1 -q -f tests/rls/00_schema.sql
+
+      - name: Apply RLS migrations (12..21)
+        run: |
+          set -e
+          for m in 12_document_obligations 13_folder_sharing 14_performance_indexes \
+                   15_sharing_notifications 16_fix_insert_returning_rls \
+                   17_counterparty_compartmentalization 18_counterparty_sharing \
+                   19_fk_indexes 20_safe_deletes 21_safe_document_delete \
+                   22_document_versioning; do
+            echo "▶ applying $m"
+            psql -v ON_ERROR_STOP=1 -q -f "supabase/migrations/$m.sql" >/dev/null
+          done
+
+      - name: Run RLS isolation test
+        run: |
+          set -e
+          psql -v ON_ERROR_STOP=1 -f tests/rls/rls_isolation_test.sql | tee /tmp/rls_out.txt
+          echo "──────────────────────────────────────────────────────"
+          if grep -q "RLS_TESTS_FAILED" /tmp/rls_out.txt; then
+            echo "❌ FUITE D'ISOLATION RLS — une organisation peut voir les données d'une autre. Voir les lignes FAIL ci-dessus."
+            exit 1
+          fi
+          if ! grep -q "RLS_TESTS_PASSED" /tmp/rls_out.txt; then
+            echo "❌ Le test RLS n'a produit aucun verdict (erreur d'exécution) — échec de sûreté."
+            exit 1
+          fi
+          echo "✅ Isolation multi-tenant vérifiée."

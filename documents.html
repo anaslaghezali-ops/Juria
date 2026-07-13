@@ -220,8 +220,9 @@
     .tree-badge { font-size: 11px; font-weight: 600; color: var(--slate-400); background: var(--slate-100); padding: 1px 6px; border-radius: 10px; flex-shrink: 0; }
     .tree-row.selected .tree-badge { background: rgba(79,70,229,0.12); color: var(--indigo); }
     .tree-badge-risk { font-size: 11px; font-weight: 700; color: #fff; background: var(--red); padding: 1px 6px; border-radius: 10px; flex-shrink: 0; }
-    .tree-actions { display: none; align-items: center; gap: 2px; flex-shrink: 0; }
-    .tree-row:hover .tree-actions { display: flex; }
+    .tree-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; opacity: 0.55; transition: opacity 0.15s; }
+    .tree-row:hover .tree-actions { opacity: 1; }
+    @media (hover: none) { .tree-actions { opacity: 1; } }
     .tree-action { width: 20px; height: 20px; border: none; background: none; color: var(--slate-400); cursor: pointer; border-radius: 4px; font-size: 12px; display: flex; align-items: center; justify-content: center; }
     .tree-action:hover { background: var(--slate-200); color: var(--slate-700); }
     .tree-children { overflow: hidden; }
@@ -323,6 +324,7 @@
     .doc-icon.docx { background: #eff6ff; }
     .doc-name { font-size: 13px; font-weight: 600; color: var(--slate-900); }
     .doc-meta { font-size: 11px; color: var(--slate-400); margin-top: 1px; }
+    .ver-badge { display: inline-block; margin-left: 7px; font-size: 10px; font-weight: 700; color: var(--indigo-text); background: var(--indigo-bg); padding: 1px 6px; border-radius: 99px; vertical-align: middle; letter-spacing: .02em; }
     .status-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 99px; }
     .status-badge.analysé { background: var(--green-bg); color: var(--green-text); }
     .status-badge.importé { background: var(--slate-100); color: var(--slate-500); }
@@ -332,8 +334,9 @@
     .score-chip.med { background: var(--amber-bg); color: var(--amber-text); }
     .score-chip.low { background: var(--red-bg); color: var(--red-text); }
     .score-chip.none { background: var(--slate-100); color: var(--slate-400); }
-    .row-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s; }
+    .row-actions { display: flex; gap: 4px; opacity: 0.55; transition: opacity 0.15s; }
     tr:hover .row-actions { opacity: 1; }
+    @media (hover: none) { .row-actions { opacity: 1; } }
     .action-btn { padding: 5px 7px; border-radius: 6px; border: 1px solid var(--border); background: var(--white); color: var(--slate-500); cursor: pointer; transition: all 0.15s; }
     .action-btn:hover { color: var(--indigo); border-color: var(--indigo); background: var(--indigo-bg); }
     .action-btn.danger:hover { color: var(--red); border-color: var(--red); background: var(--red-bg); }
@@ -437,6 +440,8 @@
     .btn-cancel { padding: 8px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--slate-600); background: var(--white); cursor: pointer; font-family: var(--font); }
     .btn-cancel:hover { background: var(--slate-100); }
     .btn-confirm { padding: 8px 20px; background: var(--indigo); color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--font); }
+    .btn-danger { padding: 8px 20px; background: #fff; color: #dc2626; border: 1px solid #fecaca; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--font); margin-right: auto; }
+    .btn-danger:hover { background: #fef2f2; border-color: #dc2626; }
     .btn-confirm:hover { background: var(--indigo-light); }
     .drop-zone { border: 2px dashed var(--border); border-radius: 12px; padding: 32px; text-align: center; cursor: pointer; transition: all 0.15s; margin-bottom: 16px; }
     .drop-zone:hover, .drop-zone.drag-over { border-color: var(--indigo); background: var(--indigo-bg); }
@@ -460,6 +465,26 @@
     .toast { background: var(--slate-900); color: #fff; padding: 10px 16px; border-radius: 8px; font-size: 13px; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); max-width: 320px; }
     .toast.success { background: var(--green); }
     .toast.error { background: var(--red); }
+    .toast-action { margin-left: 10px; background: rgba(255,255,255,0.18); color: #fff; border: none; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: var(--font); flex-shrink: 0; }
+    .toast-action:hover { background: rgba(255,255,255,0.32); }
+
+    /* ── Écran de chargement initial ── */
+    .app-loading { position: fixed; inset: 0; z-index: 9999; background: var(--slate-50); display: flex; align-items: center; justify-content: center; transition: opacity 0.35s ease; }
+    .app-loading.hide { opacity: 0; pointer-events: none; }
+    .app-loading-inner { display: flex; flex-direction: column; align-items: center; gap: 22px; }
+    .app-loading-brand { display: flex; align-items: center; gap: 12px; }
+    .app-loading-mark { width: 44px; height: 44px; background: var(--indigo); color: #fff; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-family: var(--serif); font-size: 24px; box-shadow: 0 6px 20px rgba(79,70,229,0.32); }
+    .app-loading-name { font-family: var(--serif); font-size: 28px; color: var(--slate-900); }
+    .app-loading-bar { width: 180px; height: 4px; border-radius: 99px; background: var(--slate-200); overflow: hidden; }
+    .app-loading-bar > span { display: block; width: 40%; height: 100%; border-radius: 99px; background: var(--indigo); animation: appLoadSlide 1.1s ease-in-out infinite; }
+    @keyframes appLoadSlide { 0% { transform: translateX(-120%); } 100% { transform: translateX(320%); } }
+
+    /* ── Squelettes de contenu (chargements ciblés) ── */
+    .skeleton { position: relative; overflow: hidden; background: var(--slate-100); border-radius: 8px; }
+    .skeleton::after { content: ''; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255,255,255,0.65), transparent); animation: skelShimmer 1.3s infinite; }
+    @keyframes skelShimmer { 100% { transform: translateX(100%); } }
+    .skel-row { height: 52px; margin-bottom: 8px; }
+    .skel-line { height: 12px; border-radius: 6px; }
 
 
     /* ── CONTREPARTIES ── */
@@ -724,6 +749,17 @@
 </head>
 <body>
 
+<!-- Écran de chargement initial (retiré à la fin de init()) -->
+<div class="app-loading" id="appLoading">
+  <div class="app-loading-inner">
+    <div class="app-loading-brand">
+      <div class="app-loading-mark">J</div>
+      <div class="app-loading-name">Juria</div>
+    </div>
+    <div class="app-loading-bar"><span></span></div>
+  </div>
+</div>
+
 <!-- Voile de fermeture du tiroir mobile -->
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
@@ -740,18 +776,20 @@
     <button class="nav-item" onclick="showPage('dashboard')">
       <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span> Dashboard
     </button>
-    <button class="nav-item" onclick="showPage('contreparties')">
-      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 9h1M9 12h1M9 15h1M14 9h1M14 12h1M14 15h1"/></svg></span> Contreparties
-      <span class="nav-count" id="navCpCount">—</span>
+    <button class="nav-item" onclick="showPage('documents')">
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span> Documents
+      <span class="nav-count" id="navTotalCount">—</span>
     </button>
     <button class="nav-item" onclick="showPage('dossiers')">
       <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span> Dossiers
       <span class="nav-count" id="navFolderCount">—</span>
     </button>
-    <button class="nav-item" onclick="showPage('documents')">
-      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span> Documents
-      <span class="nav-count" id="navTotalCount">—</span>
+    <button class="nav-item" onclick="showPage('contreparties')">
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 9h1M9 12h1M9 15h1M14 9h1M14 12h1M14 15h1"/></svg></span> Contreparties
+      <span class="nav-count" id="navCpCount">—</span>
     </button>
+
+    <div class="nav-section">Analyse</div>
     <button class="nav-item" onclick="showPage('risques')">
       <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span> Risques
       <span class="nav-count nav-badge-red" id="navRisksCount">—</span>
@@ -772,14 +810,14 @@
     <a href="analyse-contrat.html" class="nav-item">
       <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><circle cx="11.5" cy="14.5" r="2.5"/><path d="M13.25 16.25L15 18"/></svg></span> Analyse de contrat
     </a>
+    <a href="comparaison-contrats.html" class="nav-item">
+      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Comparaison
+    </a>
     <a href="chat.html" class="nav-item">
       <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span> Assistant IA
     </a>
     <a href="base-juridique.html" class="nav-item">
       <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span> Base juridique
-    </a>
-    <a href="comparaison-contrats.html" class="nav-item">
-      <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Comparaison
     </a>
 
     <div class="nav-section">Organisation</div>
@@ -1594,6 +1632,7 @@
 
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeFolderModal()">Annuler</button>
+      <button class="btn-danger" id="folderDeleteBtn" style="display:none" onclick="deleteFolder(editingFolderId)">🗑 Supprimer</button>
       <button class="btn-confirm" onclick="createFolder()">Créer le dossier</button>
     </div>
   </div>
@@ -1935,10 +1974,18 @@ async function loadData() {
       allFolders        = foldersRes.data        || [];
       allCounterparties = cpRes.data             || [];
 
-      const { data: docs } = await _sb.from('documents')
-        .select('id, name, file_type, file_size, document_type, status, compliance_score, risk_level, created_at, updated_at, latest_analysis_id, tags, is_starred, is_archived, folder_id, counterparty_id')
+      const DOC_COLS_BASE = 'id, name, file_type, file_size, document_type, status, compliance_score, risk_level, created_at, updated_at, latest_analysis_id, tags, is_starred, is_archived, folder_id, counterparty_id';
+      let { data: docs, error: docsErr } = await _sb.from('documents')
+        .select(DOC_COLS_BASE + ', current_version')
         .eq('organization_id', currentOrgId).eq('is_archived', false)
         .order('created_at', { ascending: false });
+      // Tolérance migration 22 : colonne current_version absente → recharger sans elle.
+      if (docsErr && (docsErr.code === '42703' || /current_version/.test(docsErr.message || ''))) {
+        ({ data: docs } = await _sb.from('documents')
+          .select(DOC_COLS_BASE)
+          .eq('organization_id', currentOrgId).eq('is_archived', false)
+          .order('created_at', { ascending: false }));
+      }
 
       allDocs = (docs || []).map(d => ({
         ...d,
@@ -2374,7 +2421,7 @@ async function shareChangeRole(userId, role) {
 }
 
 async function shareRemoveMember(userId) {
-  if (!confirm(`Révoquer l'accès de ${memberLabel(userId)} ?`)) return;
+  if (!await uiConfirm({ title: "Révoquer l'accès", message: `Révoquer l'accès de ${memberLabel(userId)} à ce dossier ?`, confirmLabel: 'Révoquer', danger: true })) return;
   const { error } = await _sb.from('folder_members')
     .delete().eq('folder_id', shareFolderId).eq('user_id', userId);
   if (error) { showToast('Erreur : ' + error.message, 'error'); return; }
@@ -2410,6 +2457,42 @@ function openCpShareModal(cpId) {
   shareCpId = cpId;
   renderCpShareModal();
   document.getElementById('cpShareModal').classList.add('show');
+}
+
+/**
+ * Supprime une contrepartie (non destructif) : ses dossiers et documents sont
+ * conservés mais détachés (deviennent « sans contrepartie »). RLS : créateur/admin.
+ */
+async function deleteCounterparty(cpId) {
+  const cp = allCounterparties.find(c => c.id === cpId);
+  if (!cp) return;
+  if (!cpIsManager(cpId)) { showToast('Seul le propriétaire de la contrepartie peut la supprimer.', 'error'); return; }
+
+  const nbFolders = allFolders.filter(f => f.counterparty_id === cpId).length;
+  const nbDocs = allDocs.filter(d => d.counterparty_id === cpId).length;
+  const parts = [];
+  if (nbFolders) parts.push(`${nbFolders} dossier${nbFolders > 1 ? 's' : ''}`);
+  if (nbDocs) parts.push(`${nbDocs} document${nbDocs > 1 ? 's' : ''}`);
+  const detail = parts.length
+    ? `\n\n${parts.join(' et ')} seront conservés mais détachés (deviennent « sans contrepartie »).`
+    : '';
+  if (!await uiConfirm({ title: 'Supprimer la contrepartie', message: `« ${cp.name} » ?${detail}`, confirmLabel: 'Supprimer', danger: true })) return;
+
+  const { error } = await _sb.from('counterparties').delete().eq('id', cpId).eq('organization_id', currentOrgId);
+  if (error) { showToast('Erreur : ' + error.message, 'error'); return; }
+
+  // Reflet local : retirer la CP, détacher ses dossiers/documents
+  allCounterparties = allCounterparties.filter(c => c.id !== cpId);
+  if (typeof Store !== 'undefined') Store.setCounterparties(allCounterparties);
+  allFolders.forEach(f => { if (f.counterparty_id === cpId) f.counterparty_id = null; });
+  if (typeof Store !== 'undefined') Store.setFolders(allFolders);
+  allDocs.forEach(d => { if (d.counterparty_id === cpId) d.counterparty_id = null; });
+  delete cpMembersByCp[cpId];
+
+  renderTree();
+  if (typeof renderCounterparties === 'function') renderCounterparties();
+  updateNavCounts();
+  showToast('Contrepartie supprimée.', 'success');
 }
 
 function closeCpShareModal() {
@@ -2494,7 +2577,7 @@ async function cpShareChangeRole(userId, role) {
 }
 
 async function cpShareRemoveMember(userId) {
-  if (!confirm(`Révoquer l'accès de ${memberLabel(userId)} à toute la contrepartie ?`)) return;
+  if (!await uiConfirm({ title: "Révoquer l'accès", message: `Révoquer l'accès de ${memberLabel(userId)} à toute la contrepartie ?`, confirmLabel: 'Révoquer', danger: true })) return;
   const { error } = await _sb.from('counterparty_members')
     .delete().eq('counterparty_id', shareCpId).eq('user_id', userId);
   if (error) { showToast('Erreur : ' + error.message, 'error'); return; }
@@ -2509,7 +2592,11 @@ async function toggleShareHistory() {
   if (!wrap) return;
   if (wrap.style.display !== 'none') { wrap.style.display = 'none'; return; }
   wrap.style.display = '';
-  wrap.innerHTML = '<div class="notif-empty">Chargement…</div>';
+  wrap.innerHTML = '<div style="padding:12px 14px">' +
+    '<div class="skeleton skel-line" style="width:72%;margin-bottom:10px"></div>' +
+    '<div class="skeleton skel-line" style="width:88%;margin-bottom:10px"></div>' +
+    '<div class="skeleton skel-line" style="width:58%"></div>' +
+    '</div>';
   const { data, error } = await _sb
     .from('folder_access_log')
     .select('action, target_user, actor, detail, created_at')
@@ -2766,7 +2853,10 @@ function renderTree(searchFilter) {
     const cpShareCount = (cpMembersByCp[cpId] || []).length;
     const cpShareBadge = cpShareCount ? `<span class="tree-share" title="Contrepartie partagée avec ${cpShareCount} personne${cpShareCount > 1 ? 's' : ''}">👥</span>` : '';
     const cpShareAction = cpIsManager(cpId)
-      ? `<span class="tree-actions"><button class="tree-action" onclick="event.stopPropagation();openCpShareModal('${cpId}')" title="Partager toute la contrepartie">👥</button></span>`
+      ? `<span class="tree-actions">
+           <button class="tree-action" onclick="event.stopPropagation();openCpShareModal('${cpId}')" title="Partager toute la contrepartie">👥</button>
+           <button class="tree-action" onclick="event.stopPropagation();deleteCounterparty('${cpId}')" title="Supprimer la contrepartie">🗑</button>
+         </span>`
       : '';
     html += `
       <div class="tree-node" data-level="0">
@@ -3112,7 +3202,10 @@ function wsSwitchTab(tabName) {
   }
 
   if (tabName === 'docs') {
-    document.getElementById('wsTab-docs').innerHTML = renderWsDocsTable(docsInScope, subs);
+    const canEditScope = (wsSelectedFolderId === '__all__')
+      ? true
+      : !!(folder && ['owner', 'editor'].includes(folderAccess(folder.id)));
+    document.getElementById('wsTab-docs').innerHTML = renderWsDocsTable(docsInScope, subs, canEditScope);
   } else if (tabName === 'subs') {
     document.getElementById('wsTab-subs').innerHTML = renderWsSubfolders(folder, subs);
   } else if (tabName === 'risks') {
@@ -3132,8 +3225,9 @@ function wsSwitchTab(tabName) {
 /**
  * Table de documents moderne (style NetDocuments / iManage).
  */
-function renderWsDocsTable(docs, subs) {
+function renderWsDocsTable(docs, subs, canEdit = false) {
   subs = subs || [];
+  docs = docs.filter(d => !pendingDeleteIds.has(d.id));
   if (!docs.length && !subs.length) {
     return wsEmptyTab('📄', 'Aucun document', 'Importez des documents ou créez des sous-dossiers pour organiser ce dossier.');
   }
@@ -3195,11 +3289,14 @@ function renderWsDocsTable(docs, subs) {
 
   const docRows = sortedDocs.map(d => `
     <tr onclick="openDoc('${d.id}')">
-      <td><div class="ws-doc-name"><span class="ws-doc-fileicon">${fileIcon(d.file_type)}</span>${escHtml(d.name)}</div></td>
+      <td><div class="ws-doc-name"><span class="ws-doc-fileicon">${fileIcon(d.file_type)}</span>${escHtml(d.name)}${versionBadge(d)}</div></td>
       <td>${fileBadge(d.file_type)}</td>
       <td style="color:var(--slate-500)">${fmtDate(d.created_at)}</td>
       <td style="color:var(--slate-500)">${fmtSize(d.file_size)}</td>
-      <td style="text-align:right"><button class="tree-action" onclick="event.stopPropagation();openDoc('${d.id}')" title="Ouvrir">⋯</button></td>
+      <td style="text-align:right;white-space:nowrap">
+        <button class="tree-action" onclick="event.stopPropagation();openDoc('${d.id}')" title="Ouvrir">⋯</button>
+        ${canEdit ? `<button class="tree-action" onclick="event.stopPropagation();deleteDoc('${d.id}')" title="Supprimer">🗑</button>` : ''}
+      </td>
     </tr>`).join('');
 
   return `<table class="ws-doctable">
@@ -3265,7 +3362,7 @@ function renderWsActivity(docs) {
       <div style="display:flex;align-items:center;gap:12px;padding:12px;border-bottom:1px solid var(--slate-100)">
         <span style="font-size:16px">📄</span>
         <div style="flex:1">
-          <div style="font-size:13px;font-weight:500;color:var(--slate-900)">${escHtml(d.name)}</div>
+          <div style="font-size:13px;font-weight:500;color:var(--slate-900)">${escHtml(d.name)}${versionBadge(d)}</div>
           <div style="font-size:11px;color:var(--slate-400)">Importé le ${new Date(d.created_at).toLocaleDateString('fr-MA',{day:'numeric',month:'long',year:'numeric'})}</div>
         </div>
         <span class="ws-filetype other">${(d.file_type||'—').toUpperCase()}</span>
@@ -3363,6 +3460,7 @@ function filterDocs() {
   const folder = document.getElementById('filterFolder')?.value || '';
 
   filteredDocs = allDocs.filter(d => {
+    if (pendingDeleteIds.has(d.id)) return false;
     const matchQ = !q || d.name.toLowerCase().includes(q) || (d.parties||'').toLowerCase().includes(q) || (d.folder||'').toLowerCase().includes(q);
     const matchType = !type || d.file_type === type;
     const matchStatus = !status || d.status === status;
@@ -3396,7 +3494,7 @@ function filterDocs() {
           <div class="doc-cell">
             <div class="doc-icon ${doc.file_type === 'pdf' ? 'pdf' : 'docx'}">${icon}</div>
             <div>
-              <div class="doc-name">${escHtml(doc.name)}</div>
+              <div class="doc-name">${escHtml(doc.name)}${versionBadge(doc)}</div>
               <div class="doc-meta">${formatSize(doc.file_size)}</div>
             </div>
           </div>
@@ -3421,18 +3519,26 @@ function filterDocs() {
 }
 
 function renderDocsTable(docs) {
+  docs = docs.filter(d => !pendingDeleteIds.has(d.id));
   return `<table class="docs-table">
-    <thead><tr><th>Document</th><th>Date</th><th>Score</th><th>Statut</th></tr></thead>
-    <tbody>${docs.map(doc => `
+    <thead><tr><th>Document</th><th>Date</th><th>Score</th><th>Statut</th><th></th></tr></thead>
+    <tbody>${docs.map(doc => {
+      const canDel = ['owner', 'editor'].includes(folderAccess(doc.folder_id));
+      return `
     <tr onclick="openDoc('${doc.id}')">
       <td><div class="doc-cell">
         <div class="doc-icon ${doc.file_type === 'pdf' ? 'pdf' : 'docx'}">${doc.file_type === 'pdf' ? '📕' : '📘'}</div>
-        <div class="doc-name">${escHtml(doc.name)}</div>
+        <div class="doc-name">${escHtml(doc.name)}${versionBadge(doc)}</div>
       </div></td>
       <td style="font-size:13px;color:var(--slate-400)">${new Date(doc.created_at).toLocaleDateString('fr-MA',{day:'numeric',month:'short'})}</td>
       <td>${getScoreChip(doc.score)}</td>
       <td>${getStatusBadge(doc.status)}</td>
-    </tr>`).join('')}
+      <td style="text-align:right;white-space:nowrap">
+        <button class="tree-action" onclick="event.stopPropagation();openDoc('${doc.id}')" title="Ouvrir">⋯</button>
+        ${canDel ? `<button class="tree-action" onclick="event.stopPropagation();deleteDoc('${doc.id}')" title="Supprimer">🗑</button>` : ''}
+      </td>
+    </tr>`;
+    }).join('')}
     </tbody></table>`;
 }
 
@@ -3902,7 +4008,7 @@ async function saveDeadline() {
 }
 
 async function deleteDeadline(id) {
-  if (!confirm('Supprimer cette échéance ?')) return;
+  if (!await uiConfirm({ title: "Supprimer l'échéance", message: 'Cette échéance sera définitivement supprimée.', confirmLabel: 'Supprimer', danger: true })) return;
   const { error } = await _sb.from('document_obligations').delete().eq('id', id);
   if (error) { showToast('Erreur : ' + error.message, 'error'); return; }
   Store.setDeadlines(Store.state.deadlines.filter(d => d.id !== id));
@@ -3985,6 +4091,8 @@ function openFolderModal() {
   document.getElementById('folderName').value = '';
   document.getElementById('folderDesc').value = '';
   document.getElementById('folderCounterparty').value = '';
+  const delBtn = document.getElementById('folderDeleteBtn');
+  if (delBtn) delBtn.style.display = 'none'; // pas de suppression en création
   document.getElementById('folderModal').classList.add('show');
 }
 function closeFolderModal() {
@@ -3997,6 +4105,39 @@ function closeFolderModal() {
  * - Dossier principal : nom, description, contrepartie modifiables
  * - Sous-dossier : nom, description seulement (contrepartie héritée, non modifiable)
  */
+/**
+ * Supprime un dossier (non destructif) : documents conservés (déplacés en
+ * « sans dossier »), sous-dossiers supprimés, tâches détachées. RLS : owner.
+ */
+async function deleteFolder(folderId) {
+  const folder = allFolders.find(f => f.id === folderId);
+  if (!folder) return;
+  const subs = getSubFoldersFast(folderId);
+  const subIds = [folderId, ...subs.map(s => s.id)];
+  const docCount = allDocs.filter(d => subIds.includes(d.folder_id)).length;
+
+  const parts = [];
+  if (docCount) parts.push(`${docCount} document${docCount > 1 ? 's' : ''} sera conservé${docCount > 1 ? 's' : ''} et déplacé${docCount > 1 ? 's' : ''} en « sans dossier »`);
+  if (subs.length) parts.push(`${subs.length} sous-dossier${subs.length > 1 ? 's' : ''} sera supprimé${subs.length > 1 ? 's' : ''}`);
+  const detail = parts.length ? '\n\n' + parts.join('.\n') + '.' : '';
+  if (!await uiConfirm({ title: 'Supprimer le dossier', message: `« ${folder.name} » ?${detail}`, confirmLabel: 'Supprimer', danger: true })) return;
+
+  const { error } = await _sb.from('folders').delete().eq('id', folderId).eq('organization_id', currentOrgId);
+  if (error) { showToast('Erreur : ' + error.message, 'error'); return; }
+
+  // Reflet local : retirer le dossier + ses sous-dossiers, détacher leurs docs
+  allFolders = allFolders.filter(f => !subIds.includes(f.id));
+  if (typeof Store !== 'undefined') Store.setFolders(allFolders);
+  allDocs.forEach(d => { if (subIds.includes(d.folder_id)) { d.folder_id = null; d.folder = '—'; } });
+  if (wsSelectedFolderId === folderId || subIds.includes(wsSelectedFolderId)) wsSelectedFolderId = '__all__';
+
+  closeFolderModal();
+  renderTree();
+  if (typeof selectAllFolders === 'function') selectAllFolders();
+  updateNavCounts();
+  showToast('Dossier supprimé.', 'success');
+}
+
 function editFolder(folderId) {
   const folder = allFolders.find(f => f.id === folderId);
   if (!folder) return;
@@ -4014,6 +4155,10 @@ function editFolder(folderId) {
 
   document.getElementById('folderName').value = folder.name || '';
   document.getElementById('folderDesc').value = folder.description || '';
+
+  // Suppression réservée au propriétaire du dossier (la RLS l'exige aussi)
+  const delBtn = document.getElementById('folderDeleteBtn');
+  if (delBtn) delBtn.style.display = (folderAccess(folderId) === 'owner') ? '' : 'none';
 
   const cpGroup = document.getElementById('counterpartyGroup');
   if (isSubFolder) {
@@ -4370,6 +4515,9 @@ async function confirmUpload() {
   document.getElementById('btnUploadText').textContent = 'Importation…';
   const folderId = document.getElementById('folderSelect')?.value || null;
   const counterpartyId = document.getElementById('counterpartySelect')?.value || null;
+  let importedCount = 0;
+  let quotaError = null;
+  const isQuotaErr = (e) => !!(e && (e.code === 'STORAGE_QUOTA_EXCEEDED' || String(e.message || '').includes('STORAGE_QUOTA_EXCEEDED')));
 
   // Si DocumentService disponible, l'utiliser
   if (Services?.documents) {
@@ -4384,8 +4532,11 @@ async function confirmUpload() {
           { folder_id: folderId || null, counterparty_id: counterpartyId || null },
           (pct) => { progressBar.style.width = pct + '%'; }
         );
+        importedCount++;
         await new Promise(r => setTimeout(r, 200));
       } catch(e) {
+        // Quota de stockage atteint : inutile de tenter les fichiers suivants.
+        if (isQuotaErr(e)) { quotaError = e; break; }
         showToast('Erreur import ' + file.name + ' : ' + e.message, 'error');
       }
     }
@@ -4423,8 +4574,10 @@ async function confirmUpload() {
         const { data: updated } = await _sb.from('documents').update({ storage_path: storagePath }).eq('id', inserted.id).select().single();
         progressBar.style.width = '100%';
         allDocs.unshift({ ...updated, score: null, folder: folderName, parties: '—', status: 'importé' });
+        importedCount++;
         await new Promise(r => setTimeout(r, 200));
       } catch(e) {
+        if (isQuotaErr(e)) { quotaError = e; break; }
         showToast('Erreur import ' + file.name + ' : ' + e.message, 'error');
       }
     }
@@ -4432,14 +4585,24 @@ async function confirmUpload() {
     allDocs = Store.state.documents || allDocs;
   }
 
-  const nbImported = pendingFiles.length;  // Sauvegarder avant de vider
   closeUploadModal();
   updateNavCounts();
   filterDocs();
   renderFolders();  // Actualiser l'affichage des dossiers
-  showToast(nbImported + ' document(s) importé(s).', 'success');
   pendingFiles = [];
   document.getElementById('btnUploadText').textContent = 'Importer';
+
+  // Message de fin : modale pro si quota dépassé, sinon toast de succès honnête.
+  if (quotaError) {
+    const lim = quotaError.limitMb ? ' (limite : ' + quotaError.limitMb + ' Mo)' : '';
+    await uiAlert(
+      '🗄️ Espace de stockage plein',
+      'Votre organisation a atteint sa limite de stockage' + lim + '.\n\n' +
+      'Impossible d\'importer de nouveaux documents pour le moment. Contactez votre administrateur pour libérer de l\'espace ou augmenter votre quota de stockage.'
+    );
+  } else if (importedCount) {
+    showToast(importedCount + ' document(s) importé(s).', 'success');
+  }
 }
 
 // ── GLOBAL SEARCH ─────────────────────────────
@@ -4481,18 +4644,45 @@ function analyzeDoc(id) { window.location.href = 'analyse-contrat.html?doc_id=' 
 function openSynthesis(id) { window.location.href = 'document-view.html?id=' + encodeURIComponent(id) + '#synthese'; }
 async function deleteDoc(id) {
   const doc = allDocs.find(d => d.id === id);
-  if (!doc || !confirm('Supprimer « ' + doc.name + ' » ?')) return;
+  if (!doc) return;
+  const confirmed = await uiConfirm({
+    title: 'Supprimer le document',
+    message: `« ${doc.name} » sera supprimé, ainsi que ses tâches et commentaires.\nVous pourrez annuler pendant quelques secondes.`,
+    confirmLabel: 'Supprimer', danger: true,
+  });
+  if (!confirmed) return;
 
-  if (Services?.documents) {
-    const ok = await Services.documents.archiveDocument(id, currentOrgId, true);
-    if (ok) allDocs = Store.state.documents;
-  } else {
-    try { await _sb.from('documents').delete().eq('id', id).eq('organization_id', currentOrgId); } catch(e) {}
-    allDocs = allDocs.filter(d => d.id !== id);
-  }
-  updateNavCounts();
-  filterDocs();
-  showToast('Document supprimé.', '');
+  // Masquage optimiste : le document disparaît des vues, mais la suppression
+  // réelle n'est déclenchée qu'après la fenêtre d'annulation.
+  pendingDeleteIds.add(id);
+  refreshDocViews();
+
+  let undone = false;
+  const commit = async () => {
+    if (undone) return;
+    let ok = false;
+    if (Services?.documents) {
+      ok = await Services.documents.archiveDocument(id, currentOrgId, true);
+      if (ok) allDocs = Store.state.documents;
+    } else {
+      try {
+        const { error } = await _sb.from('documents').delete().eq('id', id).eq('organization_id', currentOrgId);
+        ok = !error;
+      } catch (e) { ok = false; }
+      if (ok) allDocs = allDocs.filter(d => d.id !== id);
+    }
+    pendingDeleteIds.delete(id);
+    if (!ok) showToast('Suppression impossible. Réessayez.', 'error');
+    refreshDocViews();
+  };
+  const timer = setTimeout(commit, 5000);
+
+  showActionToast('Document supprimé.', 'Annuler', () => {
+    undone = true;
+    clearTimeout(timer);
+    pendingDeleteIds.delete(id);
+    refreshDocViews();
+  }, 5000);
 }
 
 // ── BADGES & HELPERS ──────────────────────────
@@ -4505,6 +4695,12 @@ function getScoreChip(score) {
   if (score === null || score === undefined) return `<span class="score-chip none">—</span>`;
   const cls = score >= 7 ? 'high' : score >= 5 ? 'med' : 'low';
   return `<span class="score-chip ${cls}">${score}/10</span>`;
+}
+// Pastille « vN » affichée seulement si le document a plusieurs versions.
+function versionBadge(doc) {
+  const v = doc && doc.current_version;
+  if (!v || v <= 1) return '';
+  return `<span class="ver-badge" title="${v} versions — voir l'historique dans le document">v${v}</span>`;
 }
 function normalizeStatus(status) {
   const map = { analyzed:'analysé', analyzing:'en-cours', imported:'importé', extracting:'en-cours', extracted:'en-cours', error:'importé' };
@@ -5808,6 +6004,98 @@ function showToast(msg, type) {
   setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.3s'; setTimeout(() => toast.remove(), 300); }, 3000);
 }
 
+// Toast avec bouton d'action (ex. « Annuler »). onAction n'est appelé que si
+// l'utilisateur clique avant la fin du délai.
+function showActionToast(msg, actionLabel, onAction, duration = 5000) {
+  const wrap = document.getElementById('toastWrap');
+  const toast = document.createElement('div');
+  toast.className = 'toast success';
+  const span = document.createElement('span');
+  span.textContent = msg;
+  const btn = document.createElement('button');
+  btn.className = 'toast-action';
+  btn.textContent = actionLabel;
+  toast.appendChild(span);
+  toast.appendChild(btn);
+  wrap.appendChild(toast);
+  let done = false;
+  const remove = () => { if (done) return; done = true; toast.style.opacity = '0'; toast.style.transition = 'opacity 0.3s'; setTimeout(() => toast.remove(), 300); };
+  const timer = setTimeout(remove, duration);
+  btn.onclick = () => { clearTimeout(timer); remove(); onAction(); };
+}
+
+// Modale de confirmation cohérente avec l'app (remplace le confirm() natif).
+// Renvoie une Promise<boolean>. Échap / clic hors modale = annuler, Entrée = confirmer.
+function uiConfirm({ title = 'Confirmer', message = '', confirmLabel = 'Confirmer', cancelLabel = 'Annuler', danger = false } = {}) {
+  return new Promise((resolve) => {
+    let overlay = document.getElementById('uiConfirmOverlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.id = 'uiConfirmOverlay';
+      overlay.innerHTML =
+        '<div class="modal" style="width:420px">' +
+        '<div class="modal-title" id="uiConfirmTitle"></div>' +
+        '<div class="modal-sub" id="uiConfirmMsg" style="margin-bottom:0;white-space:pre-line"></div>' +
+        '<div class="modal-actions">' +
+        '<button class="btn-cancel" id="uiConfirmCancel"></button>' +
+        '<button class="btn-confirm" id="uiConfirmOk"></button>' +
+        '</div></div>';
+      document.body.appendChild(overlay);
+    }
+    const titleEl = overlay.querySelector('#uiConfirmTitle');
+    const msgEl = overlay.querySelector('#uiConfirmMsg');
+    const okBtn = overlay.querySelector('#uiConfirmOk');
+    const cancelBtn = overlay.querySelector('#uiConfirmCancel');
+    titleEl.textContent = title;
+    msgEl.textContent = message;
+    msgEl.style.display = message ? '' : 'none';
+    okBtn.textContent = confirmLabel;
+    // cancelLabel null/'' => modale d'alerte à un seul bouton.
+    cancelBtn.style.display = cancelLabel ? '' : 'none';
+    cancelBtn.textContent = cancelLabel || '';
+    // Bouton rouge en mode danger, mais gardé à droite (btn-danger a margin-right:auto).
+    okBtn.className = danger ? 'btn-danger' : 'btn-confirm';
+    okBtn.style.marginRight = '0';
+
+    const close = (val) => {
+      overlay.classList.remove('show');
+      okBtn.onclick = cancelBtn.onclick = overlay.onclick = null;
+      document.removeEventListener('keydown', onKey);
+      resolve(val);
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); close(false); }
+      else if (e.key === 'Enter') { e.preventDefault(); close(true); }
+    };
+    okBtn.onclick = () => close(true);
+    cancelBtn.onclick = () => close(false);
+    overlay.onclick = (e) => { if (e.target === overlay) close(false); };
+    document.addEventListener('keydown', onKey);
+    overlay.classList.add('show');
+    setTimeout(() => okBtn.focus(), 30);
+  });
+}
+
+// Modale d'information (un seul bouton). Réutilise l'infrastructure d'uiConfirm.
+function uiAlert(title, message, confirmLabel) {
+  return uiConfirm({ title, message, confirmLabel: confirmLabel || 'J\'ai compris', cancelLabel: null });
+}
+
+// Documents en attente de suppression (fenêtre d'annulation) : masqués des vues.
+const pendingDeleteIds = new Set();
+
+// Re-render des trois vues où un document peut apparaître.
+function refreshDocViews() {
+  updateNavCounts();
+  filterDocs();
+  try {
+    if (wsSelectedFolderId === '__all__') wsSwitchTab(wsActiveTab);
+    else if (wsSelectedFolderId) renderFolderDetail(wsSelectedFolderId);
+  } catch (e) {}
+  try { if (currentDetailCpId) openCpDetail(currentDetailCpId); } catch (e) {}
+}
+
 // ── SYNC ALIASES (appelé par bootstrap.js après chaque chargement) ──
 function _syncGlobalAliases() {
   if (typeof Store === 'undefined') return;
@@ -5839,10 +6127,21 @@ document.getElementById('btnLogout').addEventListener('click', async () => { awa
 // Les sidebars des autres pages pointent ici (Contreparties, Dossiers,
 // Risques, Échéances, Timeline, Tâches) — sans ce paramètre, ces liens
 // retombaient tous sur le dashboard, donnant l'impression de liens morts.
+function hideAppLoading() {
+  var el = document.getElementById('appLoading');
+  if (!el || el.classList.contains('hide')) return;
+  el.classList.add('hide');
+  setTimeout(function() { el.remove(); }, 400);
+}
+// Filet de sécurité : ne jamais rester bloqué sur l'écran de chargement.
+setTimeout(hideAppLoading, 12000);
+
 init().then(function() {
   var pageParam = new URLSearchParams(window.location.search).get('page');
   if (pageParam && document.getElementById('page-' + pageParam)) showPage(pageParam);
-});
+}).catch(function(e) {
+  console.error('[init] échec du chargement', e);
+}).finally(hideAppLoading);
 </script>
 </body>
 </html>

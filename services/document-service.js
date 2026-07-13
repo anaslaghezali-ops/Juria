@@ -29,19 +29,32 @@ class DocumentService extends BaseService {
     amount, currency, status, compliance_score, risk_level,
     executive_summary, latest_analysis_id,
     is_starred, is_archived, tags, notes,
-    created_at, updated_at, counterparty_id
+    created_at, updated_at, counterparty_id, current_version
   `;
 
   // ── Chargement ────────────────────────────────────────────────────────
 
   async loadDocuments(orgId) {
     try {
-      const { data, error } = await this._sb
+      let { data, error } = await this._sb
         .from('documents')
         .select(DocumentService.SELECT)
         .eq('organization_id', orgId)
         .eq('is_archived', false)
         .order('created_at', { ascending: false });
+
+      // Tolérance de migration : si current_version (migration 22) n'est pas
+      // encore appliquée, la colonne manque → on recharge SANS elle plutôt que
+      // de vider la liste. Le badge de version restera simplement absent.
+      if (error && this._isMissingColumn(error, 'current_version')) {
+        const base = DocumentService.SELECT.replace(', current_version', '');
+        ({ data, error } = await this._sb
+          .from('documents')
+          .select(base)
+          .eq('organization_id', orgId)
+          .eq('is_archived', false)
+          .order('created_at', { ascending: false }));
+      }
 
       if (error) {
         if (this._isTableMissing(error)) {
@@ -107,7 +120,19 @@ class DocumentService extends BaseService {
     };
 
     const inserted = await this.create(docData);
-    if (!inserted) throw new Error('Échec de la création du document en base');
+    if (!inserted) {
+      // Le trigger de quota de stockage lève STORAGE_QUOTA_EXCEEDED : on le
+      // remonte comme erreur typée pour un message clair côté interface.
+      const dbMsg = this._lastError?.message || '';
+      if (dbMsg.includes('STORAGE_QUOTA_EXCEEDED')) {
+        const err = new Error(dbMsg);
+        err.code = 'STORAGE_QUOTA_EXCEEDED';
+        const mb = dbMsg.match(/de\s+(\d+)\s+Mo/);
+        if (mb) err.limitMb = Number(mb[1]);
+        throw err;
+      }
+      throw new Error('Échec de la création du document en base');
+    }
 
     onProgress?.(30);
 
@@ -139,18 +164,23 @@ class DocumentService extends BaseService {
     const doc = this._store.indexes.docsById[docId];
     if (!doc) return false;
 
-    if (hardDelete && doc.storage_path) {
-      await this._sb.storage.from(this._bucket).remove([doc.storage_path]);
-    }
-
+    // La base est la source de vérité : on supprime la ligne D'ABORD. Si ça
+    // échoue (RLS, contrainte…), on n'a rien détruit et on remonte l'échec.
     const ok = hardDelete
       ? await this.delete(docId, orgId)
       : !!(await this.update(docId, orgId, { is_archived: true }));
 
-    if (ok) {
-      this._store.removeDocument(docId);
-      this._store.logActivity('document_deleted', { docId, name: doc.name });
+    if (!ok) return false;
+
+    // Ligne supprimée : on retire le fichier du Storage seulement maintenant.
+    // Un fichier résiduel (si ce remove échoue) est bénin ; une ligne orpheline
+    // pointant vers un fichier déjà effacé ne le serait pas.
+    if (hardDelete && doc.storage_path) {
+      try { await this._sb.storage.from(this._bucket).remove([doc.storage_path]); } catch (e) {}
     }
+
+    this._store.removeDocument(docId);
+    this._store.logActivity('document_deleted', { docId, name: doc.name });
     return ok;
   }
 

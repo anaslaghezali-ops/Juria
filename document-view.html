@@ -143,6 +143,25 @@
     .history-score.low { color: var(--red-text); }
     .history-latest-tag { font-size: 10px; font-weight: 600; background: var(--indigo-bg); color: var(--indigo-text); padding: 2px 8px; border-radius: 99px; }
 
+    /* ─── VERSIONS ─────────────────────────────────── */
+    .btn-new-version { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; background: var(--indigo); color: #fff; border: none; border-radius: 8px; font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: inherit; transition: opacity 0.15s, filter 0.15s; white-space: nowrap; }
+    .btn-new-version:hover { filter: brightness(1.08); }
+    .btn-new-version:disabled { opacity: 0.55; cursor: default; }
+    .version-item { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--slate-100); }
+    .version-item:last-child { border-bottom: none; }
+    .version-item:first-child { padding-top: 0; }
+    .version-num { width: 34px; height: 34px; background: var(--slate-100); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: var(--slate-500); flex-shrink: 0; }
+    .version-num.current { background: var(--indigo-bg); color: var(--indigo-text); }
+    .version-info { flex: 1; min-width: 0; }
+    .version-date { font-size: 13px; font-weight: 600; color: var(--slate-700); display: flex; align-items: center; gap: 8px; }
+    .version-note { font-size: 12.5px; color: var(--slate-500); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .version-meta { font-size: 11.5px; color: var(--slate-400); margin-top: 2px; }
+    .version-current-tag { font-size: 10px; font-weight: 600; background: var(--indigo-bg); color: var(--indigo-text); padding: 2px 8px; border-radius: 99px; }
+    .version-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .btn-version-act { display: inline-flex; align-items: center; gap: 5px; padding: 6px 10px; background: var(--white); color: var(--slate-600); border: 1px solid var(--border); border-radius: 7px; font-size: 12px; font-weight: 500; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+    .btn-version-act:hover { border-color: var(--indigo); color: var(--indigo-text); }
+    .btn-version-act:disabled { opacity: 0.4; cursor: default; }
+
     /* ─── TOAST ────────────────────────────────────── */
     .toast-wrap { position: fixed; bottom: 24px; right: 24px; z-index: 2000; display: flex; flex-direction: column; gap: 8px; }
     .toast { background: var(--slate-900); color: #e5e7eb; padding: 12px 18px; border-radius: 10px; font-size: 13.5px; display: flex; align-items: center; gap: 10px; animation: toastIn 0.25s ease; box-shadow: 0 4px 20px rgba(0,0,0,0.2); max-width: 320px; }
@@ -465,6 +484,25 @@
         </div>
       </div>
 
+      <!-- VERSIONS DU DOCUMENT -->
+      <div class="section-card">
+        <div class="section-header" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+          <div class="section-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+            Versions du document
+            <span class="section-count" id="versionsCount">1</span>
+          </div>
+          <button class="btn-new-version" id="btnNewVersion" onclick="document.getElementById('versionFileInput').click()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Nouvelle version
+          </button>
+          <input type="file" id="versionFileInput" accept=".pdf,.docx,.doc" style="display:none" onchange="onVersionFilePicked(event)">
+        </div>
+        <div id="versionsList">
+          <div class="section-empty">Une seule version pour l'instant. Importez une révision pour suivre l'évolution du contrat.</div>
+        </div>
+      </div>
+
       <!-- HISTORIQUE DES ANALYSES -->
       <div class="section-card">
         <div class="section-header">
@@ -563,6 +601,7 @@
 <script src="fetch-safe.js"></script>
 <script src="services/base-service.js"></script>
 <script src="services/synthesis-service.js"></script>
+<script src="services/document-version-service.js"></script>
 <script>
 // ══════════════════════════════════════════════
 //  CONFIG & STATE
@@ -657,9 +696,157 @@ async function loadDocument() {
 
     renderHistory(allAnalyses || [], latestAnalysisId);
 
+    // 4. Charger l'historique des versions du document
+    loadVersions();
+
   } catch (e) {
     console.error('Erreur chargement document:', e);
     showError();
+  }
+}
+
+// ══════════════════════════════════════════════
+//  VERSIONS DU DOCUMENT
+// ══════════════════════════════════════════════
+let versionService = null;
+let docVersions = [];
+
+function _versionSvc() {
+  if (!versionService) versionService = new DocumentVersionService(_sb, null);
+  return versionService;
+}
+
+async function loadVersions() {
+  try {
+    docVersions = await _versionSvc().listVersions(docId);
+    renderVersions(docVersions);
+  } catch (e) {
+    console.error('[versions] chargement échoué:', e);
+  }
+}
+
+function renderVersions(versions) {
+  const el = document.getElementById('versionsList');
+  const countEl = document.getElementById('versionsCount');
+  countEl.textContent = versions.length;
+
+  if (versions.length <= 1) {
+    el.innerHTML = '<div class="section-empty">Une seule version pour l\'instant. Importez une révision pour suivre l\'évolution du contrat.</div>';
+    return;
+  }
+
+  el.innerHTML = versions.map((v, idx) => {
+    const ext = (v.file_type || 'pdf').toLowerCase();
+    // « Comparer » = confronter cette version à la PRÉCÉDENTE (v-1).
+    const prev = versions[idx + 1]; // la liste est décroissante
+    const canCompare = !!prev;
+    return `
+    <div class="version-item">
+      <div class="version-num ${v.is_current ? 'current' : ''}">v${v.version_number}</div>
+      <div class="version-info">
+        <div class="version-date">
+          ${formatDate(v.created_at)}
+          ${v.is_current ? '<span class="version-current-tag">Actuelle</span>' : ''}
+        </div>
+        ${v.change_summary ? `<div class="version-note" title="${escHtml(v.change_summary)}">📝 ${escHtml(v.change_summary)}</div>` : ''}
+        <div class="version-meta">${escHtml(v.name || '')} · ${formatSize(v.file_size)} · ${ext.toUpperCase()}</div>
+      </div>
+      <div class="version-actions">
+        <button class="btn-version-act" ${canCompare ? '' : 'disabled title="Aucune version antérieure"'} onclick="compareVersions(${idx}, ${idx + 1})">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+          Comparer${canCompare ? ' à v' + prev.version_number : ''}
+        </button>
+        <button class="btn-version-act" onclick="downloadVersion(${idx})" title="Télécharger cette version">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// Import d'une nouvelle version : demande une note, puis remplace le pointeur.
+async function onVersionFilePicked(event) {
+  const file = event.target.files && event.target.files[0];
+  event.target.value = ''; // permet de re-choisir le même fichier
+  if (!file) return;
+
+  const summary = window.prompt(
+    'Qu\'est-ce qui a changé dans cette version ? (facultatif)\n\nEx. : « Ajout de la clause de confidentialité », « Baisse du plafond de responsabilité »',
+    ''
+  );
+  if (summary === null) return; // annulé
+
+  const btn = document.getElementById('btnNewVersion');
+  const original = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '⏳ Import… 0%';
+
+  try {
+    await _versionSvc().createVersion(
+      docId, currentOrgId, currentUser.id, file, summary.trim(),
+      (pct) => { btn.innerHTML = '⏳ Import… ' + pct + '%'; }
+    );
+    showToast('Nouvelle version enregistrée ✓', 'success');
+    // Recharger document (le pointeur a changé) + versions.
+    await loadDocument();
+  } catch (e) {
+    console.error('[versions] création échouée:', e);
+    if (e.code === 'STORAGE_QUOTA_EXCEEDED') {
+      const lim = e.limitMb ? ` (${e.limitMb} Mo)` : '';
+      alert('🗄️ Espace de stockage plein — limite atteinte' + lim + '.\n\nCette version n\'a pas pu être enregistrée. Contactez votre administrateur pour augmenter l\'espace.');
+    } else {
+      alert(e.message || 'Échec de l\'enregistrement de la nouvelle version.');
+    }
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = original;
+  }
+}
+
+// Comparer deux versions : on récupère les deux textes figés et on délègue à
+// la page de comparaison (moteur LLM + point de vue) via sessionStorage.
+async function compareVersions(idxNew, idxOld) {
+  const vNew = docVersions[idxNew];
+  const vOld = docVersions[idxOld];
+  if (!vNew || !vOld) return;
+
+  showToast('Préparation de la comparaison…');
+  try {
+    const svc = _versionSvc();
+    const [textOld, textNew] = await Promise.all([
+      svc.getVersionText(docId, vOld),
+      svc.getVersionText(docId, vNew),
+    ]);
+    if (!textOld || !textNew) {
+      alert('Le texte d\'une des versions n\'est pas disponible pour la comparaison (fichier .doc ou extraction manquante).');
+      return;
+    }
+    sessionStorage.setItem('juria_compare_versions', JSON.stringify({
+      doc_id: docId,
+      doc_name: currentDoc ? currentDoc.name : '',
+      label1: 'v' + vOld.version_number,
+      label2: 'v' + vNew.version_number,
+      text1: textOld,
+      text2: textNew,
+    }));
+    window.location.href = 'comparaison-contrats.html?from=versions';
+  } catch (e) {
+    console.error('[versions] comparaison échouée:', e);
+    alert('Impossible de préparer la comparaison.');
+  }
+}
+
+async function downloadVersion(idx) {
+  const v = docVersions[idx];
+  if (!v || !v.storage_path) { alert('Fichier indisponible pour cette version.'); return; }
+  try {
+    const { data, error } = await _sb.storage
+      .from('juria-documents').createSignedUrl(v.storage_path, 3600);
+    if (error || !data?.signedUrl) throw error || new Error('URL indisponible');
+    window.open(data.signedUrl, '_blank');
+  } catch (e) {
+    console.error('[versions] téléchargement échoué:', e);
+    alert('Téléchargement impossible pour cette version.');
   }
 }
 
