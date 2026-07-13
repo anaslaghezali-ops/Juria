@@ -324,6 +324,7 @@
     .doc-icon.docx { background: #eff6ff; }
     .doc-name { font-size: 13px; font-weight: 600; color: var(--slate-900); }
     .doc-meta { font-size: 11px; color: var(--slate-400); margin-top: 1px; }
+    .ver-badge { display: inline-block; margin-left: 7px; font-size: 10px; font-weight: 700; color: var(--indigo-text); background: var(--indigo-bg); padding: 1px 6px; border-radius: 99px; vertical-align: middle; letter-spacing: .02em; }
     .status-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 99px; }
     .status-badge.analysé { background: var(--green-bg); color: var(--green-text); }
     .status-badge.importé { background: var(--slate-100); color: var(--slate-500); }
@@ -1972,7 +1973,7 @@ async function loadData() {
       allCounterparties = cpRes.data             || [];
 
       const { data: docs } = await _sb.from('documents')
-        .select('id, name, file_type, file_size, document_type, status, compliance_score, risk_level, created_at, updated_at, latest_analysis_id, tags, is_starred, is_archived, folder_id, counterparty_id')
+        .select('id, name, file_type, file_size, document_type, status, compliance_score, risk_level, created_at, updated_at, latest_analysis_id, tags, is_starred, is_archived, folder_id, counterparty_id, current_version')
         .eq('organization_id', currentOrgId).eq('is_archived', false)
         .order('created_at', { ascending: false });
 
@@ -3278,7 +3279,7 @@ function renderWsDocsTable(docs, subs, canEdit = false) {
 
   const docRows = sortedDocs.map(d => `
     <tr onclick="openDoc('${d.id}')">
-      <td><div class="ws-doc-name"><span class="ws-doc-fileicon">${fileIcon(d.file_type)}</span>${escHtml(d.name)}</div></td>
+      <td><div class="ws-doc-name"><span class="ws-doc-fileicon">${fileIcon(d.file_type)}</span>${escHtml(d.name)}${versionBadge(d)}</div></td>
       <td>${fileBadge(d.file_type)}</td>
       <td style="color:var(--slate-500)">${fmtDate(d.created_at)}</td>
       <td style="color:var(--slate-500)">${fmtSize(d.file_size)}</td>
@@ -3351,7 +3352,7 @@ function renderWsActivity(docs) {
       <div style="display:flex;align-items:center;gap:12px;padding:12px;border-bottom:1px solid var(--slate-100)">
         <span style="font-size:16px">📄</span>
         <div style="flex:1">
-          <div style="font-size:13px;font-weight:500;color:var(--slate-900)">${escHtml(d.name)}</div>
+          <div style="font-size:13px;font-weight:500;color:var(--slate-900)">${escHtml(d.name)}${versionBadge(d)}</div>
           <div style="font-size:11px;color:var(--slate-400)">Importé le ${new Date(d.created_at).toLocaleDateString('fr-MA',{day:'numeric',month:'long',year:'numeric'})}</div>
         </div>
         <span class="ws-filetype other">${(d.file_type||'—').toUpperCase()}</span>
@@ -3483,7 +3484,7 @@ function filterDocs() {
           <div class="doc-cell">
             <div class="doc-icon ${doc.file_type === 'pdf' ? 'pdf' : 'docx'}">${icon}</div>
             <div>
-              <div class="doc-name">${escHtml(doc.name)}</div>
+              <div class="doc-name">${escHtml(doc.name)}${versionBadge(doc)}</div>
               <div class="doc-meta">${formatSize(doc.file_size)}</div>
             </div>
           </div>
@@ -3517,7 +3518,7 @@ function renderDocsTable(docs) {
     <tr onclick="openDoc('${doc.id}')">
       <td><div class="doc-cell">
         <div class="doc-icon ${doc.file_type === 'pdf' ? 'pdf' : 'docx'}">${doc.file_type === 'pdf' ? '📕' : '📘'}</div>
-        <div class="doc-name">${escHtml(doc.name)}</div>
+        <div class="doc-name">${escHtml(doc.name)}${versionBadge(doc)}</div>
       </div></td>
       <td style="font-size:13px;color:var(--slate-400)">${new Date(doc.created_at).toLocaleDateString('fr-MA',{day:'numeric',month:'short'})}</td>
       <td>${getScoreChip(doc.score)}</td>
@@ -4684,6 +4685,12 @@ function getScoreChip(score) {
   if (score === null || score === undefined) return `<span class="score-chip none">—</span>`;
   const cls = score >= 7 ? 'high' : score >= 5 ? 'med' : 'low';
   return `<span class="score-chip ${cls}">${score}/10</span>`;
+}
+// Pastille « vN » affichée seulement si le document a plusieurs versions.
+function versionBadge(doc) {
+  const v = doc && doc.current_version;
+  if (!v || v <= 1) return '';
+  return `<span class="ver-badge" title="${v} versions — voir l'historique dans le document">v${v}</span>`;
 }
 function normalizeStatus(status) {
   const map = { analyzed:'analysé', analyzing:'en-cours', imported:'importé', extracting:'en-cours', extracted:'en-cours', error:'importé' };

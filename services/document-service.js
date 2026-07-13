@@ -29,7 +29,7 @@ class DocumentService extends BaseService {
     amount, currency, status, compliance_score, risk_level,
     executive_summary, latest_analysis_id,
     is_starred, is_archived, tags, notes,
-    created_at, updated_at, counterparty_id
+    created_at, updated_at, counterparty_id, current_version
   `;
 
   // ── Chargement ────────────────────────────────────────────────────────
