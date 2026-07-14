@@ -219,12 +219,12 @@ async function handleLogin() {
     return;
   }
 
-  window.location.href = 'dashboard.html';
+  window.location.href = 'documents.html?page=dashboard';
 }
 
 // Si déjà connecté → rediriger
 _sb.auth.getSession().then(({ data }) => {
-  if (data.session) window.location.href = 'dashboard.html';
+  if (data.session) window.location.href = 'documents.html?page=dashboard';
 });
 
 // Entrée clavier
