@@ -1,4 +1,3 @@
 # Juria
 Juria 
-Juria
-Juria
+
