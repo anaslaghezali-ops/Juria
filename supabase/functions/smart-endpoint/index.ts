@@ -172,6 +172,65 @@ serve(async (req) => {
       throw e;
     };
 
+    // Ferme un JSON tronqué (réponse coupée à max_tokens) : termine une chaîne
+    // ouverte, retire un élément final incomplet, puis referme les {} / [] restés
+    // ouverts, dans l'ordre. Best-effort — sauve ce qui a pu être généré.
+    const closeTruncatedJson = (s: string): string => {
+      const stack: string[] = [];
+      let inStr = false, esc = false;
+      for (let i = 0; i < s.length; i++) {
+        const c = s[i];
+        if (inStr) {
+          if (esc) esc = false;
+          else if (c === "\\") esc = true;
+          else if (c === '"') inStr = false;
+          continue;
+        }
+        if (c === '"') inStr = true;
+        else if (c === "{" || c === "[") stack.push(c);
+        else if (c === "}") { if (stack[stack.length - 1] === "{") stack.pop(); }
+        else if (c === "]") { if (stack[stack.length - 1] === "[") stack.pop(); }
+      }
+      let out = s;
+      if (inStr) out += '"';                       // chaîne coupée → on la ferme
+      out = out.replace(/,\s*"[^"]*$/, "")         // clé/valeur partielle après une virgule
+               .replace(/,\s*$/, "");              // virgule pendante
+      for (let i = stack.length - 1; i >= 0; i--) out += stack[i] === "{" ? "}" : "]";
+      return out;
+    };
+
+    // JSON.parse robuste : réponses du modèle parfois entourées de prose, de
+    // clôtures ```…``` ou TRONQUÉES (long document → sortie coupée). On tente,
+    // dans l'ordre : direct → extraction de l'objet → nettoyage virgules →
+    // fermeture de troncature (en reculant à la dernière frontière). Ne jette
+    // qu'en dernier recours, pour que l'appelant décide (dégradation vs 500).
+    const safeJsonParse = (text: any): any => {
+      if (typeof text !== "string") return text;
+      try { return JSON.parse(text); } catch { /* suite */ }
+      let s = text.trim()
+        .replace(/^```(?:json)?/i, "")
+        .replace(/```\s*$/, "")
+        .trim();
+      const bo = s.indexOf("{"), ba = s.indexOf("[");
+      const start = bo === -1 ? ba : ba === -1 ? bo : Math.min(bo, ba);
+      if (start > 0) s = s.slice(start);
+      const end = Math.max(s.lastIndexOf("}"), s.lastIndexOf("]"));
+      if (end !== -1) {
+        const cand = s.slice(0, end + 1);
+        try { return JSON.parse(cand); } catch { /* suite */ }
+        try { return JSON.parse(cand.replace(/,\s*([}\]])/g, "$1")); } catch { /* suite */ }
+      }
+      // Troncature : referme, puis recule jusqu'à la dernière frontière si besoin.
+      let cut = s.length;
+      for (let attempt = 0; attempt < 60 && cut > 1; attempt++) {
+        try { return JSON.parse(closeTruncatedJson(s.slice(0, cut))); } catch { /* recule */ }
+        const prev = Math.max(s.lastIndexOf("}", cut - 1), s.lastIndexOf("]", cut - 1), s.lastIndexOf(",", cut - 1));
+        if (prev <= 0) break;
+        cut = prev;
+      }
+      throw new Error("Réponse du modèle illisible (JSON invalide ou tronqué)");
+    };
+
     const callOpenAI = async (systemPrompt: string, userContent: string, maxTokens: number, jsonMode = true) => {
       const res = await openaiFetch(
         "https://api.openai.com/v1/chat/completions",
@@ -183,7 +242,7 @@ serve(async (req) => {
       if (!res.ok) throwAiError(res);
       const data = await res.json();
       const text = data.choices[0].message.content;
-      return jsonMode ? JSON.parse(text) : text;
+      return jsonMode ? safeJsonParse(text) : text;
     };
 
     const callOpenAIMessages = async (messages: any[], maxTokens: number, jsonMode = true) => {
@@ -194,7 +253,7 @@ serve(async (req) => {
       if (!res.ok) throwAiError(res);
       const data = await res.json();
       const text = data.choices[0].message.content;
-      return jsonMode ? JSON.parse(text) : text;
+      return jsonMode ? safeJsonParse(text) : text;
     };
 
     const vectorSearch = async (query: string, count = 30, codes: string[] = []) => {
@@ -574,18 +633,35 @@ serve(async (req) => {
         Array.from({ length: Math.min(2, windows.length) }, async () => {
           while (nextWindow < windows.length) {
             const i = nextWindow++;
-            partResults[i] = await callOpenAI(
-              analyzeSystemFor(i + 1, windows.length),
-              "Contrat" + (windows.length > 1 ? ` (partie ${i + 1}/${windows.length})` : "") + ": " + windows[i],
-              1500,
-            );
+            try {
+              partResults[i] = await callOpenAI(
+                analyzeSystemFor(i + 1, windows.length),
+                "Contrat" + (windows.length > 1 ? ` (partie ${i + 1}/${windows.length})` : "") + ": " + windows[i],
+                4000,
+              );
+            } catch (e) {
+              // Une fenêtre illisible (JSON tronqué non récupérable, timeout…) ne
+              // doit pas faire échouer TOUT le document : on la saute et on
+              // continue avec les autres parties.
+              console.warn(`[analyze] fenêtre ${i + 1}/${windows.length} ignorée:`, (e as any)?.message || e);
+              partResults[i] = null;
+            }
           }
         }),
       );
 
+      // On ne garde que les fenêtres réellement analysées.
+      const validParts = partResults.filter((p) => p && typeof p === "object");
+      if (validParts.length === 0) {
+        return new Response(JSON.stringify({
+          error: "L'analyse n'a pu aboutir sur aucune partie du document (réponses illisibles). Réessayez ; si le problème persiste, le document est peut-être trop volumineux ou mal extrait.",
+          code: "ANALYSIS_FAILED",
+        }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
       // REDUCE : fusion des analyses partielles en une analyse globale
-      let analysis = partResults[0];
-      if (windows.length > 1) {
+      let analysis = validParts[0];
+      if (validParts.length > 1) {
         const mergeSystem = [
           "Tu es Juria, expert juridique marocain senior. On te donne les analyses partielles d'un MEME contrat, decoupe en parties avec chevauchement.",
           "Fusionne-les en UNE analyse globale coherente :",
@@ -600,11 +676,18 @@ serve(async (req) => {
           "Conserve le champ 'sens' (favorable/défavorable/neutre) de chaque issue.",
           "Retourne UNIQUEMENT un JSON: {contract_type: string, score: number, summary: string, parties: [string], issues: [{paragraph_id: number, severity: string, clause: string, problem: string, suggestion: string, sens: string}], missing_clauses: [string], obligations: [{description: string, due_date: string|null, is_critical: boolean}]}",
         ].join(" ");
-        analysis = await callOpenAI(
-          mergeSystem,
-          "Analyses partielles (dans l'ordre du contrat) : " + JSON.stringify(partResults).slice(0, 90000),
-          3000,
-        );
+        try {
+          analysis = await callOpenAI(
+            mergeSystem,
+            "Analyses partielles (dans l'ordre du contrat) : " + JSON.stringify(validParts).slice(0, 90000),
+            6000,
+          );
+        } catch (e) {
+          // Fusion illisible : plutôt qu'un 500, on renvoie la première partie
+          // valide (analyse partielle) — l'utilisateur obtient un résultat.
+          console.warn("[analyze] fusion échouée, repli sur la 1re partie:", (e as any)?.message || e);
+          analysis = validParts[0];
+        }
       }
 
 
