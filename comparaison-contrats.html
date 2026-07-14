@@ -1088,7 +1088,7 @@ async function saveAnalysisToDatabase(analysisResult, selectedFile, extractedTex
       // On n'uploade que si selectedFile est un vrai File (pas un pré-chargé)
       if (selectedFile instanceof File) {
         try {
-          const storagePath = `${orgId}/${docId}/${Date.now()}-${selectedFile.name}`;
+          const storagePath = `${orgId}/${docId}/${Date.now()}-${sanitizeStorageName(selectedFile.name)}`;
           const { error: uploadErr } = await _sb.storage
             .from('juria-documents')
             .upload(storagePath, selectedFile, { upsert: false });

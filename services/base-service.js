@@ -218,6 +218,27 @@ class BaseService {
     }
     return column ? (error?.message || '').includes(column) : true;
   }
+
+  /**
+   * Nom de fichier sûr pour une clé Supabase Storage. Storage rejette les
+   * caractères non-ASCII (« é » → "Invalid key") : on translittère les accents
+   * (NFD) et on ne garde que [a-zA-Z0-9._-]. N'affecte QUE le chemin de
+   * stockage — le nom affiché (documents.name) reste l'original.
+   */
+  _safeStorageName(filename) {
+    if (!filename) return 'document';
+    const dot  = filename.lastIndexOf('.');
+    const name = dot > 0 ? filename.slice(0, dot) : filename;
+    let ext    = dot > 0 ? filename.slice(dot) : '';
+    const clean = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/[^a-zA-Z0-9\-_.]/g, '')
+      .replace(/-+/g, '-')
+      .replace(/^[-.]+|[-.]+$/g, '')
+      .substring(0, 200);
+    ext = ext.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9.]/g, '');
+    return (clean || 'document') + ext;
+  }
 }
 
 if (typeof window !== 'undefined') window.BaseService = BaseService;

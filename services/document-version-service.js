@@ -189,7 +189,7 @@ class DocumentVersionService extends BaseService {
 
     // 4. Uploader le nouveau fichier sous un chemin versionné.
     onProgress?.(35);
-    const storagePath = `${orgId}/${docId}/v${nextNum}/${Date.now()}-${file.name}`;
+    const storagePath = `${orgId}/${docId}/v${nextNum}/${Date.now()}-${this._safeStorageName(file.name)}`;
     const { error: upErr } = await this._sb.storage
       .from(this._bucket).upload(storagePath, file, { upsert: false });
     if (upErr) throw new Error(`Erreur upload Storage : ${upErr.message}`);

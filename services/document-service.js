@@ -136,7 +136,7 @@ class DocumentService extends BaseService {
 
     onProgress?.(30);
 
-    const storagePath = `${orgId}/${inserted.id}/${Date.now()}-${file.name}`;
+    const storagePath = `${orgId}/${inserted.id}/${Date.now()}-${this._safeStorageName(file.name)}`;
     const { error: uploadErr } = await this._sb.storage
       .from(this._bucket)
       .upload(storagePath, file, { upsert: false });
