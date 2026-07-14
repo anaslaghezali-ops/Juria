@@ -16,6 +16,13 @@
 
 class SynthesisService extends BaseService {
 
+  // Version du PROMPT d'extraction. Incrémenter à chaque changement de format
+  // d'extrait (clés, terminologie…) : les extraits en cache portant une autre
+  // version sont ignorés et ré-extraits.
+  // v2 : table des parties injectée + format strictement descriptif (retrait
+  //      de clauses_sensibles / clauses_inhabituelles).
+  static EXTRACT_PV = 2;
+
   constructor(supabaseClient, store) {
     super(supabaseClient, 'document_analyses', store);
     this._summariesTable = 'document_summaries';
@@ -100,7 +107,7 @@ class SynthesisService extends BaseService {
    * @param {Object} opts
    *   - orgId       {string}
    *   - userId      {string}
-   *   - audit       {Object|null}  — { score, risks: [...] } de l'analyse existante
+   *   (l'« audit » de risques n'est plus accepté : la note est descriptive)
    *   - onProgress  {Function}     — (phaseId, {done, total, label})
    *   - onSection   {Function}     — (sectionId, title) au début de chaque section rédigée
    *   - onDelta     {Function}     — (texte) à chaque fragment streamé
@@ -142,10 +149,21 @@ class SynthesisService extends BaseService {
     // ── PHASE 0bis : STRUCTURE ─────────────────────────────────────────
     progress('structure', { label: 'Découpage du document…' });
     const sections = this._splitIntoSections(fullText);
-    progress('structure', { done: 1, total: 1, label: `${sections.length} sections identifiées` });
+
+    // Étape 0 : table des parties (« qui est qui ») — lue une fois sur
+    // l'ouverture du contrat (comparution + définitions), puis injectée dans
+    // TOUS les appels pour une terminologie cohérente (« le Prêteur (Banque X) »
+    // partout, jamais « émetteur de crédit » inventé). Best-effort : sans
+    // table, la synthèse fonctionne comme avant.
+    progress('structure', { label: 'Identification des parties…' });
+    const partiesTable = await this._fetchPartiesTable(fullText, doc.name, token);
+    progress('structure', {
+      done: 1, total: 1,
+      label: `${sections.length} sections · ${partiesTable.length} partie${partiesTable.length > 1 ? 's' : ''} identifiée${partiesTable.length > 1 ? 's' : ''}`,
+    });
 
     // ── PHASE 1 : MAP (extraction par section, avec cache) ─────────────
-    const extracts = await this._mapPhase(doc, sections, token, opts.orgId, progress);
+    const extracts = await this._mapPhase(doc, sections, token, opts.orgId, progress, partiesTable);
 
     // ── PHASE 2 : DOSSIER D'INSTRUCTION (qid + ancrage + consolidation) ─
     progress('consolidate', { label: 'Constitution du dossier…' });
@@ -167,7 +185,7 @@ class SynthesisService extends BaseService {
     let finalDossier = dossier;
     const dossierSize = JSON.stringify(dossier).length;
     if (dossierSize > 120000) {
-      finalDossier = await this._llmConsolidate(dossier, token, progress);
+      finalDossier = await this._llmConsolidate(dossier, token, progress, partiesTable);
     }
     progress('consolidate', {
       done: 1, total: 1,
@@ -192,7 +210,7 @@ class SynthesisService extends BaseService {
         dossier: this._filterDossierForGroup(finalDossier, group),
         model: models[group],
         docMeta,
-        audit: group === 'C' ? (opts.audit || null) : null,
+        partiesTable,
         memoSoFar: group === 'C' ? this._memoDigest(sectionsOut) : null,
         token,
         onSection: opts.onSection,
@@ -322,9 +340,13 @@ class SynthesisService extends BaseService {
     });
   }
 
-  async _mapPhase(doc, sections, token, orgId, progress) {
+  async _mapPhase(doc, sections, token, orgId, progress, partiesTable) {
     // Cache : extraits déjà calculés pour CETTE version du document.
     // Les extraits vides (échecs passés) sont ignorés → ré-extraits.
+    // Le marqueur _pv versionne le PROMPT d'extraction : les extraits produits
+    // avant la table des parties / le format descriptif (_pv ≠ EXTRACT_PV)
+    // sont ignorés et ré-extraits — sinon l'ancienne terminologie incohérente
+    // resterait figée dans le cache.
     const { data: cached } = await this._sb
       .from(this._summariesTable)
       .select('section_index, extract')
@@ -334,7 +356,7 @@ class SynthesisService extends BaseService {
       .order('section_index');
 
     const cacheMap = new Map((cached || [])
-      .filter(r => this._isUsableExtract(r.extract))
+      .filter(r => this._isUsableExtract(r.extract) && r.extract._pv === SynthesisService.EXTRACT_PV)
       .map(r => [r.section_index, r.extract]));
     const extracts = new Array(sections.length).fill(null);
     const toDo = [];
@@ -349,7 +371,8 @@ class SynthesisService extends BaseService {
 
     const self = this;
     const tasks = toDo.map(i => async function () {
-      const extract = await self._extractSection(sections[i], doc.name, token);
+      const extract = await self._extractSection(sections[i], doc.name, token, partiesTable);
+      if (extract && typeof extract === 'object') extract._pv = SynthesisService.EXTRACT_PV;
       extracts[i] = extract;
 
       // Ne JAMAIS mettre en cache un extrait vide (échec d'appel) :
@@ -374,12 +397,43 @@ class SynthesisService extends BaseService {
     return extracts;
   }
 
-  async _extractSection(section, docName, token, attempt = 0) {
+  /**
+   * Étape 0 — table des parties. Un appel léger sur l'ouverture du contrat
+   * (comparution + définitions vivent dans les premières pages). Best-effort :
+   * toute erreur → tableau vide, la synthèse continue sans table.
+   */
+  async _fetchPartiesTable(fullText, docName, token) {
     try {
       const res = await fetch(JURIA_CONFIG.SYNTHESIS_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-        body: JSON.stringify({ mode: 'extract', context: section.text, doc_name: docName }),
+        body: JSON.stringify({
+          mode: 'parties_table',
+          context: String(fullText).slice(0, 30000),
+          doc_name: docName,
+        }),
+      });
+      if (!res.ok) return [];
+      const data = await res.json();
+      const parties = Array.isArray(data.parties) ? data.parties : [];
+      console.log('[SynthesisService] Table des parties :',
+        parties.map(p => `${p.terme_defini} = ${p.entite}`).join(' · ') || '(vide)');
+      return parties;
+    } catch (e) {
+      console.warn('[SynthesisService] Table des parties indisponible :', e.message);
+      return [];
+    }
+  }
+
+  async _extractSection(section, docName, token, partiesTable, attempt = 0) {
+    try {
+      const res = await fetch(JURIA_CONFIG.SYNTHESIS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({
+          mode: 'extract', context: section.text, doc_name: docName,
+          parties_table: (partiesTable && partiesTable.length) ? partiesTable : undefined,
+        }),
       });
       const data = await res.json();
       if (res.status === 429) {
@@ -394,7 +448,7 @@ class SynthesisService extends BaseService {
       return data.extract || {};
     } catch (e) {
       if (e.fatal) throw e;
-      if (attempt < 1) return this._extractSection(section, docName, token, attempt + 1);
+      if (attempt < 1) return this._extractSection(section, docName, token, partiesTable, attempt + 1);
       console.warn('[SynthesisService] Section non extraite (ignorée) :', e.message);
       return {};  // une section en échec n'annule pas la note entière
     }
@@ -406,8 +460,7 @@ class SynthesisService extends BaseService {
 
   _buildDossier(extracts, sections, fullText, pageMap) {
     const LIST_KEYS = ['parties', 'obligations', 'montants', 'dates', 'garanties',
-      'responsabilites', 'resiliation', 'pi_confidentialite', 'donnees_personnelles',
-      'clauses_sensibles', 'clauses_inhabituelles'];
+      'responsabilites', 'resiliation', 'pi_confidentialite', 'donnees_personnelles'];
     const SINGLE_KEYS = ['duree', 'droit_applicable'];
 
     const dossier = { objet: null, contexte: [], questions_ouvertes: [] };
@@ -530,12 +583,12 @@ class SynthesisService extends BaseService {
     const KEYS = {
       // A — factuel : objet, parties, obligations, finances, calendrier, durée
       A: ['parties', 'obligations', 'montants', 'dates', 'duree'],
-      // B — analyse : régimes, portées, clauses
+      // B — régimes du contrat (descriptif)
       B: ['garanties', 'responsabilites', 'resiliation', 'droit_applicable',
-          'pi_confidentialite', 'donnees_personnelles', 'clauses_sensibles', 'clauses_inhabituelles'],
-      // C — opinion : tout ce qui fonde une hiérarchisation et un avis
-      C: ['obligations', 'montants', 'garanties', 'responsabilites', 'resiliation',
-          'droit_applicable', 'clauses_sensibles', 'clauses_inhabituelles', 'questions_ouvertes'],
+          'pi_confidentialite', 'donnees_personnelles'],
+      // C — questions ouvertes + executive summary (le digest du mémo fournit
+      // la vue d'ensemble ; pas de clés de risque : note purement descriptive)
+      C: ['questions_ouvertes'],
     };
 
     const out = {
@@ -560,13 +613,16 @@ class SynthesisService extends BaseService {
     ).join('\n\n').slice(0, 12000);
   }
 
-  async _llmConsolidate(dossier, token, progress) {
+  async _llmConsolidate(dossier, token, progress, partiesTable) {
     // Consolidation LLM par lots des listes volumineuses uniquement
     progress('consolidate', { label: 'Consolidation du dossier…' });
     const res = await fetch(JURIA_CONFIG.SYNTHESIS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-      body: JSON.stringify({ mode: 'consolidate', extracts: [dossier] }),
+      body: JSON.stringify({
+        mode: 'consolidate', extracts: [dossier],
+        parties_table: (partiesTable && partiesTable.length) ? partiesTable : undefined,
+      }),
     });
     const data = await res.json();
     if (!res.ok) {
@@ -580,14 +636,14 @@ class SynthesisService extends BaseService {
   //  PHASE 3 — Rédaction streamée (SSE)
   // ══════════════════════════════════════════════════════════════════════
 
-  async _composeGroup({ group, dossier, model, docMeta, audit, memoSoFar, token, onSection, onDelta, collected }) {
+  async _composeGroup({ group, dossier, model, docMeta, partiesTable, memoSoFar, token, onSection, onDelta, collected }) {
     const res = await fetch(JURIA_CONFIG.SYNTHESIS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
       body: JSON.stringify({
         mode: 'compose', group, dossier, doc_meta: docMeta,
         model: model || undefined,
-        audit: audit || undefined,
+        parties_table: (partiesTable && partiesTable.length) ? partiesTable : undefined,
         memo_so_far: memoSoFar || undefined,
       }),
     });

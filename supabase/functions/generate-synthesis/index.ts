@@ -161,8 +161,6 @@ Réponds UNIQUEMENT en JSON valide avec cette structure (omets les clés sans ma
   "droit_applicable": {"loi": "", "juridiction": "", "arbitrage": "", "langue": "", "article": null, "quote": ""},
   "pi_confidentialite": [{"sujet": "", "regime": "", "article": null, "quote": ""}],
   "donnees_personnelles": [{"sujet": "", "regime": "", "article": null, "quote": ""}],
-  "clauses_sensibles": [{"titre": "", "analyse": "pourquoi c'est sensible", "criticite": "haute|moyenne|basse", "article": null, "quote": ""}],
-  "clauses_inhabituelles": [{"titre": "", "en_quoi_inhabituelle": "", "article": null, "quote": ""}],
   "questions_ouvertes": ["zone d'ombre, renvoi vide, annexe manquante…"]
 }
 
@@ -170,7 +168,32 @@ RÈGLES IMPÉRATIVES :
 - "quote" = COPIE EXACTE du texte source (15-60 mots), jamais reformulée. C'est une exigence absolue : ces verbatims servent à ancrer les citations dans le document.
 - N'invente RIEN. Ce qui n'est pas dans la section n'existe pas.
 - "article" : uniquement si la référence (Article 5, Clause 12.3…) figure dans le texte.
-- Style télégraphique, factuel, sans opinion (l'opinion viendra plus tard).`;
+- Style télégraphique, factuel, STRICTEMENT DESCRIPTIF : aucune opinion, aucune qualification de risque.
+- TERMINOLOGIE DES PARTIES : désigne chaque partie par le TERME DÉFINI du contrat (ex : « le Prêteur », « l'Emprunteur », « l'Agent »), tel qu'écrit. N'utilise JAMAIS de synonyme ou de paraphrase de ton cru. Si une table des parties t'est fournie, respecte-la à la lettre ; une même entité peut agir en plusieurs qualités (Prêteur ET Agent) — ne fusionne jamais des qualités distinctes.`;
+
+// Étape 0 : « qui est qui » — lue une seule fois sur l'ouverture du contrat
+// (comparution + article Définitions), puis injectée à TOUS les étages pour
+// que « Banque X », « le Prêteur » et autres désignations restent cohérents.
+const PARTIES_TABLE_SYSTEM = `Tu es un collaborateur senior d'un cabinet d'avocats marocain.
+On te donne le DÉBUT d'un contrat (comparution des parties + définitions). Construis la table des parties.
+
+Réponds UNIQUEMENT en JSON valide :
+{"parties": [{"terme_defini": "terme exact utilisé dans le contrat (ex: le Prêteur, l'Emprunteur, l'Agent, les Garants)", "entite": "dénomination légale telle qu'écrite (ex: Banque X S.A.)", "qualite": "rôle en un mot ou deux (prêteur, emprunteur, agent du crédit, arrangeur, garant…)"}]}
+
+RÈGLES :
+- Une entrée PAR TERME DÉFINI : si Banque X est à la fois « Prêteur » et « Agent », deux entrées (même entite, qualites différentes).
+- Inclus les termes collectifs (« les Prêteurs », « les Parties ») s'ils sont définis.
+- "entite" et "terme_defini" recopiés tels qu'écrits dans le texte, sans reformulation.
+- N'invente rien : uniquement ce qui figure dans l'extrait fourni. Tableau vide si aucune partie identifiable.`;
+
+// Bloc de prompt partagé : injecté dans extract / consolidate / compose dès
+// que le client fournit la table.
+function partiesClause(partiesTable: unknown): string {
+  if (!Array.isArray(partiesTable) || partiesTable.length === 0) return "";
+  const rows = partiesTable.slice(0, 24).map((p: any) =>
+    `- « ${p.terme_defini} » = ${p.entite}${p.qualite ? ` (${p.qualite})` : ""}`).join("\n");
+  return `\n\nTABLE DES PARTIES (termes définis du contrat) :\n${rows}\nRÈGLE ABSOLUE DE TERMINOLOGIE : désigne TOUJOURS chaque partie par son terme défini EXACT ci-dessus — jamais de synonyme, jamais de paraphrase (pas d'« émetteur de crédit » si le contrat dit « le Prêteur »). Une même entité peut cumuler plusieurs qualités : ne fusionne jamais deux termes définis distincts.`;
+}
 
 const CONSOLIDATE_SYSTEM = `Tu es un collaborateur senior. On te donne plusieurs extraits JSON issus de différentes sections d'un même contrat (même structure de clés).
 Fusionne-les en UN SEUL JSON de même structure :
@@ -208,36 +231,30 @@ const GROUPS: Record<string, { sections: [string, string][]; instructions: strin
       ["droit_litiges", "Droit applicable et règlement des litiges"],
       ["pi_confidentialite", "Propriété intellectuelle et confidentialité"],
       ["donnees_personnelles", "Données personnelles (loi 09-08)"],
-      ["clauses_sensibles", "Clauses sensibles"],
-      ["clauses_inhabituelles", "Clauses inhabituelles"],
     ],
-    instructions: `Rédige les sections d'ANALYSE du mémo. Tu passes du factuel à la lecture juridique : régimes, portées, asymétries entre les parties.
-- "Droit applicable" : sois précis sur l'arbitrage (institution, siège, langue) vs juridictions étatiques — point critique en droit marocain.
-- "Données personnelles" et "Propriété intellectuelle" : UNIQUEMENT si le dossier contient de la matière ; sinon omets entièrement ces sections.
-- "Clauses inhabituelles" : compare aux standards de place ; dis en quoi la rédaction s'écarte de l'usage.`,
+    instructions: `Rédige les sections consacrées aux RÉGIMES du contrat. Tu restes STRICTEMENT DESCRIPTIF : tu restitues ce que le contrat stipule (régimes, portées, conditions), sans avis d'opportunité ni qualification de risque.
+- "Droit applicable" : sois précis sur l'arbitrage (institution, siège, langue) vs juridictions étatiques.
+- "Données personnelles" et "Propriété intellectuelle" : UNIQUEMENT si le dossier contient de la matière ; sinon omets entièrement ces sections.`,
   },
   C: {
     sections: [
-      ["vigilance", "Points de vigilance"],
-      ["risques", "Risques par criticité"],
-      ["renegociation", "Leviers de renégociation"],
       ["questions", "Questions ouvertes"],
-      ["conclusion", "Conclusion et recommandation"],
       ["executive_summary", "Executive Summary"],
     ],
-    instructions: `Rédige les sections d'OPINION du mémo. C'est ici que tu apportes la valeur d'un senior : hiérarchiser, alerter, recommander.
-- "Risques par criticité" : 🔴 Critique / 🟠 Élevé / 🟡 Modéré / 🟢 Faible, les plus graves d'abord. Si une analyse de risques préalable est fournie dans le dossier, appuie-toi dessus et reste cohérent avec elle.
-- "Leviers de renégociation" : pour chaque levier, l'argument à opposer.
-- "Questions ouvertes" : zones d'ombre, annexes manquantes, renvois vides.
-- "Conclusion et recommandation" : avis actionnable et assumé — signer en l'état / signer après corrections (lesquelles) / ne pas signer.
-- "Executive Summary" : rédigé EN DERNIER, 8-12 lignes autoportantes qui synthétisent TON mémo (pas le contrat). Un lecteur pressé ne lira que ça.`,
+    instructions: `Termine le mémo, toujours en restant STRICTEMENT DESCRIPTIF.
+- "Questions ouvertes" : zones d'ombre du DOCUMENT lui-même — renvois vides, annexes manquantes, définitions absentes, incohérences internes. Constate, ne juge pas.
+- "Executive Summary" : rédigé EN DERNIER, 8-12 lignes autoportantes qui résument fidèlement le CONTENU du contrat (objet, parties, économie, régimes clés, dates majeures). Un lecteur pressé ne lira que ça. AUCUNE recommandation, AUCUN avis.`,
   },
 };
 
-function composeSystem(group: string): string {
+function composeSystem(group: string, partiesTable?: unknown): string {
   const plan = GROUPS[group];
   const sectionList = plan.sections.map(([id, title]) => `<<<SECTION:${id}|${title}>>>`).join("\n");
   return `Tu es un collaborateur senior d'un cabinet d'avocats d'affaires marocain. Tu rédiges une note de synthèse professionnelle destinée à un Directeur Juridique ou un Associé — un document transmissible tel quel.
+
+NATURE DU DOCUMENT — RÈGLE CARDINALE : cette note est STRICTEMENT DESCRIPTIVE. Elle restitue ce que le contrat stipule, rien d'autre. INTERDITS ABSOLUS : recommandations (« nous recommandons », « il conviendrait de »), avis d'opportunité (signer / ne pas signer / renégocier), qualifications de risque (🔴🟠🟡, « risque élevé », « clause dangereuse »), hiérarchisations par criticité. Si une stipulation est asymétrique ou inhabituelle, décris-la factuellement sans la qualifier.
+${partiesClause(partiesTable)}
+RÈGLE DE DÉSIGNATION DES PARTIES : à la PREMIÈRE occurrence d'une partie dans chaque section, écris « terme défini (Entité) » — ex. « le Prêteur (Banque X) » ; ensuite, le terme défini seul, IDENTIQUE d'un bout à l'autre du mémo.
 
 On te fournit le DOSSIER D'INSTRUCTION : un JSON d'extraits factuels du contrat, où chaque élément porte un identifiant "qid" (ex: "q17").
 
@@ -290,7 +307,7 @@ Deno.serve(async (req) => {
     }
 
     // ── QUOTA : appliqué avant tout appel IA facturable ──────────────
-    if (mode === "extract" || mode === "compose") {
+    if (mode === "extract" || mode === "compose" || mode === "parties_table") {
       try {
         const orgId = await getOrgIdForUser(userId);
         const quotaCheck = await checkOrgQuota(orgId, "synthesis", 1);
@@ -309,6 +326,34 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ── MODE PARTIES_TABLE (étape 0 : « qui est qui ») ────────────────
+    // Un seul appel léger sur l'ouverture du contrat ; la table renvoyée est
+    // réinjectée par le client dans extract / consolidate / compose pour une
+    // terminologie cohérente (fin des « Prêteur / Banque X / émetteur »).
+    if (mode === "parties_table") {
+      const { context, doc_name } = body;
+      if (!context || typeof context !== "string" || context.length > 40000) {
+        return errorResponse(400, "context requis (max 40KB)", corsHeaders);
+      }
+      try {
+        const answer = await callGPT("gpt-4o-mini", [
+          { role: "system", content: PARTIES_TABLE_SYSTEM },
+          { role: "user", content: `Contrat : ${doc_name || "—"}\n\nDÉBUT DU CONTRAT :\n${context}` },
+        ], { maxTokens: 1200, temperature: 0, json: true });
+        const parsed = JSON.parse(answer);
+        return new Response(JSON.stringify({ parties: Array.isArray(parsed?.parties) ? parsed.parties : [] }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (_e) {
+        // Étape best-effort : sans table, la synthèse reste possible (mode dégradé).
+        return new Response(JSON.stringify({ parties: [] }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     // ── MODE EXTRACT (MAP) ───────────────────────────────────────────
     if (mode === "extract") {
       const { context, doc_name } = body;
@@ -316,7 +361,7 @@ Deno.serve(async (req) => {
         return errorResponse(400, "context requis (max 80KB)", corsHeaders);
       }
       const answer = await callGPT("gpt-4o-mini", [
-        { role: "system", content: EXTRACT_SYSTEM },
+        { role: "system", content: EXTRACT_SYSTEM + partiesClause(body.parties_table) },
         { role: "user", content: `Contrat : ${doc_name || "—"}\n\nSECTION À INSTRUIRE :\n${context}` },
       ], { maxTokens: 3000, temperature: 0, json: true });
 
@@ -337,7 +382,7 @@ Deno.serve(async (req) => {
         return errorResponse(400, "extracts trop volumineux (max 150KB)", corsHeaders);
       }
       const answer = await callGPT("gpt-4o-mini", [
-        { role: "system", content: CONSOLIDATE_SYSTEM },
+        { role: "system", content: CONSOLIDATE_SYSTEM + partiesClause(body.parties_table) },
         { role: "user", content: payload },
       ], { maxTokens: 8000, temperature: 0, json: true });
 
@@ -349,7 +394,7 @@ Deno.serve(async (req) => {
 
     // ── MODE COMPOSE (rédaction streamée) ────────────────────────────
     if (mode === "compose") {
-      const { dossier, group, doc_meta, audit } = body;
+      const { dossier, group, doc_meta } = body;
       if (!dossier || !GROUPS[group]) {
         return errorResponse(400, "dossier et group (A|B|C) requis", corsHeaders);
       }
@@ -364,16 +409,16 @@ Deno.serve(async (req) => {
       let userContent = `DOCUMENT : ${doc_meta?.name || "—"}`;
       if (doc_meta?.pages) userContent += ` (${doc_meta.pages} pages)`;
       userContent += `\n\nDOSSIER D'INSTRUCTION :\n${dossierStr}`;
-      if (group === "C" && audit) {
-        userContent += `\n\nANALYSE DE RISQUES PRÉALABLE (reste cohérent avec elle) :\n${JSON.stringify(audit).slice(0, 20000)}`;
-      }
+      // NOTE : l'« analyse de risques préalable » n'est plus injectée — la
+      // note de synthèse est strictement descriptive (ni risques, ni
+      // recommandations) ; l'analyse de risques vit dans son propre écran.
       if (group === "C" && body.memo_so_far) {
         // Digest du mémo (titres + amorces), pas le texte intégral
         userContent += `\n\nDIGEST DES SECTIONS DÉJÀ RÉDIGÉES (pour l'Executive Summary) :\n${String(body.memo_so_far).slice(0, 15000)}`;
       }
 
       return await streamGPT(composeModel, [
-        { role: "system", content: composeSystem(group) },
+        { role: "system", content: composeSystem(group, body.parties_table) },
         { role: "user", content: userContent },
       ], 6000, corsHeaders);
     }

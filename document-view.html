@@ -1233,19 +1233,11 @@ async function startSynthesis(isRegen) {
   let liveBuffer = '';
 
   try {
-    // L'audit existant enrichit les sections risques (cohérence audit ↔ mémo)
-    let audit = null;
-    if (currentAnalysis) {
-      const { data: risks } = await _sb.from('document_risks')
-        .select('clause_name, clause_ref, problem, suggestion, severity, category')
-        .eq('analysis_id', currentAnalysis.id).order('position').limit(40);
-      audit = { score: currentAnalysis.score, summary: currentAnalysis.summary, risks: risks || [] };
-    }
-
+    // NOTE : la note de synthèse est strictement DESCRIPTIVE — l'analyse de
+    // risques n'y est plus injectée (elle vit dans son propre onglet).
     const row = await synthesisService.generate(currentDoc, {
       orgId: currentOrgId,
       userId: currentUser.id,
-      audit,
       onProgress: (phase, info) => {
         setGenStep(phase, info);
         if (info && info.label) liveStatus.textContent = info.label;
