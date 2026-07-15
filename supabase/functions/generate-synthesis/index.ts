@@ -153,6 +153,8 @@ Réponds UNIQUEMENT en JSON valide avec cette structure (omets les clés sans ma
   "objet": "objet du contrat si cette section le définit, sinon omets",
   "obligations": [{"partie": "qui est obligé", "texte": "quoi", "echeance": "quand/délai ou null", "sanction": "conséquence du manquement ou null", "article": "réf. article/clause si mentionnée ou null", "quote": "verbatim exact 15-60 mots"}],
   "montants": [{"objet": "", "montant": "", "devise": "", "article": null, "quote": ""}],
+  "taux_interet": {"type": "fixe ou variable", "taux": "ex: 5,70% HT l'an", "base": "base de calcul, ex: 360 jours", "interets_retard": "majoration en cas de retard, ex: taux + 2%", "article": null, "quote": ""},
+  "remboursement": [{"modalite": "amortissement / différé / in fine / ballon / anticipé", "echeancier": "nombre d'échéances, périodicité, différé, ballon…", "montant": "", "article": null, "quote": ""}],
   "dates": [{"evenement": "", "date_ou_delai": "", "article": null, "quote": ""}],
   "duree": {"texte": "durée/renouvellement/tacite reconduction", "article": null, "quote": ""},
   "garanties": [{"type": "", "portee": "", "article": null, "quote": ""}],
@@ -168,6 +170,7 @@ RÈGLES IMPÉRATIVES :
 - "quote" = COPIE EXACTE du texte source (15-60 mots), jamais reformulée. C'est une exigence absolue : ces verbatims servent à ancrer les citations dans le document.
 - N'invente RIEN. Ce qui n'est pas dans la section n'existe pas.
 - "article" : uniquement si la référence (Article 5, Clause 12.3…) figure dans le texte.
+- CONTRATS DE FINANCEMENT (crédit, prêt, ouverture de crédit) : si la section fixe le TAUX D'INTÉRÊT (pourcentage, type fixe/variable, base 360/365), les INTÉRÊTS DE RETARD, ou l'ÉCHÉANCIER DE REMBOURSEMENT (nombre d'échéances, périodicité, période de différé, amortissement, échéance ballon/in fine, remboursement anticipé), capture-les IMPÉRATIVEMENT dans "taux_interet" et "remboursement". Ce sont les données CENTRALES d'un financement : ne les laisse JAMAIS tomber dans "montants" ni les omettre.
 - Style télégraphique, factuel, STRICTEMENT DESCRIPTIF : aucune opinion, aucune qualification de risque.
 - TERMINOLOGIE DES PARTIES : désigne chaque partie par le TERME DÉFINI du contrat (ex : « le Prêteur », « l'Emprunteur », « l'Agent »), tel qu'écrit. N'utilise JAMAIS de synonyme ou de paraphrase de ton cru. Si une table des parties t'est fournie, respecte-la à la lettre ; une même entité peut agir en plusieurs qualités (Prêteur ET Agent) — ne fusionne jamais des qualités distinctes.`;
 
@@ -213,6 +216,8 @@ const GROUPS: Record<string, { sections: [string, string][]; instructions: strin
       ["structure", "Structure du document"],
       ["obligations", "Obligations des parties"],
       ["finances", "Conditions financières"],
+      ["taux", "Taux d'intérêt et intérêts de retard"],
+      ["remboursement", "Modalités de remboursement"],
       ["calendrier", "Calendrier contractuel"],
       ["duree", "Durée, renouvellement et reconduction"],
     ],
@@ -220,6 +225,9 @@ const GROUPS: Record<string, { sections: [string, string][]; instructions: strin
 - "Parties" : identités, rôles, groupes.
 - "Économie générale" : la physique du deal en 5-8 lignes — qui apporte quoi, qui paie quoi, qui supporte quels risques.
 - "Obligations des parties" : tableau markdown | Partie | Obligation | Échéance | Sanction |.
+- "Conditions financières" : commissions, frais et assurances (objet, montant ou taux). N'y répète pas le taux d'intérêt ni l'échéancier : ils ont leur propre section.
+- "Taux d'intérêt et intérêts de retard" : indique le taux EXACT (type fixe/variable, pourcentage, base de calcul 360/365) et le régime des intérêts de retard. Si le dossier fixe un taux, ne l'omets JAMAIS ; n'omets cette section que si le dossier ne contient réellement aucun taux.
+- "Modalités de remboursement" : profil d'amortissement (nombre d'échéances, périodicité, période de différé, échéance ballon / in fine) et conditions de remboursement anticipé. N'omets cette section que si le dossier est réellement muet sur le remboursement.
 - "Calendrier contractuel" : liste chronologique des dates et délais.
 - "Contexte" : UNIQUEMENT si le dossier contient des éléments de contexte (préambule, considérants) ; sinon omets entièrement la section.`,
   },
@@ -255,6 +263,8 @@ function composeSystem(group: string, partiesTable?: unknown): string {
 NATURE DU DOCUMENT — RÈGLE CARDINALE : cette note est STRICTEMENT DESCRIPTIVE. Elle restitue ce que le contrat stipule, rien d'autre. INTERDITS ABSOLUS : recommandations (« nous recommandons », « il conviendrait de »), avis d'opportunité (signer / ne pas signer / renégocier), qualifications de risque (🔴🟠🟡, « risque élevé », « clause dangereuse »), hiérarchisations par criticité. Si une stipulation est asymétrique ou inhabituelle, décris-la factuellement sans la qualifier.
 ${partiesClause(partiesTable)}
 RÈGLE DE DÉSIGNATION DES PARTIES : à la PREMIÈRE occurrence d'une partie dans chaque section, écris « terme défini (Entité) » — ex. « le Prêteur (Banque X) » ; ensuite, le terme défini seul, IDENTIQUE d'un bout à l'autre du mémo.
+
+RÈGLE ANTI-REDONDANCE : chaque fait n'est énoncé qu'UNE fois, dans la section la plus pertinente. Ne re-développe pas dans une section un élément déjà traité ailleurs (montant du crédit, une même sûreté, un même délai) — tout au plus une brève référence. Si le dossier contient DEUX formulations de la même clause (ex. une hypothèque de premier rang décrite dans deux extraits), FUSIONNE-les en une seule entrée ; ne les liste pas deux fois.
 
 On te fournit le DOSSIER D'INSTRUCTION : un JSON d'extraits factuels du contrat, où chaque élément porte un identifiant "qid" (ex: "q17").
 

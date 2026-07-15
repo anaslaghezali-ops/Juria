@@ -21,7 +21,9 @@ class SynthesisService extends BaseService {
   // version sont ignorés et ré-extraits.
   // v2 : table des parties injectée + format strictement descriptif (retrait
   //      de clauses_sensibles / clauses_inhabituelles).
-  static EXTRACT_PV = 2;
+  // v3 : champs dédiés taux_interet + remboursement (contrats de financement) —
+  //      le taux et l'échéancier ne fuient plus dans "montants"/"duree".
+  static EXTRACT_PV = 3;
 
   constructor(supabaseClient, store) {
     super(supabaseClient, 'document_analyses', store);
@@ -459,9 +461,9 @@ class SynthesisService extends BaseService {
   // ══════════════════════════════════════════════════════════════════════
 
   _buildDossier(extracts, sections, fullText, pageMap) {
-    const LIST_KEYS = ['parties', 'obligations', 'montants', 'dates', 'garanties',
-      'responsabilites', 'resiliation', 'pi_confidentialite', 'donnees_personnelles'];
-    const SINGLE_KEYS = ['duree', 'droit_applicable'];
+    const LIST_KEYS = ['parties', 'obligations', 'montants', 'remboursement', 'dates',
+      'garanties', 'responsabilites', 'resiliation', 'pi_confidentialite', 'donnees_personnelles'];
+    const SINGLE_KEYS = ['taux_interet', 'duree', 'droit_applicable'];
 
     const dossier = { objet: null, contexte: [], questions_ouvertes: [] };
     LIST_KEYS.forEach(k => { dossier[k] = []; });
@@ -510,7 +512,8 @@ class SynthesisService extends BaseService {
         if (Array.isArray(ex[k])) ex[k].forEach(item => dossier[k].push(anchor(item, i)));
       });
       SINGLE_KEYS.forEach(k => {
-        if (ex[k] && typeof ex[k] === 'object' && (ex[k].quote || ex[k].texte || ex[k].loi)) {
+        if (ex[k] && typeof ex[k] === 'object' &&
+            (ex[k].quote || ex[k].texte || ex[k].loi || ex[k].taux)) {
           dossier[k].push(anchor(ex[k], i));
         }
       });
@@ -526,6 +529,26 @@ class SynthesisService extends BaseService {
       if (!key || seen.has(key)) return false;
       seen.add(key);
       return true;
+    });
+
+    // Dédoublonnage des listes par citation : une clause à cheval sur une
+    // frontière de section est extraite deux fois avec le MÊME verbatim. On
+    // garde le premier item (donc son ancrage) et on écarte les répliques. Les
+    // items sans citation ne sont pas comparés (aucune signature fiable).
+    const quoteSig = (qid) => {
+      const q = qid && quotes[qid] && quotes[qid].quote;
+      return q ? String(q).toLowerCase().replace(/\s+/g, ' ').trim() : null;
+    };
+    LIST_KEYS.forEach(k => {
+      if (k === 'parties') return;   // déjà dédoublonné par nom ci-dessus
+      const seenQuotes = new Set();
+      dossier[k] = dossier[k].filter(item => {
+        const sig = item && item.qid ? quoteSig(item.qid) : null;
+        if (!sig) return true;
+        if (seenQuotes.has(sig)) return false;
+        seenQuotes.add(sig);
+        return true;
+      });
     });
 
     return { dossier, quotes };
@@ -581,8 +604,9 @@ class SynthesisService extends BaseService {
    */
   _filterDossierForGroup(dossier, group) {
     const KEYS = {
-      // A — factuel : objet, parties, obligations, finances, calendrier, durée
-      A: ['parties', 'obligations', 'montants', 'dates', 'duree'],
+      // A — factuel : objet, parties, obligations, finances, taux, remboursement,
+      //     calendrier, durée
+      A: ['parties', 'obligations', 'montants', 'taux_interet', 'remboursement', 'dates', 'duree'],
       // B — régimes du contrat (descriptif)
       B: ['garanties', 'responsabilites', 'resiliation', 'droit_applicable',
           'pi_confidentialite', 'donnees_personnelles'],
